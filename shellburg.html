@@ -1,0 +1,602 @@
+<title>Shellburg</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Gaegu:wght@400;700&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1d2b36;--ink2:#2f4150;--paper:#fffaf0;--paper2:#f4ead6;--sea:#2bb3b1;--deep:#0e4d64;--coral:#ff7a6b;--mustard:#f2c14e;--moss:#7fb58f;--shell:#8a6a3d;--good:#2f9e6e;--bad:#d9534f;color-scheme:light}
+html,body{height:100%;margin:0}
+body{background:#0e4d64;color:var(--ink);font-family:Rubik,system-ui,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none}
+#stage{position:fixed;inset:0}#stage canvas{display:block;width:100%;height:100%;touch-action:none}
+.ui{position:fixed;z-index:2}
+.pill{background:var(--paper);border-radius:14px;box-shadow:0 4px 0 rgba(29,43,54,.18),0 10px 24px rgba(0,0,0,.12)}
+#stats{top:calc(12px + env(safe-area-inset-top,0px));left:12px;right:12px;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none}
+.stat{display:flex;align-items:center;gap:7px;padding:7px 12px 7px 9px;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;pointer-events:auto;position:relative}
+.stat svg{width:22px;height:22px;flex:none}
+.stat small{font-weight:500;font-size:11px;color:#6b7a86;margin-left:2px}
+.stat .d{font-size:11px;font-weight:700;margin-left:3px}
+.stat .d.up{color:var(--good)}.stat .d.dn{color:var(--bad)}
+.stat .meter{width:54px;height:8px;border-radius:5px;background:#e6dcc8;overflow:hidden}
+.stat .meter i{display:block;height:100%;border-radius:5px;transition:width .5s}
+.stat[data-tip]:hover::after{content:attr(data-tip);position:absolute;top:calc(100% + 8px);left:0;width:220px;background:var(--ink);color:var(--paper);font-weight:400;font-size:12px;line-height:1.45;padding:9px 11px;border-radius:10px;white-space:normal;z-index:9}
+#voyage{top:calc(66px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);width:min(560px,calc(100% - 24px));padding:9px 14px 10px;box-sizing:border-box}
+#voyage .row{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:#6b7a86;margin-bottom:6px}
+#voyage .row b{font-family:"Bagel Fat One",Rubik,sans-serif;font-weight:400;font-size:17px;color:var(--ink);letter-spacing:.02em}
+#track{position:relative;height:12px;border-radius:7px;overflow:hidden;display:flex}
+#track span{height:100%}
+#tmark{position:absolute;top:-5px;width:22px;height:22px;margin-left:-11px;transition:left .8s}
+#biomes{display:flex;font-size:10px;color:#8a97a2;margin-top:4px;letter-spacing:.04em}
+#biomes span{flex:none;text-transform:uppercase}
+#build{bottom:calc(12px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;gap:6px;padding:8px;max-width:calc(100% - 24px);overflow-x:auto;box-sizing:border-box}
+.tool{flex:none;width:84px;border:0;border-radius:11px;background:var(--paper2);padding:7px 5px 6px;font:inherit;cursor:pointer;display:grid;justify-items:center;gap:2px;color:var(--ink);transition:transform .12s}
+.tool:hover{transform:translateY(-3px)}
+.tool.on{background:var(--ink);color:var(--paper)}
+.tool.no{opacity:.45}
+.tool canvas{width:44px;height:36px}
+.tool .n{font-size:11px;font-weight:700;line-height:1.1;text-align:center}
+.tool .c{font-size:10px;color:#8a7a5a}.tool.on .c{color:var(--mustard)}
+.tool:focus-visible,button:focus-visible{outline:3px solid var(--mustard);outline-offset:2px}
+#side{left:12px;bottom:calc(112px + env(safe-area-inset-bottom,0px));display:grid;gap:8px;width:250px}
+#speed{display:flex;gap:4px;padding:6px}
+#speed button{flex:1;border:0;border-radius:9px;background:var(--paper2);font:inherit;font-weight:700;font-size:12px;padding:7px 0;cursor:pointer;color:var(--ink)}
+#speed button.on{background:var(--ink);color:var(--paper)}
+#log{padding:10px 12px;font-size:12px;line-height:1.5;max-height:150px;overflow:hidden;display:grid;gap:3px}
+#log div{opacity:.9}#log div:first-child{font-weight:700;opacity:1}
+#card{right:16px;top:50%;width:min(360px,calc(100% - 32px));transform:translate(120%,-50%);transition:transform .55s cubic-bezier(.2,.9,.25,1.15);padding:0;overflow:hidden;z-index:4}
+#card.show{transform:translate(0,-50%)}
+#card .top{display:flex;gap:12px;align-items:center;padding:16px 16px 6px}
+#card canvas{width:84px;height:84px;border-radius:50%;flex:none;box-shadow:0 0 0 4px var(--paper2)}
+#card .who{font-family:"Bagel Fat One",Rubik,sans-serif;font-size:20px;line-height:1.05}
+#card .role{font-size:12px;color:#7a8894;margin-top:3px}
+#card .say{font-family:Gaegu,"Comic Sans MS",cursive;font-size:22px;line-height:1.2;padding:8px 18px 12px;text-wrap:pretty}
+#card .opts{display:grid;gap:8px;padding:0 14px 16px}
+#card .opt{border:0;text-align:left;font:inherit;border-radius:12px;padding:10px 12px;background:var(--paper2);cursor:pointer;display:grid;gap:5px;color:var(--ink);transition:transform .12s,background .12s}
+#card .opt:hover{transform:translateX(-4px);background:#efe0c2}
+#card .opt b{font-size:15px}
+#card .fx{display:flex;flex-wrap:wrap;gap:4px}
+#card .fx span{font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;background:#fff}
+#card .fx .up{color:var(--good)}#card .fx .dn{color:var(--bad)}#card .fx .q{color:#7a6aa0}
+#card .day{position:absolute;top:10px;right:14px;font-size:11px;color:#9aa6b0}
+#tip{pointer-events:none;padding:9px 12px;font-size:12px;line-height:1.45;max-width:230px;z-index:3;display:none}
+#tip b{font-size:14px}
+#panel{padding:12px;width:230px;z-index:3;display:none;font-size:12px;line-height:1.45}
+#panel b{font-family:"Bagel Fat One",Rubik,sans-serif;font-weight:400;font-size:17px}
+#panel .acts{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+#panel button{border:0;border-radius:9px;padding:7px 10px;font:inherit;font-weight:700;font-size:12px;cursor:pointer;background:var(--paper2);color:var(--ink)}
+#panel button.pri{background:var(--ink);color:var(--paper)}
+#toast{left:50%;top:150px;transform:translateX(-50%);text-align:center;pointer-events:none;transition:opacity .5s,transform .5s;opacity:0}
+#toast .t{font-family:"Bagel Fat One",Rubik,sans-serif;font-size:clamp(24px,4vw,38px);color:var(--paper);text-shadow:0 3px 0 var(--ink),0 8px 22px rgba(0,0,0,.35);text-wrap:balance}
+#toast .s{font-size:13px;color:var(--paper);margin-top:4px;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+.modal{position:fixed;inset:0;z-index:6;display:grid;place-items:center;padding-inline:16px;background:rgba(14,77,100,.35);transition:opacity .6s}
+.modal.gone{opacity:0;pointer-events:none}
+.sheet{background:var(--paper);border-radius:22px;max-width:480px;width:100%;box-sizing:border-box;padding:26px 26px 22px;box-shadow:0 8px 0 rgba(29,43,54,.2),0 30px 80px rgba(0,0,0,.3);text-align:center}
+.sheet h1{font-family:"Bagel Fat One",Rubik,sans-serif;font-weight:400;font-size:clamp(46px,10vw,70px);line-height:.9;margin:6px 0 8px;color:var(--ink)}
+.sheet h1 span{color:var(--coral)}
+.sheet .eye{font-size:11px;letter-spacing:.24em;color:#7a8894;font-weight:700}
+.sheet p{font-size:14px;line-height:1.6;color:#4a5a66;margin:10px auto;max-width:42ch}
+.sheet p.hand{font-family:Gaegu,cursive;font-size:21px;color:var(--ink);line-height:1.25}
+.sheet .rules{text-align:left;display:grid;gap:6px;font-size:13px;color:#4a5a66;margin:14px 0 18px;padding:12px 14px;background:var(--paper2);border-radius:14px}
+.sheet .rules b{color:var(--ink)}
+.big{font-family:"Bagel Fat One",Rubik,sans-serif;font-size:21px;border:0;border-radius:999px;background:var(--coral);color:var(--paper);padding:13px 30px;cursor:pointer;box-shadow:0 4px 0 #c4544a}
+.big:active{transform:translateY(3px);box-shadow:0 1px 0 #c4544a}
+.big[disabled]{opacity:.5;cursor:wait}
+.sheet .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+.sheet .stats div{background:var(--paper2);border-radius:12px;padding:8px 4px;font-size:11px;color:#6b7a86}
+.sheet .stats b{display:block;font-size:20px;color:var(--ink);font-variant-numeric:tabular-nums}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:1}
+@media (max-width:760px){
+  .stat{padding:5px 9px 5px 7px;font-size:13px}.stat svg{width:18px;height:18px}.stat .meter{width:34px}.stat small{display:none}
+  #voyage{top:auto;bottom:calc(104px + env(safe-area-inset-bottom,0px));padding:7px 10px}#biomes{display:none}
+  #side{display:none}.tool{width:70px}.tool canvas{width:36px;height:30px}
+  #card{right:auto;left:50%;top:auto;bottom:12px;transform:translate(-50%,130%)}#card.show{transform:translate(-50%,0)}
+  #card .say{font-size:19px}
+}
+@media (prefers-reduced-motion:reduce){#card{transition:none}}
+</style>
+
+<div id="stage"></div><div id="flash"></div>
+
+<div class="ui" id="stats">
+  <div class="stat pill" id="s-pop" data-tip="Citizens. They grow when there's housing, food and some joy. Each eats half a kelp a day and pays a little tax."><svg viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="4" fill="#ff7a6b"/><path d="M4 21c0-4.5 3.6-7.5 8-7.5s8 3 8 7.5z" fill="#ff7a6b"/></svg><span id="v-pop">6</span><small id="v-cap">/ 11</small><span class="d" id="d-pop"></span></div>
+  <div class="stat pill" id="s-food" data-tip="Kelp. Gardens and piers make it, citizens and taverns eat it. At zero, people start leaving on rafts."><svg viewBox="0 0 24 24"><path d="M3 12c3-5 9-6 14-2l4-3v10l-4-3c-5 4-11 3-14-2z" fill="#2bb3b1"/><circle cx="8" cy="11" r="1.3" fill="#1d2b36"/></svg><span id="v-food">30</span><span class="d" id="d-food"></span></div>
+  <div class="stat pill" id="s-coins" data-tip="Shells, the local money. Taxes and workshops bring them in. You spend them on buildings and on your decisions."><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#f2c14e"/><circle cx="12" cy="12" r="5.5" fill="none" stroke="#c89a2a" stroke-width="2"/></svg><span id="v-coins">45</span><span class="d" id="d-coins"></span></div>
+  <div class="stat pill" id="s-joy" data-tip="Joy. Gardens and taverns lift it; hunger, crowding, workshops and taxes drag it down. Below 35 nobody moves in."><svg viewBox="0 0 24 24"><path d="M12 21s-8-5.2-8-11a4.6 4.6 0 0 1 8-3.1A4.6 4.6 0 0 1 20 10c0 5.8-8 11-8 11z" fill="#ff7a6b"/></svg><div class="meter"><i id="m-joy" style="background:#ff7a6b"></i></div><span id="v-joy">60</span></div>
+  <div class="stat pill" id="s-mood" data-tip="Old Mossback's mood. Happy turtles swim faster and grow. Grumpy turtles dive and flood the outer plates. At zero, she's done with you."><svg viewBox="0 0 24 24"><ellipse cx="11" cy="13" rx="7.5" ry="5.5" fill="#7fb58f"/><path d="M5 13a6 5 0 0 1 12 0z" fill="#8a6a3d"/><circle cx="20" cy="12" r="2.6" fill="#7fb58f"/><circle cx="20.6" cy="11.4" r=".7" fill="#1d2b36"/></svg><div class="meter"><i id="m-mood" style="background:#2f9e6e"></i></div><span id="v-mood">70</span></div>
+  <div class="stat pill" id="s-w" data-tip="Load on her shell. Over 80% she gets sulky, over 100% she slows to a crawl. She grows (and can carry more) when she stays very happy."><svg viewBox="0 0 24 24"><path d="M7 9h10l3 12H4z" fill="#6b7a86"/><circle cx="12" cy="6" r="3" fill="none" stroke="#6b7a86" stroke-width="2"/></svg><div class="meter"><i id="m-w" style="background:#6b7a86"></i></div><span id="v-w">0%</span></div>
+</div>
+
+<div class="ui pill" id="voyage">
+  <div class="row"><b id="biomeName">Sunny Shallows</b><span id="dayline">Day 1 · 0 / 90 leagues</span></div>
+  <div id="track"></div>
+  <div id="biomes"></div>
+</div>
+
+<div class="ui" id="side">
+  <div class="pill" id="speed"><button data-s="0">Pause</button><button data-s="1" class="on">Swim</button><button data-s="2">Fast</button><button data-s="3">Faster</button><button data-s="m" id="snd">Sound</button></div>
+  <div class="pill" id="log"></div>
+</div>
+
+<div class="ui pill" id="build"></div>
+<div class="ui pill" id="tip"></div>
+<div class="ui pill" id="panel"></div>
+<div class="ui pill" id="card"></div>
+<div class="ui" id="toast"><div class="t" id="tt"></div><div class="s" id="ts"></div></div>
+
+<div class="modal" id="intro"><div class="sheet">
+  <div class="eye">A FLOATING TOWN SIMULATOR</div>
+  <h1>Shell<span>burg</span></h1>
+  <p class="hand">Our town lives on the back of Old Mossback, a very large and very patient sea turtle. She's swimming to the Great Reef, 90 leagues away. You're the new mayor. Please don't upset her.</p>
+  <div class="rules">
+    <div><b>Build</b> on her shell plates: pick a building below, then click a plate. Click a building to upgrade, repair or remove it.</div>
+    <div><b>Decide</b>: every day a citizen brings you a choice. Every choice has a price.</div>
+    <div><b>Balance</b>: people need kelp, housing and joy. Mossback needs love and a light load. Happy turtles swim faster.</div>
+  </div>
+  <button class="big" id="go" disabled>Loading the shell…</button>
+</div></div>
+<div class="modal gone" id="end"><div class="sheet" id="endsheet"></div></div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+const V3=THREE.Vector3,TAU=Math.PI*2,UP=new V3(0,1,0);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*t,sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
+const rnd=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)];
+const $=id=>document.getElementById(id);
+
+// ================================================================ renderer
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+$('stage').appendChild(renderer.domElement);
+const scene=new THREE.Scene();scene.fog=new THREE.Fog(0xbfe6f2,70,300);
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.1,1200);camera.position.set(30,22,-26);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,2.5,0);controls.enableDamping=true;controls.dampingFactor=.07;controls.minDistance=16;controls.maxDistance=80;controls.maxPolarAngle=1.42;controls.enablePan=false;controls.rotateSpeed=.6;
+const hemi=new THREE.HemisphereLight(0xdff4ff,0x3a6a70,1.1);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfff1dd,2.4);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-20,right:20,top:20,bottom:-20,near:1,far:120});sun.shadow.bias=-.0006;sun.shadow.normalBias=.03;scene.add(sun,sun.target);
+
+// sky
+const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:{uTop:{value:new THREE.Color()},uBot:{value:new THREE.Color()},uSun:{value:new V3()},uSunC:{value:new THREE.Color()},uNight:{value:0},uT:{value:0}},
+  vertexShader:`varying vec3 vD;void main(){vD=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`uniform vec3 uTop,uBot,uSun,uSunC;uniform float uNight,uT;varying vec3 vD;
+float h(vec3 p){return fract(sin(dot(p,vec3(12.9898,78.233,37.719)))*43758.5453);}
+void main(){float y=clamp(vD.y,0.,1.);vec3 c=mix(uBot,uTop,pow(y,.55));float s=max(dot(vD,normalize(uSun)),0.);c+=uSunC*(pow(s,800.)*6.+pow(s,12.)*.35);
+vec3 g=floor(vD*260.);float st=step(.9965,h(g))*uNight*smoothstep(0.,.25,vD.y)*(.6+.4*sin(uT*3.+h(g)*50.));c+=vec3(st);gl_FragColor=vec4(c,1.);}`});
+const skyM=new THREE.Mesh(new THREE.SphereGeometry(600,32,16),skyMat);scene.add(skyM);
+
+// ocean
+const oceanMat=new THREE.ShaderMaterial({fog:true,uniforms:THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{uT:{value:0},uOff:{value:0},uWave:{value:1},uDeep:{value:new THREE.Color()},uShal:{value:new THREE.Color()},uSky:{value:new THREE.Color()},uSun:{value:new V3()},uGlow:{value:0},uNight:{value:0},uDive:{value:0}}]),
+  vertexShader:`#include <fog_pars_vertex>
+uniform float uT,uOff,uWave;varying vec3 vW;varying float vH;
+float wv(vec2 q){return sin(q.x*.14+uT*1.1)*.4+sin(q.y*.19+uT*.9)*.34+sin((q.x+q.y)*.37+uT*1.7)*.14+sin((q.x-q.y*1.3)*.61+uT*2.3)*.07;}
+void main(){vec3 p=position;vec2 q=p.xz+vec2(0.,uOff);float d=length(p.xz/vec2(11.,13.5));float damp=mix(.35,1.,smoothstep(.8,1.8,d));float h=wv(q)*uWave*damp;p.y+=h;vH=h;
+vec4 w=modelMatrix*vec4(p,1.);vW=w.xyz;vec4 mvPosition=viewMatrix*w;gl_Position=projectionMatrix*mvPosition;
+#include <fog_vertex>
+}`,
+  fragmentShader:`#include <fog_pars_fragment>
+uniform float uT,uOff,uGlow,uNight,uDive;uniform vec3 uDeep,uShal,uSky,uSun;varying vec3 vW;varying float vH;
+float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hs(i),hs(i+vec2(1,0)),f.x),mix(hs(i+vec2(0,1)),hs(i+vec2(1,1)),f.x),f.y);}
+void main(){vec3 n=normalize(cross(dFdx(vW),dFdy(vW)));if(n.y<0.)n=-n;vec3 v=normalize(cameraPosition-vW);float fr=pow(1.-max(dot(n,v),0.),3.);
+vec3 c=mix(uDeep,uShal,smoothstep(-.5,.7,vH));c=mix(c,uSky,fr*.55);
+vec3 hv=normalize(normalize(uSun)+v);c+=vec3(1.,.95,.85)*pow(max(dot(n,hv),0.),220.)*1.4*(1.-uNight);
+vec2 q=vW.xz+vec2(0.,uOff);float d=length(vW.xz/vec2(11.,13.5));float fn=vn(q*1.3+uT*.6)*.6+vn(q*3.7-uT)*.4;
+float ring=smoothstep(.18,0.,abs(d-1.02-.04*sin(uT*2.+atan(vW.z,vW.x)*5.)))*(.6+.6*fn);
+float wake=0.;if(vW.z>6.){float side=abs(vW.x)-(8.+(vW.z-6.)*.32);wake=smoothstep(3.,0.,abs(side))*smoothstep(90.,10.,vW.z)*step(.45,fn);}
+float crest=smoothstep(.62,.85,vH)*step(.72,fn)*.45;c=mix(c,vec3(.97,.99,1.),clamp(ring+wake*.8+crest+uDive*ring,0.,1.));
+float gl=pow(vn(q*2.2+uT*.3),8.)*uGlow*6.;c+=vec3(.2,1.,.8)*gl+vec3(.1,.5,1.)*uGlow*ring*.6;
+gl_FragColor=vec4(c,1.);
+#include <fog_fragment>
+}`});
+const ocean=new THREE.Mesh(new THREE.PlaneGeometry(900,900,260,260),oceanMat);ocean.rotation.x=-Math.PI/2;ocean.receiveShadow=false;scene.add(ocean);
+
+// ================================================================ materials helpers
+const matCache={};function mat(c,o={}){const k=c+JSON.stringify(o);if(matCache[k])return matCache[k];return matCache[k]=new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.8,flatShading:true},o));}
+const winMat=new THREE.MeshStandardMaterial({color:0x3a3020,emissive:0xffc070,emissiveIntensity:0,roughness:.4});
+const lampMat=new THREE.MeshStandardMaterial({color:0xfff2c0,emissive:0xffcc66,emissiveIntensity:.3});
+function mesh(geo,m,x=0,y=0,z=0,parent){const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;if(parent)parent.add(o);return o;}
+const box=(w,h,d)=>new THREE.BoxGeometry(w,h,d),cyl=(a,b,h,s=10)=>new THREE.CylinderGeometry(a,b,h,s),cone=(r,h,s=4)=>new THREE.ConeGeometry(r,h,s),sph=(r,a=10,b=8)=>new THREE.SphereGeometry(r,a,b);
+
+// ================================================================ turtle
+const turtle=new THREE.Group();scene.add(turtle);const shellG=new THREE.Group();turtle.add(shellG);
+const RD=10.4,HD=3.95,Y0=.8;const domeY=d=>HD*Math.sqrt(Math.max(0,1-(d/RD)*(d/RD)));
+function domeNormal(x,z){const y=domeY(Math.hypot(x,z));return new V3(x/(RD*RD),y/(HD*HD),z/(RD*RD)).normalize().lerp(UP,.45).normalize();}
+const skin=mat(0x7fb58f),skinD=mat(0x5f9a73),shellBase=mat(0x5b4428,{roughness:.7});
+{const sg=new THREE.SphereGeometry(1,56,20,0,TAU,0,Math.PI/2);sg.scale(RD,HD,RD);mesh(sg,shellBase,0,Y0,0,shellG);
+  const rim=new THREE.TorusGeometry(RD+.1,.55,10,72);rim.rotateX(Math.PI/2);mesh(rim,mat(0xc9a86a),0,Y0+.05,0,shellG);
+  const pl=new THREE.SphereGeometry(1,40,12);pl.scale(RD+.3,1.1,RD+.6);mesh(pl,mat(0xd8c08a),0,Y0-.35,0,turtle);}
+const head=new THREE.Group();head.position.set(0,1.1,-12.2);turtle.add(head);
+mesh((()=>{const g=sph(1.9,20,14);g.scale(1,.78,1.3);return g;})(),skin,0,0,-.8,head);mesh(cyl(1.5,1.9,3,14).rotateX(Math.PI/2),skin,0,-.2,1.3,head);
+const eyes=[];for(const s of [-1,1]){const e=new THREE.Group();e.position.set(s*1.25,.45,-1.6);head.add(e);mesh(sph(.5,12,10),mat(0xffffff,{flatShading:false}),0,0,0,e);mesh(sph(.27,10,8),mat(0x1d2b36,{flatShading:false}),s*.18,.02,-.28,e);eyes.push(e);}
+const blush=[];for(const s of [-1,1]){const b=mesh(sph(.35,8,6),mat(0xff9a8a,{transparent:true,opacity:0}),s*1.2,-.25,-1.9,head);b.scale.set(1,.5,.4);blush.push(b);}
+for(let i=0;i<14;i++){const sp=mesh(sph(.25+Math.random()*.2,6,4),skinD,rnd(-1.3,1.3),rnd(.2,.9),rnd(-2.2,.6),head);sp.scale.y=.3;}
+const flippers=[];function flipper(x,z,sx,sz,side,front){const piv=new THREE.Group();piv.position.set(x,.4,z);turtle.add(piv);const g=sph(1,16,10);g.scale(sx,.32,sz);const f=mesh(g,skin,side*sx*.85,0,0,piv);f.rotation.y=side*(front?-.35:.3);flippers.push({piv,side,front});}
+flipper(7.8,-5.8,4.4,1.7,1,true);flipper(-7.8,-5.8,4.4,1.7,-1,true);flipper(7,7,2.6,1.3,1,false);flipper(-7,7,2.6,1.3,-1,false);
+mesh(cone(.9,3,8).rotateX(Math.PI/2),skin,0,.4,11.4,turtle);
+
+// hex tiles
+const S_HEX=1.62,TILES=[];const tileTopGeo=cyl(S_HEX*.9,S_HEX*.95,.3,6),tileBaseGeo=cyl(S_HEX*.99,S_HEX*.99,.34,6);
+const scute=[0x9a7a45,0x8a6a3a,0xa4844c,0x7f643a,0x93733f];
+for(let q=-3;q<=3;q++)for(let r=-3;r<=3;r++){if(Math.abs(q+r)>3)continue;const x=S_HEX*Math.sqrt(3)*(q+r/2),z=S_HEX*1.5*r;const d=Math.hypot(x,z);const y=Y0+domeY(d)+.02;
+  const n=domeNormal(x,z);const quat=new THREE.Quaternion().setFromUnitVectors(UP,n);const ring=Math.max(Math.abs(q),Math.abs(r),Math.abs(q+r));
+  const g=new THREE.Group();g.position.set(x,y,z);g.quaternion.copy(quat);shellG.add(g);
+  const base=mesh(tileBaseGeo,mat(0x4a3620),0,0,0,g);const topM=new THREE.MeshStandardMaterial({color:scute[(Math.abs(q*7+r*3))%scute.length],roughness:.75,flatShading:true,emissive:0x000000});
+  const top=mesh(tileTopGeo,topM,0,.2,0,g);const t={q,r,ring,x,z,d,group:g,top,topM,b:null,n};top.userData.tile=t;base.userData.tile=t;TILES.push(t);}
+const tileAt=(q,r)=>TILES.find(t=>t.q===q&&t.r===r);
+
+// ================================================================ buildings
+const ROOFS=[0xff7a6b,0x2bb3b1,0xf2c14e,0x6c8fd8,0xd96aa0,0x7fb58f],WALLS=[0xfffaf0,0xf4e3c1,0xe8f1f4,0xfde8d8];
+const BT={
+  hall:{name:'Town Hall',cost:0,w:4,cap:6,fixed:true,desc:'Home of the mayor. Houses 6.'},
+  hut:{name:'Cottage',cost:10,w:2,cap:5,desc:'Houses 5 citizens.'},
+  tower:{name:'Tall House',cost:24,w:5,cap:13,from:'hut',desc:'An upgraded cottage. Houses 13.'},
+  farm:{name:'Kelp Garden',cost:14,w:3,food:6,desc:'+6 kelp a day.'},
+  pier:{name:'Fishing Pier',cost:18,w:2,food:4,mood:1,edge:true,desc:'+4 kelp, and Mossback gets a share of the catch (+1 mood). Outer plates only.'},
+  shop:{name:'Workshop',cost:24,w:4,coins:5,joy:-2,desc:'+5 shells a day. Noisy: −2 joy.'},
+  park:{name:'Moss Garden',cost:12,w:1,joy:3,mood:.7,desc:'+3 joy. Mossback loves the roots tickling her (+0.7 mood).'},
+  tavern:{name:'Tavern',cost:20,w:3,joy:6,food:-2,desc:'+6 joy. Eats 2 kelp a day.'},
+  light:{name:'Lighthouse',cost:40,w:3,joy:1,edge:true,max:1,desc:'Spots storms a day early. Outer plates only.'},
+  shrine:{name:'Turtle Shrine',cost:45,w:5,mood:3,max:2,desc:'+3 mood a day. Mossback pretends not to notice.'},
+};
+const TOOLBAR=['hut','farm','pier','park','shop','tavern','light','shrine'];
+function makeBuilding(type,t){const g=new THREE.Group();const wall=mat(pick(WALLS)),roof=mat(pick(ROOFS));const W=(x,y,z,s=1)=>{const w=mesh(box(.28*s,.3*s,.04),winMat,x,y,z,g);return w;};
+  switch(type){
+    case 'hall':{mesh(box(2,1.3,1.8),mat(0xfffaf0),0,.65,0,g);mesh(cone(1.65,1.1,4).rotateY(Math.PI/4),mat(0xff7a6b),0,1.85,0,g);mesh(box(.7,2.2,.7),mat(0xf4e3c1),0,2.2,0,g);mesh(cone(.6,.9,4).rotateY(Math.PI/4),mat(0x2bb3b1),0,3.75,0,g);
+      mesh(cyl(.26,.26,.05,16).rotateX(Math.PI/2),mat(0xffffff),0,2.9,.37,g);mesh(cyl(.02,.02,1.2),mat(0x555555),0,4.6,0,g);const fl=mesh(box(.6,.35,.02),mat(0xf2c14e),.3,4.95,0,g);g.userData.flag=fl;
+      for(const x of [-.6,.6])W(x,.8,.91);mesh(box(.4,.6,.05),mat(0x6b4a2a),0,.3,.91,g);break;}
+    case 'hut':{mesh(box(1.1,.85,1.1),wall,0,.42,0,g);mesh(cone(.95,.75,4).rotateY(Math.PI/4),roof,0,1.22,0,g);mesh(box(.3,.45,.04),mat(0x6b4a2a),0,.22,.56,g);W(.32,.55,.56);mesh(box(.18,.4,.18),mat(0x9a8a7a),.3,1.35,-.2,g);break;}
+    case 'tower':{mesh(box(1.1,1.1,1.1),wall,0,.55,0,g);mesh(box(.95,1,.95),mat(pick(WALLS)),0,1.6,0,g);mesh(cone(.85,.8,4).rotateY(Math.PI/4),roof,0,2.5,0,g);for(const y of [.6,1.6])for(const x of [-.25,.25])W(x,y,y<1?.56:.49);mesh(box(.3,.45,.04),mat(0x6b4a2a),0,.22,.56,g);break;}
+    case 'farm':{mesh(cyl(1.25,1.25,.08,6),mat(0x5aa06a),0,.04,0,g);const k=[];for(let i=-1;i<=1;i++)for(let j=-2;j<=2;j++){if(Math.abs(i*.5)+Math.abs(j*.28)>1.1)continue;const p=mesh(cone(.12,.55+Math.random()*.3,5),mat(0x3f8a4a),i*.5,.35,j*.3,g);k.push(p);}g.userData.kelp=k;
+      mesh(cyl(.35,.35,.06,12),mat(0x4fc0e0,{roughness:.2}),.7,.09,.5,g);for(const a of [0,1,2,3,4,5]){mesh(box(.06,.3,.06),mat(0xb08a5a),Math.cos(a)*1.15,.15,Math.sin(a)*1.15,g);}break;}
+    case 'pier':{const out=new V3(t.x,0,t.z).normalize();g.userData.faceOut=out;mesh(box(.7,.1,2.2),mat(0xb08a5a),0,.1,.4,g);for(const z of [-.4,.6,1.4])for(const x of [-.3,.3])mesh(cyl(.05,.05,.5),mat(0x8a6a3a),x,-.1,z,g);
+      mesh(box(.5,.5,.5),mat(0xfffaf0),0,.35,-.6,g);mesh(cone(.45,.4,4).rotateY(Math.PI/4),roof,0,.8,-.6,g);const boat=mesh(box(.4,.18,.9),mat(0xff7a6b),.6,.05,1.3,g);g.userData.boat=boat;
+      mesh(box(.02,.5,.7),mat(0xdedede,{transparent:true,opacity:.7}),-.4,.35,.9,g);break;}
+    case 'shop':{mesh(box(1.4,.9,1.1),mat(0xe8d8c0),0,.45,0,g);for(const x of [-.35,.35]){const r=mesh(box(.7,.35,1.12),mat(0x6b7a86),x,1.05,0,g);r.rotation.z=.4;}mesh(cyl(.13,.16,.9),mat(0x8a6a5a),.45,1.35,.25,g);
+      const gear=mesh(cyl(.25,.25,.06,8).rotateX(Math.PI/2),mat(0xf2c14e),-.3,.55,.58,g);g.userData.gear=gear;g.userData.chim=new V3(.45,1.85,.25);W(.35,.5,.56);break;}
+    case 'park':{mesh(cyl(1.25,1.25,.1,6),mat(0x8fce7a),0,.05,0,g);for(const [x,z,s] of [[-.5,-.3,1],[.5,.2,.8],[-.1,.6,.65]]){mesh(cyl(.07,.1,.5),mat(0x7a5a3a),x,.3,z,g);mesh(sph(.45*s,8,6),mat(pick([0x5fae6a,0x7ac47a,0xf29a8a])),x,.7+.2*s,z,g);}
+      mesh(box(.5,.08,.16),mat(0xb08a5a),.3,.22,-.55,g);for(let i=0;i<9;i++)mesh(sph(.05,5,4),mat(pick([0xffffff,0xf2c14e,0xff7a6b])),rnd(-1,1),.14,rnd(-1,1),g);break;}
+    case 'tavern':{mesh(box(1.7,1,1.2),mat(0xf4e3c1),0,.5,0,g);mesh(cone(1.3,.8,4).rotateY(Math.PI/4),mat(0x8a3a3a),0,1.4,0,g);for(const x of [-.5,0,.5])W(x,.6,.61,1.2);
+      for(const x of [-.75,.75]){mesh(sph(.1,8,6),lampMat,x,.95,.7,g);}mesh(cyl(.2,.2,.35,10),mat(0x9a6a3a),.95,.18,.4,g);mesh(box(.5,.3,.04),mat(0x2bb3b1),0,1.05,.62,g);break;}
+    case 'light':{for(let i=0;i<4;i++)mesh(cyl(.42-i*.05,.46-i*.05,.7,12),mat(i%2?0xff7a6b:0xfffaf0),0,.35+i*.7,0,g);mesh(cyl(.3,.3,.4,10),lampMat,0,3,0,g);mesh(cone(.4,.4,10),mat(0xff7a6b),0,3.4,0,g);
+      const bm=new THREE.MeshBasicMaterial({color:0xfff2c0,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});const beam=new THREE.Group();beam.position.y=3;g.add(beam);
+      for(const s of [1,-1]){const c=new THREE.ConeGeometry(3,40,16,1,true);c.translate(0,-20,0);c.rotateZ(s*Math.PI/2);beam.add(new THREE.Mesh(c,bm));}g.userData.beam=beam;g.userData.bm=bm;break;}
+    case 'shrine':{mesh(box(1.4,.2,1.4),mat(0xd8c08a),0,.1,0,g);mesh(box(.9,.7,.9),mat(0xc0392b),0,.55,0,g);mesh(cone(1.1,.45,4).rotateY(Math.PI/4),mat(0x2b3a4a),0,1.1,0,g);mesh(box(.6,.5,.6),mat(0xc0392b),0,1.5,0,g);mesh(cone(.8,.4,4).rotateY(Math.PI/4),mat(0x2b3a4a),0,1.9,0,g);
+      mesh(sph(.22,10,6),mat(0x7fb58f),.55,.35,.6,g).scale.y=.6;mesh(sph(.08,6,4),mat(0x7fb58f),.55,.35,.83,g);mesh(sph(.12,6,4),lampMat,-.5,.35,.6,g);break;}
+  }
+  g.traverse(o=>{if(o.isMesh)o.userData.tile=t;});return g;}
+function placeBuilding(t,type,instant){if(t.b)t.group.remove(t.b.g);const g=makeBuilding(type,t);g.position.y=.35;if(type==='pier'){const out=new V3(t.x,0,t.z).normalize();const local=out.clone().applyQuaternion(t.group.quaternion.clone().invert());g.rotation.y=Math.atan2(local.x,local.z);}
+  else g.rotation.y=Math.round(Math.random()*6)*Math.PI/3;t.group.add(g);t.b={type,g,dmg:false,born:instant?-9:clk};g.scale.setScalar(instant?1:.01);if(!instant){sfx.build();puff(t);}refresh();}
+
+// ================================================================ state
+const DAY=20,GOAL=90;
+const BIOMES=[{at:0,name:'Sunny Shallows',top:0x5fb8e8,bot:0xd2f1ff,deep:0x0f6f8a,shal:0x3fd0c9,fog:0xc4e8f3,near:80,far:320,glow:0,key:0},
+  {at:22,name:'The Fog Sea',top:0x9fb0b8,bot:0xd9dfdf,deep:0x2f5560,shal:0x6f9a9a,fog:0xcad3d4,near:18,far:120,glow:0,key:-3},
+  {at:45,name:'Iceberg Belt',top:0x78a6da,bot:0xeaf4ff,deep:0x1a4a78,shal:0x5fa0c8,fog:0xdbe9f6,near:60,far:280,glow:0,key:2},
+  {at:68,name:'Glow Tide',top:0x1a1440,bot:0x563a7a,deep:0x0a1a3a,shal:0x1f6f8a,fog:0x2e2556,near:50,far:240,glow:1,key:4},
+  {at:90,name:'The Great Reef',top:0xff9a8a,bot:0xffe2b8,deep:0x0f5f7a,shal:0x4fe0d0,fog:0xffd8c0,near:70,far:320,glow:.4,key:5}];
+const S={day:1,dayT:0,spd:1,pop:6,food:30,coins:45,joy:60,mood:70,capW:45,leagues:0,flags:{},used:{},card:null,tool:null,over:false,streak:0,grows:0,storm:0,stormWarn:false,dive:0,soaked:0,started:false,biome:0,sails:0,last:{},log:[]};
+let clk=0;
+function counts(){const c={};for(const t of TILES)if(t.b&&!t.b.dmg)c[t.b.type]=(c[t.b.type]||0)+1;return c;}
+function housing(){let h=0;for(const t of TILES)if(t.b&&!t.b.dmg)h+=BT[t.b.type].cap||0;return h;}
+function weight(){let w=0;for(const t of TILES)if(t.b)w+=BT[t.b.type].w;return w+S.pop*.15;}
+function sumK(k){let s=0;for(const t of TILES)if(t.b&&!t.b.dmg){const v=BT[t.b.type][k];if(v){if(k==='food'&&v>0&&S.soaked>0&&t.ring===3)continue;s+=v;}}return s;}
+function speed(){const r=weight()/S.capW;return(1.2+2.4*S.mood/100)*(r>1?.55:1)*(S.storm>0?.7:1)+S.sails;}
+function prod(){const c=counts();return{food:sumK('food')-S.pop*.5,coins:S.pop*.4*(S.flags.tax?1.6:1)+sumK('coins'),joyT:45+sumK('joy')-(S.food<=0?25:0)-Math.max(0,S.pop-housing())*2-(S.flags.tax?8:0)+(S.flags.slide?5:0)+(S.flags.octo?3:0)-(S.flags.nohats?4:0),
+  moodD:sumK('mood')-3.4-Math.max(0,(weight()/S.capW-.8))*20+(S.joy>70?1:0)-(S.flags.barnacles?2:0)};}
+
+// ================================================================ cards
+const H=(o)=>Object.assign({kind:'human'},o);
+const CARDS=[
+  {id:'polish',who:'Bartholomew',role:'Shell Polisher',p:H({skin:2,hair:'bald',beard:1,shirt:0x6c8fd8,bg:0xf2c14e}),say:"Her shell's lost its shine, Mayor. Give me the town's olive oil and I'll make her gleam like a new coin.",
+    a:{t:'Polish away',fx:{food:-6,mood:12},m:'Mossback glitters. Tourists would come, if there were tourists.'},b:{t:'Shine is vanity',fx:{mood:-4}}},
+  {id:'gulls',who:'Admiral Skraa',role:'Gull Council',p:{kind:'gull',bg:0x9fd6ee},say:"SKRAA. Tribute of fish, or we take your hats. All of them. Every single hat.",
+    a:{t:'Pay the fish',fx:{food:-10}},b:{t:'Not one sardine',fx:{joy:-6},set:'nohats',m:'By dawn, not one hat remains in Shellburg.'}},
+  {id:'hatmarket',need:s=>s.flags.nohats&&s.day>4,who:'Admiral Skraa',role:'Proprietor, Gull Hat Market',p:{kind:'gull',bg:0xf2c14e},say:"The hat market is open. Your hats. Our prices. SKRAA.",
+    a:{t:'Buy them back',fx:{coins:-18,joy:10},unset:'nohats'},b:{t:'We have embraced baldness',fx:{joy:-2},m:'Shellburg starts a bold bareheaded fashion.'}},
+  {id:'slide',who:'Pim & Pom',role:'Age 8, twins',p:{kind:'crowd',bg:0xff9a8a},say:"We want a slide from the Town Hall roof straight into the sea! Pleeeease?",
+    a:{t:'Build the slide',fx:{coins:-18,joy:12},set:'slide',m:'The slide opens. The queue never ends.'},b:{t:'Too dangerous',fx:{joy:-5}}},
+  {id:'lonely',who:'Grandma Ooli',role:'Oldest resident',p:H({skin:1,hair:'bun',hairC:0xdddddd,glasses:1,shirt:0xd96aa0,bg:0xb8e0d0}),say:"Hear that low hum at night? She's lonely, dear. Let's sing back to her.",
+    a:{t:'Hold a town concert',fx:{coins:-8,mood:15,joy:5},hum:true,m:'Mossback hums along, a little off-key.'},b:{t:"Turtles don't get lonely",fx:{mood:-8}}},
+  {id:'trade',who:'Captain Vey',role:'Merchant brig "Soggy Biscuit"',p:H({skin:3,hair:'short',hairC:0x2b1d14,hat:'captain',beard:2,shirt:0x2b3a4a,bg:0xa8d8f0}),say:"Fine kelp you grow. I'll give 30 shells for 20 of it. Take it or leave it.",
+    a:{t:'Deal',fx:{food:-20,coins:30}},b:{t:'Keep the kelp',fx:{}},prop:'ship'},
+  {id:'drill',who:'Dr. Fenwick',role:'Shellologist, Royal Academy',p:H({skin:0,hair:'wild',hairC:0xeeeeee,glasses:1,shirt:0xffffff,bg:0xd8d0f0}),say:"A tiny core sample would tell us her age! The Academy pays handsomely. It barely tickles. Probably.",
+    a:{t:'Drill the sample',fx:{coins:28,mood:-18},m:'It did not barely tickle.'},b:{t:'Absolutely not',fx:{mood:3}}},
+  {id:'octo',who:'A stowaway octopus',role:'Found in the kelp garden',p:{kind:'octo',bg:0xffc8d8},say:"Blub.  (It is holding eight very small teacups.)",
+    a:{t:'Adopt it as the town mascot',fx:{joy:10,food:-4},set:'octo'},b:{t:'Back to the sea, friend',fx:{joy:-2}}},
+  {id:'octotea',need:s=>s.flags.octo&&s.day>6,who:'The Octopus',role:'Town mascot',p:{kind:'octo',bg:0xf2c14e},say:"Blub blub.  (It has opened a tea house. Using the treasury.)",
+    a:{t:'Let it run the tea house',fx:{coins:-12,joy:12},m:'Best tea in the ocean. Eight cups at a time.'},b:{t:'Shut it down',fx:{joy:-8},m:'It inks the town hall in protest.'}},
+  {id:'soup',who:'Chef Marguerite',role:'Festival kitchen',p:H({skin:1,hair:'short',hairC:0x8a4a2a,hat:'chef',shirt:0xffffff,bg:0xffe0a0}),say:"For the harvest festival, a grand soup! I was thinking... turtle-flavoured?",
+    a:{t:'KELP soup. Kelp.',fx:{food:-6,joy:8}},b:{t:"Shh! She'll hear you",fx:{mood:-18,joy:4},m:'She heard. She always hears.'}},
+  {id:'whales',need:s=>s.day>3,who:'A pod of whales',role:'Passing by',p:{kind:'whale',bg:0x9fd6ee},say:"A deep song rolls through the water. The whales are inviting Mossback to sing with them.",
+    a:{t:'Let her sing',fx:{mood:18,lg:-3},m:'The shell vibrates for an hour. Everyone feels oddly calm.'},b:{t:"We're on a schedule",fx:{mood:-5}},prop:'whales'},
+  {id:'pirates',need:s=>s.day>4,who:'One-Eyed Nessa',role:'Raft pirate',p:H({skin:2,hair:'long',hairC:0x1d1d1d,hat:'pirate',patch:1,shirt:0x8a2a2a,bg:0xffd0a0}),say:"Cute floating town. Hand over 25 shells or we climb aboard.",
+    a:{t:'Pay her off',fx:{coins:-25}},b:{t:'Repel the boarders!',rand:[{p:.55,fx:{coins:20,joy:6},m:'They flee and drop their loot. Huzzah!'},{p:.45,fx:{pop:-2,coins:-10},m:'They leave with two citizens (volunteers, apparently).'}]},prop:'raft'},
+  {id:'dribble',who:'Cousin Dribble',role:"The mayor's cousin",p:H({skin:0,hair:'comb',hairC:0xc9a24a,shirt:0x7fb58f,bg:0xe0f0c0}),say:"Name the main street 'Dribble Way' and I'll donate a little something. Family helps family!",
+    a:{t:'Dribble Way it is',fx:{coins:12,joy:-4}},b:{t:'Nice try',fx:{}}},
+  {id:'tax',need:s=>!s.flags.tax&&s.day>5,who:'Grubb',role:'Treasurer',p:H({skin:0,hair:'bald',glasses:1,mus:1,shirt:0x555566,bg:0xd0d8e0}),say:"The coffers are thin, Mayor. A higher shell tax would fix that nicely.",
+    a:{t:'Raise taxes',fx:{joy:-6},set:'tax',m:'Tax income up 60%. So is the grumbling.'},b:{t:'Keep them low',fx:{joy:3}}},
+  {id:'taxcut',need:s=>s.flags.tax&&s.day>10,who:'Grubb',role:'Treasurer',p:H({skin:0,hair:'bald',glasses:1,mus:1,shirt:0x555566,bg:0xffd0d0}),say:"People are grumbling about the tax. Loudly. Into my window. Lower it again?",
+    a:{t:'Lower taxes',fx:{joy:8},unset:'tax'},b:{t:'They will learn to love it',fx:{joy:-5}}},
+  {id:'shortcut',need:s=>s.biome===1,who:'Lin',role:'Cartographer',p:H({skin:4,hair:'bob',hairC:0x1d1d2a,shirt:0x2bb3b1,bg:0xe0e8e8}),say:"There's a gap in the fog banks. It's faster, but I honestly can't see what's in there.",
+    a:{t:'Take the shortcut',rand:[{p:.6,fx:{lg:8},m:'Clear water all the way. Lin is insufferable about it.'},{p:.4,fx:{lg:5},storm:true,m:"There was a storm in there. Of course there was."}]},b:{t:'Stay the course',fx:{}}},
+  {id:'bottle',who:'A bottle',role:'Bobbing alongside',p:{kind:'bottle',bg:0xa8e0f0},say:"Inside: a soggy map with a big red X on it.",
+    a:{t:'Keep the map',fx:{},set:'map'},b:{t:'Toss it back',fx:{}}},
+  {id:'treasure',need:s=>s.flags.map&&s.day>9,who:'Lin',role:'Cartographer',p:H({skin:4,hair:'bob',hairC:0x1d1d2a,shirt:0x2bb3b1,bg:0xf2c14e}),say:"The X! It's THAT island! Shall we stop and dig?",
+    a:{t:'Dig!',fx:{coins:45,lg:-2},unset:'map',m:'A chest of shells, and a very old spoon.'},b:{t:'No time for treasure',fx:{}},prop:'island'},
+  {id:'refugees',need:s=>s.day>3,who:'The Atoll folk',role:'Their island sank',p:{kind:'crowd',bg:0xffe0b0},say:"Our island sank last week. May we come and live on your turtle?",
+    a:{t:'Welcome aboard',fx:{pop:8,joy:4},m:'Build them houses before they crowd the plaza.'},b:{t:"We're full",fx:{joy:-6}},prop:'raft'},
+  {id:'serpent',need:s=>s.biome>=2,who:'The Sea Serpent',role:'Riddle enthusiast',p:{kind:'serpent',bg:0xc0e8c0},say:"Answer my riddle or be SQUEEZED. What has a shell, carries a town, and is not an egg?",
+    a:{t:'"A turtle."',fx:{coins:15,mood:4},m:'The serpent sulks off, muttering.'},b:{t:'"...A taco?"',fx:{joy:10,mood:-6},m:'It laughs so hard it forgets to squeeze.'}},
+  {id:'barnacles',need:s=>s.day>6,who:'Ned',role:'Barnacle scraper',p:H({skin:3,hair:'short',hairC:0x5a3a2a,hat:'beanie',beard:1,shirt:0xf2c14e,bg:0xd0e8f0}),say:"Barnacles on her flippers. They'll itch something awful. 15 shells and I'll scrape them.",
+    a:{t:'Scrape them',fx:{coins:-15,mood:10}},b:{t:"She'll manage",fx:{mood:-4},set:'barnacles',m:'She keeps rubbing her flipper on her chin.'}},
+  {id:'barn2',need:s=>s.flags.barnacles&&s.day>9,who:'Ned',role:'Barnacle scraper',p:H({skin:3,hair:'short',hairC:0x5a3a2a,hat:'beanie',beard:1,shirt:0xf2c14e,bg:0xffd0c0}),say:"Those barnacles have started a family. Still 15 shells.",
+    a:{t:'Fine, scrape them',fx:{coins:-15,mood:8},unset:'barnacles'},b:{t:'Name them instead',fx:{joy:3,mood:-5}}},
+  {id:'lanterns',who:'June',role:'Lamplighter',p:H({skin:1,hair:'long',hairC:0xc96a3a,shirt:0x6c8fd8,bg:0x2e2556}),say:"A lantern festival tonight? We could light up her shell so she can see herself in the water.",
+    a:{t:'Light the lanterns',fx:{coins:-10,joy:10,mood:6}},b:{t:'Save the oil',fx:{}}},
+  {id:'penguins',need:s=>s.biome===2,who:'Penguin Delegation',role:'From the ice shelf',p:{kind:'penguin',bg:0xe0f0ff},say:"We would like to move in. We work hard, we are formal, and we will require fish.",
+    a:{t:'Welcome, formal friends',fx:{pop:4,food:-6,joy:8},m:'Everyone dresses up for dinner now.'},b:{t:'No vacancies',fx:{joy:-3}}},
+  {id:'cold',need:s=>s.biome===2,who:'Doctor Mabel',role:'Town doctor',p:H({skin:4,hair:'bun',hairC:0x2a1a1a,glasses:1,shirt:0xffffff,bg:0xd8f0ff}),say:"It's freezing out here. Burn the spare planks for heat, or everyone wears two sweaters?",
+    a:{t:'Burn the planks',fx:{coins:-12,joy:5}},b:{t:'Two sweaters each',fx:{joy:-8,pop:-1},m:'One citizen leaves for somewhere with less sweater.'}},
+  {id:'jellies',need:s=>s.biome===3,who:'Tomo',role:'Age 10',p:H({skin:2,hair:'spiky',hairC:0x1d1d1d,shirt:0xf2c14e,bg:0x2e2556}),say:"The water's GLOWING! Can we catch some jellies for night lights?",
+    a:{t:'Catch a few',fx:{joy:8,mood:-6}},b:{t:'Leave them be',fx:{mood:4}}},
+  {id:'hunger',need:s=>s.food<12,w:3,who:'The Fishers Union',role:'Very hungry',p:{kind:'crowd',bg:0xffd0c0},say:"We're starving, Mayor. We could take the fish from Mossback's own feeding nets...",
+    a:{t:'Take her fish',fx:{food:16,mood:-12}},b:{t:'Tighten belts',fx:{joy:-10}}},
+  {id:'gloom',need:s=>s.joy<38,w:3,who:'Pip',role:'Jester, unemployed',p:H({skin:1,hair:'short',hairC:0xff7a6b,hat:'jester',shirt:0xd96aa0,bg:0xf2e0ff}),say:"Everyone's gloomy. A circus would fix it! I have juggling. I have a unicycle. I have dreams.",
+    a:{t:'Fund the circus',fx:{coins:-14,joy:15}},b:{t:'No clowns',fx:{joy:-3}}},
+  {id:'sneeze',who:'Everyone',role:'All at once',p:{kind:'turtle',bg:0xb8e0d0},say:"AH... AHH... Mossback is about to SNEEZE!",
+    a:{t:'Brace yourselves!',fx:{joy:-2},m:'Everyone hugs a lamppost. Nothing falls over.'},b:{t:'"Bless you!"',rand:[{p:.7,fx:{mood:6,joy:3},m:'She seems touched that you noticed.'},{p:.3,fx:{mood:4},dmg:true,m:'She seems touched. A roof is now in the sea.'}]}},
+  {id:'heavy',need:s=>weight()/s.capW>.85,w:3,who:'Bolt',role:'Engineer',p:H({skin:3,hair:'short',hairC:0x3a2a1a,hat:'cap',glasses:1,shirt:0xff7a6b,bg:0xe0e0e0}),say:"She's riding low in the water. We could dump the old statue collection overboard.",
+    a:{t:'Overboard with them',fx:{joy:-6,cap:6},m:'Lighter by six statues and a great deal of dignity.'},b:{t:'Art must stay',fx:{mood:-8}}},
+  {id:'parade',need:s=>s.day>=14,who:'Mayor Office',role:'Shell Day',p:H({skin:2,hair:'comb',hairC:0x2b1d14,hat:'top',shirt:0x2b3a4a,bg:0xffe0a0}),say:"It's Shell Day! Tradition says we throw a parade. Tradition is expensive.",
+    a:{t:'Parade!',fx:{coins:-12,joy:12,mood:8}},b:{t:'Quiet celebration',fx:{joy:-2}}},
+  {id:'rival',need:s=>s.day>8,who:'Whaleton',role:'A rival town on a whale',p:{kind:'whale',bg:0xffd8b0},say:"A town riding a whale pulls alongside. Their mayor is doing a smug little wave.",
+    a:{t:'Wave back politely',fx:{joy:3}},b:{t:'RACE THEM',fx:{lg:5,mood:-10},m:'You win by a flipper. Mossback needs a nap.'},prop:'whales'},
+  {id:'sails',need:s=>!s.sails&&s.day>6,who:'Rosa',role:'Sailmaker',p:H({skin:2,hair:'long',hairC:0x6a2a1a,shirt:0xfffaf0,bg:0xb8e0f0}),say:"Let me rig sails on the town hall. Free speed, forever. Well, for 22 shells.",
+    a:{t:'Rig the sails',fx:{coins:-22},fn:()=>{S.sails=.6;},m:'+0.6 leagues a day. The flag is thrilled.'},b:{t:'She swims fine',fx:{}}},
+  {id:'eggs',need:s=>s.biome===3&&s.mood>60,who:'Grandma Ooli',role:'Oldest resident',p:H({skin:1,hair:'bun',hairC:0xdddddd,glasses:1,shirt:0xd96aa0,bg:0x2e2556}),say:"Mossback has been swimming faster, dear. I think she knows the Reef is close. Shall we tell her it's nearly there?",
+    a:{t:'Tell her',fx:{mood:10,lg:2},m:'She speeds up. Her eyes are shining.'},b:{t:'Let it be a surprise',fx:{joy:4}}},
+];
+const STORM_CARD={id:'storm',who:'Lighthouse keeper',role:'Storm warning',p:H({skin:3,hair:'short',hairC:0x444444,hat:'beanie',beard:2,shirt:0x2b3a4a,bg:0x9fb0b8}),say:"Dark clouds on the horizon, Mayor. We can steer around them, but it'll cost us a few leagues.",
+  a:{t:'Steer around',fx:{lg:-3},m:'The storm rumbles past on the horizon.'},b:{t:'Brave it',storm:true,fx:{},m:'Batten the hatches!'}};
+
+// ================================================================ portraits
+function portrait(c,p){const x=c.getContext('2d'),W=c.width;x.clearRect(0,0,W,W);const hex=n=>'#'+n.toString(16).padStart(6,'0');x.fillStyle=hex(p.bg||0xdddddd);x.beginPath();x.arc(W/2,W/2,W/2,0,TAU);x.fill();x.save();x.beginPath();x.arc(W/2,W/2,W/2,0,TAU);x.clip();
+  const circ=(cx,cy,r,col)=>{x.fillStyle=col;x.beginPath();x.arc(cx,cy,r,0,TAU);x.fill();},ell=(cx,cy,rx,ry,col,rot=0)=>{x.fillStyle=col;x.beginPath();x.ellipse(cx,cy,rx,ry,rot,0,TAU);x.fill();};
+  const u=W/100;
+  if(p.kind==='human'){const SK=['#f5d0b0','#e8b890','#c98a60','#9a6040','#7a4a30'][p.skin||0];
+    ell(50*u,108*u,40*u,30*u,hex(p.shirt||0x6c8fd8));x.fillStyle=SK;x.fillRect(43*u,62*u,14*u,16*u);
+    if(p.hair==='long'||p.hair==='bob'){ell(50*u,50*u,27*u,p.hair==='long'?32*u:26*u,hex(p.hairC||0x3a2a1a));}
+    circ(50*u,48*u,22*u,SK);const hc=hex(p.hairC||0x3a2a1a);
+    if(p.hair==='short'||p.hair==='comb'){x.fillStyle=hc;x.beginPath();x.ellipse(50*u,36*u,23*u,13*u,0,Math.PI,0);x.fill();if(p.hair==='comb'){ell(40*u,31*u,12*u,6*u,hc,-.3);}}
+    if(p.hair==='bob'||p.hair==='long'){x.fillStyle=hc;x.beginPath();x.ellipse(50*u,36*u,24*u,14*u,0,Math.PI,0);x.fill();}
+    if(p.hair==='bun'){x.fillStyle=hc;x.beginPath();x.ellipse(50*u,35*u,23*u,12*u,0,Math.PI,0);x.fill();circ(50*u,20*u,9*u,hc);}
+    if(p.hair==='wild'){for(let i=0;i<9;i++)circ(30*u+i*5*u,30*u+Math.sin(i*2)*5*u,8*u,hc);}
+    if(p.hair==='spiky'){x.fillStyle=hc;for(let i=0;i<6;i++){x.beginPath();x.moveTo(30*u+i*8*u,38*u);x.lineTo(34*u+i*8*u,20*u);x.lineTo(38*u+i*8*u,38*u);x.fill();}}
+    circ(41*u,49*u,3*u,'#1d2b36');circ(59*u,49*u,3*u,'#1d2b36');if(p.patch){x.fillStyle='#1d1d1d';x.beginPath();x.arc(59*u,49*u,6*u,0,TAU);x.fill();x.fillRect(35*u,44*u,30*u,2*u);}
+    x.strokeStyle='#8a4a3a';x.lineWidth=2.4*u;x.beginPath();x.arc(50*u,56*u,7*u,.2,Math.PI-.2);x.stroke();ell(36*u,57*u,4*u,2.5*u,'rgba(255,120,110,.35)');ell(64*u,57*u,4*u,2.5*u,'rgba(255,120,110,.35)');
+    if(p.glasses){x.strokeStyle='#1d2b36';x.lineWidth=2*u;x.beginPath();x.arc(41*u,49*u,6*u,0,TAU);x.moveTo(65*u,49*u);x.arc(59*u,49*u,6*u,0,TAU);x.moveTo(47*u,49*u);x.lineTo(53*u,49*u);x.stroke();}
+    if(p.beard){x.fillStyle=p.beard===2?'#eeeeee':hc;x.beginPath();x.ellipse(50*u,62*u,17*u,12*u,0,0,Math.PI);x.fill();}
+    if(p.mus){ell(44*u,58*u,6*u,2.5*u,hc,.2);ell(56*u,58*u,6*u,2.5*u,hc,-.2);}
+    const hat=p.hat;if(hat==='captain'){ell(50*u,30*u,26*u,6*u,'#1d2b36');x.fillStyle='#1d2b36';x.fillRect(32*u,16*u,36*u,14*u);x.fillStyle='#f2c14e';x.fillRect(46*u,20*u,8*u,6*u);}
+    if(hat==='chef'){x.fillStyle='#ffffff';x.fillRect(34*u,20*u,32*u,12*u);circ(40*u,16*u,9*u,'#fff');circ(50*u,12*u,10*u,'#fff');circ(60*u,16*u,9*u,'#fff');}
+    if(hat==='pirate'){x.fillStyle='#1d1d1d';x.beginPath();x.moveTo(22*u,32*u);x.quadraticCurveTo(50*u,4*u,78*u,32*u);x.fill();circ(50*u,22*u,3*u,'#fff');}
+    if(hat==='beanie'){x.fillStyle='#ff7a6b';x.beginPath();x.ellipse(50*u,32*u,24*u,16*u,0,Math.PI,0);x.fill();x.fillRect(26*u,30*u,48*u,6*u);circ(50*u,15*u,5*u,'#fff');}
+    if(hat==='top'){x.fillStyle='#1d1d1d';x.fillRect(36*u,6*u,28*u,24*u);ell(50*u,30*u,22*u,4*u,'#1d1d1d');x.fillStyle='#ff7a6b';x.fillRect(36*u,24*u,28*u,4*u);}
+    if(hat==='cap'){x.fillStyle='#2bb3b1';x.beginPath();x.ellipse(50*u,32*u,23*u,13*u,0,Math.PI,0);x.fill();ell(64*u,32*u,14*u,4*u,'#2bb3b1');}
+    if(hat==='jester'){x.fillStyle='#d96aa0';x.beginPath();x.moveTo(28*u,34*u);x.lineTo(20*u,12*u);x.lineTo(50*u,28*u);x.lineTo(80*u,12*u);x.lineTo(72*u,34*u);x.fill();circ(20*u,12*u,4*u,'#f2c14e');circ(80*u,12*u,4*u,'#f2c14e');}
+  }else if(p.kind==='gull'){ell(52*u,68*u,26*u,30*u,'#fafafa');ell(50*u,44*u,19*u,18*u,'#fafafa');ell(68*u,72*u,14*u,22*u,'#b0bcc6',.4);x.fillStyle='#f2c14e';x.beginPath();x.moveTo(30*u,46*u);x.lineTo(12*u,50*u);x.lineTo(30*u,52*u);x.fill();circ(44*u,40*u,3.4*u,'#1d2b36');
+    x.fillStyle='#1d2b36';x.beginPath();x.moveTo(24*u,30*u);x.quadraticCurveTo(50*u,4*u,78*u,30*u);x.quadraticCurveTo(50*u,22*u,24*u,30*u);x.fill();x.fillStyle='#f2c14e';x.fillRect(46*u,16*u,8*u,4*u);}
+  else if(p.kind==='octo'){for(let i=0;i<8;i++){x.strokeStyle='#c46aa0';x.lineWidth=8*u;x.lineCap='round';x.beginPath();const a=Math.PI*.15+i*Math.PI*.1;x.moveTo(50*u,62*u);x.quadraticCurveTo(50*u+Math.cos(a)*40*u,62*u+Math.sin(a)*20*u,50*u+Math.cos(a)*34*u,92*u);x.stroke();}
+    ell(50*u,44*u,26*u,28*u,'#d97ab0');circ(40*u,48*u,6*u,'#fff');circ(60*u,48*u,6*u,'#fff');circ(41*u,49*u,3*u,'#1d2b36');circ(61*u,49*u,3*u,'#1d2b36');x.fillStyle='#fff';x.fillRect(70*u,72*u,12*u,8*u);ell(76*u,72*u,6*u,2*u,'#b0e0e0');}
+  else if(p.kind==='whale'){ell(50*u,62*u,44*u,26*u,'#4a78b0');ell(52*u,72*u,34*u,12*u,'#b8d0e8');circ(26*u,58*u,4*u,'#1d2b36');x.fillStyle='#a8e0f0';for(let i=0;i<3;i++){circ(60*u+i*6*u,24*u-i*4*u,5*u,'#dff4ff');}}
+  else if(p.kind==='serpent'){x.strokeStyle='#4f9a5a';x.lineWidth=16*u;x.lineCap='round';x.beginPath();x.moveTo(10*u,90*u);x.bezierCurveTo(30*u,40*u,80*u,100*u,60*u,50*u);x.stroke();ell(58*u,40*u,20*u,14*u,'#5fae6a',-.3);circ(64*u,34*u,4*u,'#f2c14e');circ(65*u,34*u,2*u,'#1d2b36');x.strokeStyle='#ff4f6a';x.lineWidth=2*u;x.beginPath();x.moveTo(40*u,46*u);x.lineTo(30*u,50*u);x.lineTo(26*u,46*u);x.stroke();}
+  else if(p.kind==='penguin'){ell(50*u,64*u,26*u,34*u,'#1d2b36');ell(50*u,70*u,17*u,26*u,'#fafafa');circ(50*u,36*u,18*u,'#1d2b36');ell(50*u,40*u,11*u,10*u,'#fafafa');circ(45*u,36*u,2.6*u,'#1d2b36');circ(55*u,36*u,2.6*u,'#1d2b36');x.fillStyle='#f29a3a';x.beginPath();x.moveTo(46*u,42*u);x.lineTo(54*u,42*u);x.lineTo(50*u,48*u);x.fill();x.fillStyle='#c0392b';x.fillRect(42*u,54*u,16*u,5*u);}
+  else if(p.kind==='bottle'){x.fillStyle='rgba(120,200,160,.8)';x.beginPath();x.roundRect(30*u,40*u,40*u,46*u,10*u);x.fill();x.fillRect(43*u,22*u,14*u,20*u);x.fillStyle='#b08a5a';x.fillRect(42*u,16*u,16*u,8*u);x.fillStyle='#f4e3c1';x.save();x.translate(50*u,62*u);x.rotate(.3);x.fillRect(-12*u,-8*u,24*u,16*u);x.strokeStyle='#d9534f';x.lineWidth=2*u;x.beginPath();x.moveTo(-4*u,-4*u);x.lineTo(4*u,4*u);x.moveTo(4*u,-4*u);x.lineTo(-4*u,4*u);x.stroke();x.restore();}
+  else if(p.kind==='crowd'){[[28,62,0xf5d0b0,0xff7a6b],[72,62,0xc98a60,0x2bb3b1],[50,56,0xe8b890,0xf2c14e]].forEach(([cx,cy,sk,sh])=>{ell(cx*u,(cy+34)*u,20*u,20*u,hex(sh));circ(cx*u,cy*u,15*u,hex(sk));circ((cx-5)*u,(cy-1)*u,2.2*u,'#1d2b36');circ((cx+5)*u,(cy-1)*u,2.2*u,'#1d2b36');x.strokeStyle='#8a4a3a';x.lineWidth=2*u;x.beginPath();x.arc(cx*u,(cy+4)*u,4*u,.3,Math.PI-.3);x.stroke();});}
+  else if(p.kind==='turtle'){ell(50*u,60*u,34*u,28*u,'#7fb58f');circ(38*u,52*u,9*u,'#fff');circ(62*u,52*u,9*u,'#fff');circ(40*u,54*u,4.5*u,'#1d2b36');circ(64*u,54*u,4.5*u,'#1d2b36');ell(50*u,74*u,10*u,6*u,'#5a8a6a');ell(28*u,66*u,5*u,3*u,'rgba(255,120,110,.5)');ell(72*u,66*u,5*u,3*u,'rgba(255,120,110,.5)');}
+  x.restore();}
+
+// ================================================================ audio
+const A={ctx:null,on:true,next:0,step:0};let AM,waveN,waveF;
+function audioInit(){if(A.ctx){if(A.ctx.state==='suspended')A.ctx.resume();return;}const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const c=new C();A.ctx=c;AM=c.createGain();AM.gain.value=A.on?.7:0;
+  const comp=c.createDynamicsCompressor();AM.connect(comp);comp.connect(c.destination);const nb=c.createBuffer(1,c.sampleRate*3,c.sampleRate),d=nb.getChannelData(0);let b=0;for(let i=0;i<d.length;i++){const w=Math.random()*2-1;b=(b+.03*w)/1.03;d[i]=b*3;}A.noise=nb;
+  const s=c.createBufferSource();s.buffer=nb;s.loop=true;waveF=c.createBiquadFilter();waveF.type='lowpass';waveF.frequency.value=500;waveN=c.createGain();waveN.gain.value=.12;s.connect(waveF);waveF.connect(waveN);waveN.connect(AM);s.start();
+  const dl=c.createDelay(1);dl.delayTime.value=.36;const fb=c.createGain();fb.gain.value=.3;A.verb=c.createGain();A.verb.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(AM);A.next=c.currentTime+.2;}
+function note(f,t,dur,vol,type='sine',dest){const c=A.ctx;const o=c.createOscillator();o.type=type;o.frequency.value=f;const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.008);g.gain.exponentialRampToValueAtTime(.0003,t+dur);o.connect(g);g.connect(dest||AM);g.connect(A.verb);o.start(t);o.stop(t+dur+.05);
+  const o2=c.createOscillator();o2.frequency.value=f*4.02;const g2=c.createGain();g2.gain.setValueAtTime(vol*.18,t);g2.gain.exponentialRampToValueAtTime(.0002,t+dur*.25);o2.connect(g2);g2.connect(AM);o2.start(t);o2.stop(t+dur*.3);}
+const PENT=[0,2,4,7,9,12,14,16,19,21];
+function music(){if(!A.ctx||!A.on||S.over)return;const c=A.ctx,bpm=78,st=60/bpm/2;const key=48+(BIOMES[S.biome].key||0);const minor=S.biome===1;const scale=minor?[0,3,5,7,10,12,15,17,19,22]:PENT;
+  while(A.next<c.currentTime+.25){const t=A.next,i=A.step%16;if(i%8===0){for(const iv of (minor?[0,3,7]:[0,4,7]))note(440*Math.pow(2,(key-12+iv+(A.step%64>=32?5:0)-69)/12),t,2.8,.035,'triangle');}
+    if(Math.random()<(i%2===0?.55:.22)){const n=key+12+scale[Math.floor(Math.random()*7)];note(440*Math.pow(2,(n-69)/12),t,1.2,.07);}
+    A.next+=st*(i%2===0?1.12:.88);A.step++;}}
+const sfx={
+  click(){if(!A.ctx||!A.on)return;note(1200,A.ctx.currentTime,.08,.05);},
+  build(){if(!A.ctx||!A.on)return;const t=A.ctx.currentTime;note(523,t,.25,.09);note(784,t+.07,.3,.08);note(1046,t+.14,.4,.06);const s=A.ctx.createBufferSource();s.buffer=A.noise;const f=A.ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=400;const g=A.ctx.createGain();g.gain.setValueAtTime(.4,t);g.gain.exponentialRampToValueAtTime(.001,t+.3);s.connect(f);f.connect(g);g.connect(AM);s.start(t);s.stop(t+.35);},
+  card(){if(!A.ctx||!A.on)return;const t=A.ctx.currentTime;note(660,t,.3,.06);note(880,t+.1,.4,.05);},
+  coin(){if(!A.ctx||!A.on)return;const t=A.ctx.currentTime;note(1568,t,.15,.05);note(2093,t+.06,.25,.05);},
+  bad(){if(!A.ctx||!A.on)return;const t=A.ctx.currentTime;note(330,t,.4,.07,'triangle');note(262,t+.15,.6,.07,'triangle');},
+  hum(){if(!A.ctx||!A.on)return;const c=A.ctx,t=c.currentTime;const o=c.createOscillator();o.type='sine';o.frequency.setValueAtTime(92,t);o.frequency.linearRampToValueAtTime(110,t+1.2);o.frequency.linearRampToValueAtTime(98,t+3);const v=c.createOscillator();v.frequency.value=4;const vg=c.createGain();vg.gain.value=2;v.connect(vg);vg.connect(o.frequency);
+    const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.22,t+.6);g.gain.linearRampToValueAtTime(0,t+3.2);const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=600;o.connect(f);f.connect(g);g.connect(AM);g.connect(A.verb);o.start(t);v.start(t);o.stop(t+3.3);v.stop(t+3.3);},
+  rumble(dur=3,vol=.5){if(!A.ctx||!A.on)return;const c=A.ctx,t=c.currentTime;const s=c.createBufferSource();s.buffer=A.noise;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=150;const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.2);g.gain.exponentialRampToValueAtTime(.001,t+dur);s.connect(f);f.connect(g);g.connect(AM);s.start(t);s.stop(t+dur);},
+  fanfare(){if(!A.ctx||!A.on)return;const t=A.ctx.currentTime;[523,659,784,1046,784,1046,1318].forEach((f,i)=>note(f,t+i*.14,.6,.08));},
+};
+
+// ================================================================ world props
+const props=[];
+function spawnProp(kind,opts={}){const g=new THREE.Group();const side=opts.side||(Math.random()<.5?-1:1);let x=opts.x!=null?opts.x:side*rnd(34,120),z=opts.z!=null?opts.z:-rnd(230,300);
+  if(kind==='island'){mesh(cyl(9,11,2,14),mat(0xf4e3c1),0,.3,0,g);mesh(cyl(6,8,1.5,12),mat(0x8fce7a),0,1.5,0,g);for(let i=0;i<3;i++){const px=rnd(-3,3),pz=rnd(-3,3);const tr=mesh(cyl(.25,.35,5,6),mat(0x9a7a4a),px,4,pz,g);tr.rotation.z=rnd(-.3,.3);for(let k=0;k<5;k++){const l=mesh(box(3,.1,.8),mat(0x3f9a4a),px+Math.cos(k*1.25)*1.3,6.5,pz+Math.sin(k*1.25)*1.3,g);l.rotation.y=k*1.25;l.rotation.z=-.4;}}}
+  else if(kind==='berg'){const s=rnd(4,11);const ig=new THREE.IcosahedronGeometry(s,0);ig.scale(1,rnd(.7,1.5),1);mesh(ig,mat(0xeef7ff,{roughness:.3}),0,s*.25,0,g);mesh(new THREE.IcosahedronGeometry(s*.7,0),mat(0xbfe0f5),s*.5,0,s*.2,g);}
+  else if(kind==='rock'){mesh(new THREE.DodecahedronGeometry(rnd(2,5),0),mat(0x6b6a70),0,0,0,g);}
+  else if(kind==='jelly'){const jm=new THREE.MeshStandardMaterial({color:0x9ffff0,emissive:0x5fffe0,emissiveIntensity:1.4,transparent:true,opacity:.7});for(let i=0;i<5;i++){const j=mesh(sph(rnd(.5,1.2),10,6,),jm,rnd(-8,8),rnd(-.3,.3),rnd(-8,8),g);j.scale.y=.6;}}
+  else if(kind==='ship'){x=side*26;z=-60;mesh(box(3,1.6,9),mat(0x7a4a2a),0,.6,0,g);mesh(cyl(.15,.15,9),mat(0x5a3a1a),0,5.5,0,g);const sl=mesh(box(.1,5,4.5),mat(0xfffaf0),0,6,0,g);sl.rotation.y=Math.PI/2;g.userData.stay=18;}
+  else if(kind==='raft'){x=side*22;z=-50;mesh(box(4,.4,4),mat(0x9a7a4a),0,.3,0,g);mesh(cyl(.1,.1,4),mat(0x5a3a1a),0,2.2,0,g);mesh(box(.05,1.6,2),mat(0x1d1d1d),0,3.2,.8,g);g.userData.stay=16;}
+  else if(kind==='whales'){x=side*30;z=-40;for(let i=0;i<3;i++){const w=new THREE.Group();const b=mesh(sph(3,14,10),mat(0x4a78b0),0,0,0,w);b.scale.set(1,.7,2.6);mesh(sph(2.2,12,8),mat(0xb8d0e8),0,-.9,0,w).scale.set(1,.4,2.2);const tail=mesh(box(4,.3,1.5),mat(0x4a78b0),0,0,8,w);w.position.set(i*9*side,0,i*10);w.userData.ph=i;g.add(w);}g.userData.whales=true;g.userData.stay=22;}
+  else if(kind==='turtle'){const b=mesh((()=>{const s=new THREE.SphereGeometry(1,20,10,0,TAU,0,Math.PI/2);s.scale(6,2.5,6);return s;})(),mat(0x6a5a3a),0,.3,0,g);mesh(sph(1.3,10,8),skin,0,.6,-7,g);g.userData.stay=999;g.userData.buddy=true;}
+  else if(kind==='coral'){for(let i=0;i<14;i++){const cm=new THREE.MeshStandardMaterial({color:pick([0xff7a6b,0xff9ad0,0xf2c14e,0x9f7aff]),emissive:pick([0xff4a6b,0xff6ad0,0xf2a14e]),emissiveIntensity:.35,flatShading:true});const c=mesh(cone(rnd(1,2.5),rnd(3,7),5),cm,rnd(-20,20),1,rnd(-12,12),g);c.rotation.z=rnd(-.4,.4);}g.userData.stay=999;}
+  g.position.set(x,0,z);g.userData.kind=kind;g.userData.t=0;scene.add(g);props.push(g);return g;}
+// smoke puffs & rain
+const puffs=[];const puffMat=new THREE.MeshStandardMaterial({color:0xffffff,transparent:true,opacity:.8,roughness:1});
+function puffAt(pos,scale=1,col){const m=new THREE.Mesh(sph(.3*scale,8,6),col?new THREE.MeshStandardMaterial({color:col,transparent:true,opacity:.8}):puffMat.clone());m.position.copy(pos);m.userData={t:0,life:2+Math.random(),v:new V3(rnd(-.3,.3),rnd(.6,1.2),rnd(-.3,.3))};scene.add(m);puffs.push(m);}
+function puff(t){const p=new V3();t.group.getWorldPosition(p);for(let i=0;i<8;i++)puffAt(p.clone().add(new V3(rnd(-1,1),rnd(.2,1),rnd(-1,1))),1.6);}
+const rainGeo=new THREE.BufferGeometry();{const n=2500,a=new Float32Array(n*6);for(let i=0;i<n;i++){const x=rnd(-60,60),y=rnd(0,50),z=rnd(-60,60);a.set([x,y,z,x-.3,y-1.3,z],i*6);}rainGeo.setAttribute('position',new THREE.BufferAttribute(a,3));}
+const rain=new THREE.LineSegments(rainGeo,new THREE.LineBasicMaterial({color:0xcfe0ea,transparent:true,opacity:0}));scene.add(rain);
+
+// walkers & gulls
+const walkers=[];const walkM=[0xff7a6b,0x2bb3b1,0xf2c14e,0x6c8fd8,0xd96aa0,0xfffaf0].map(c=>mat(c,{flatShading:false}));
+function makeWalker(){const g=new THREE.Group();mesh(new THREE.CapsuleGeometry(.12,.22,3,6),pick(walkM),0,.24,0,g);mesh(sph(.1,8,6),mat(0xf5d0b0,{flatShading:false}),0,.52,0,g);shellG.add(g);const t=pick(TILES);const w={g,from:new V3(t.x,0,t.z),to:null,k:1,sp:rnd(.25,.45)};walkers.push(w);return w;}
+function domePoint(x,z){const d=Math.hypot(x,z);return new V3(x,Y0+domeY(d)+.37,z);}
+const gulls=[];{const gg=new THREE.BufferGeometry();gg.setAttribute('position',new THREE.Float32BufferAttribute([0,0,.35,0,0,-.2,-1.1,.1,0,0,0,.35,1.1,.1,0,0,0,-.2],3));gg.computeVertexNormals();
+  for(let i=0;i<7;i++){const b=new THREE.Mesh(gg,new THREE.MeshStandardMaterial({color:0xffffff,side:THREE.DoubleSide}));b.userData={r:rnd(12,22),a:rnd(0,TAU),h:rnd(11,17),s:rnd(.3,.5)*(Math.random()<.5?1:-1),ph:rnd(0,TAU)};scene.add(b);gulls.push(b);}}
+
+// ================================================================ UI
+function fxChips(o){const out=[];const names={food:'kelp',coins:'shells',pop:'people',joy:'joy',mood:'Mossback',lg:'leagues',cap:'capacity'};
+  if(o.rand)return['<span class="q">a gamble</span>'];for(const k in (o.fx||{})){const v=o.fx[k];if(!v)continue;out.push(`<span class="${v>0?'up':'dn'}">${v>0?'+':'−'}${Math.abs(v)} ${names[k]}</span>`);}
+  if(o.set==='tax')out.push('<span class="up">+60% taxes</span>');if(o.storm)out.push('<span class="dn">storm</span>');if(o.fn)out.push('<span class="up">+0.6 leagues/day</span>');if(!out.length)out.push('<span>no change</span>');return out;}
+function showCard(c){S.card=c;const el=$('card');const cvs=document.createElement('canvas');cvs.width=cvs.height=168;portrait(cvs,c.p);
+  el.innerHTML=`<div class="day">Day ${S.day}</div><div class="top"></div><div class="say"></div><div class="opts"></div>`;const top=el.querySelector('.top');top.appendChild(cvs);const nm=document.createElement('div');nm.innerHTML=`<div class="who"></div><div class="role"></div>`;nm.querySelector('.who').textContent=c.who;nm.querySelector('.role').textContent=c.role;top.appendChild(nm);
+  el.querySelector('.say').textContent=c.say;const opts=el.querySelector('.opts');for(const k of ['a','b']){const o=c[k];const b=document.createElement('button');b.className='opt';b.innerHTML=`<b></b><div class="fx">${fxChips(o).join('')}</div>`;b.querySelector('b').textContent=o.t;b.onclick=()=>choose(c,o);opts.appendChild(b);}
+  el.classList.add('show');sfx.card();if(c.prop)spawnProp(c.prop);}
+function choose(c,o){sfx.click();$('card').classList.remove('show');S.card=null;S.used[c.id]=true;let r=o;if(o.rand){let x=Math.random();r=o.rand.find(q=>(x-=q.p)<0)||o.rand[o.rand.length-1];}
+  applyFx(r.fx||{});if(o.set)S.flags[o.set]=true;if(o.unset)delete S.flags[o.unset];if(o.fn)o.fn();if(o.hum)sfx.hum();if(r.storm||o.storm)startStorm();if(r.dmg)damageRandom();
+  const msg=r.m||o.m;logMsg(c.who+': '+(msg||o.t));if(msg)toast(o.t,msg,3.6);refresh();}
+function applyFx(fx){if(fx.food)S.food=Math.max(0,S.food+fx.food);if(fx.coins)S.coins=Math.max(0,S.coins+fx.coins);if(fx.pop)S.pop=Math.max(0,S.pop+fx.pop);if(fx.joy)S.joy=clamp(S.joy+fx.joy,0,100);if(fx.mood)S.mood=clamp(S.mood+fx.mood,0,100);if(fx.lg)S.leagues=Math.max(0,S.leagues+fx.lg);if(fx.cap)S.capW+=fx.cap;
+  if(fx.coins>0)sfx.coin();if((fx.mood||0)>=10)hearts();if((fx.mood||0)<=-10)sfx.bad();}
+let toastT=0;function toast(a,b,d=3){$('tt').textContent=a;$('ts').textContent=b||'';const e=$('toast');e.style.opacity=1;e.style.transform='translateX(-50%) translateY(0)';toastT=d;}
+function logMsg(m){S.log.unshift('Day '+S.day+' · '+m);S.log=S.log.slice(0,7);$('log').innerHTML='';S.log.forEach(l=>{const d=document.createElement('div');d.textContent=l;$('log').appendChild(d);});}
+function buildToolbar(){const bar=$('build');bar.innerHTML='';for(const k of TOOLBAR){const b=BT[k];const el=document.createElement('button');el.className='tool';el.dataset.k=k;const cv=document.createElement('canvas');cv.width=88;cv.height=72;drawIcon(cv,k);
+  el.appendChild(cv);const n=document.createElement('div');n.className='n';n.textContent=b.name;el.appendChild(n);const c=document.createElement('div');c.className='c';c.textContent=b.cost+' shells · '+b.w+' load';el.appendChild(c);el.title=b.desc;
+  el.onclick=()=>{S.tool=S.tool===k?null:k;sfx.click();closePanel();refreshToolbar();};bar.appendChild(el);}}
+function drawIcon(cv,k){const x=cv.getContext('2d');const col={hut:'#ff7a6b',farm:'#5aa06a',pier:'#b08a5a',park:'#8fce7a',shop:'#6b7a86',tavern:'#8a3a3a',light:'#ff7a6b',shrine:'#c0392b'}[k];x.fillStyle='#e6dcc8';x.beginPath();x.ellipse(44,60,34,8,0,0,TAU);x.fill();
+  x.fillStyle='#fffaf0';if(k==='hut'||k==='tavern'||k==='shop'){x.fillRect(24,32,40,26);x.fillStyle=col;x.beginPath();x.moveTo(18,34);x.lineTo(44,14);x.lineTo(70,34);x.fill();x.fillStyle='#ffc070';x.fillRect(50,40,8,8);}
+  if(k==='farm'){x.fillStyle=col;for(let i=0;i<5;i++){x.beginPath();x.moveTo(20+i*12,58);x.lineTo(26+i*12,24+(i%2)*8);x.lineTo(32+i*12,58);x.fill();}}
+  if(k==='pier'){x.fillStyle=col;x.fillRect(14,44,60,6);for(const p of [20,40,60])x.fillRect(p,48,4,12);x.fillStyle='#ff7a6b';x.fillRect(50,34,20,8);}
+  if(k==='park'){x.fillStyle='#7a5a3a';x.fillRect(42,36,4,20);x.fillStyle=col;x.beginPath();x.arc(44,30,16,0,TAU);x.fill();x.fillStyle='#f29a8a';x.beginPath();x.arc(24,46,8,0,TAU);x.fill();}
+  if(k==='light'){for(let i=0;i<4;i++){x.fillStyle=i%2?'#ff7a6b':'#fffaf0';x.fillRect(38,50-i*10,12,10);}x.fillStyle='#f2c14e';x.fillRect(36,6,16,8);}
+  if(k==='shrine'){x.fillStyle=col;x.fillRect(32,36,24,20);x.fillStyle='#2b3a4a';x.fillRect(22,32,44,5);x.fillRect(28,20,32,5);x.fillStyle=col;x.fillRect(36,24,16,9);}}
+function refreshToolbar(){document.querySelectorAll('.tool').forEach(el=>{const k=el.dataset.k,b=BT[k];el.classList.toggle('on',S.tool===k);const c=counts();el.classList.toggle('no',!!(S.coins<b.cost||(b.max&&(c[k]||0)>=b.max)));});}
+const BIOME_COL=['#3fd0c9','#9fb0b8','#9fd0ff','#563a7a'];
+function buildVoyage(){const tr=$('track');tr.innerHTML='';const bi=$('biomes');bi.innerHTML='';for(let i=0;i<4;i++){const w=(BIOMES[i+1].at-BIOMES[i].at)/GOAL*100;const s=document.createElement('span');s.style.width=w+'%';s.style.background=BIOME_COL[i];tr.appendChild(s);const l=document.createElement('span');l.style.width=w+'%';l.textContent=BIOMES[i].name;bi.appendChild(l);}
+  const m=document.createElement('div');m.id='tmark';m.innerHTML='<svg viewBox="0 0 24 24"><ellipse cx="11" cy="13" rx="8" ry="6" fill="#8a6a3d" stroke="#fffaf0" stroke-width="2"/><circle cx="20.5" cy="12" r="2.6" fill="#7fb58f" stroke="#fffaf0" stroke-width="1.2"/></svg>';tr.parentElement.style.position='relative';tr.appendChild(m);}
+function setDelta(id,v){const e=$(id);if(!e)return;if(Math.abs(v)<.05){e.textContent='';return;}e.textContent=(v>0?'+':'−')+(Math.abs(v)>=10?Math.round(Math.abs(v)):Math.abs(v).toFixed(1));e.className='d '+(v>0?'up':'dn');}
+function refresh(){const p=prod();$('v-pop').textContent=S.pop;$('v-cap').textContent='/ '+housing();$('v-food').textContent=Math.floor(S.food);$('v-coins').textContent=Math.floor(S.coins);
+  $('v-joy').textContent=Math.round(S.joy);$('m-joy').style.width=S.joy+'%';$('v-mood').textContent=Math.round(S.mood);$('m-mood').style.width=S.mood+'%';$('m-mood').style.background=S.mood<30?'#d9534f':S.mood<55?'#f2c14e':'#2f9e6e';
+  const wr=weight()/S.capW;$('v-w').textContent=Math.round(wr*100)+'%';$('m-w').style.width=Math.min(100,wr*100)+'%';$('m-w').style.background=wr>1?'#d9534f':wr>.8?'#f2c14e':'#6b7a86';
+  setDelta('d-food',p.food);setDelta('d-coins',p.coins);$('biomeName').textContent=BIOMES[S.biome].name;$('dayline').textContent=`Day ${S.day} · ${Math.floor(S.leagues)} / ${GOAL} leagues · ${speed().toFixed(1)}/day`;
+  const m=$('tmark');if(m)m.style.left=clamp(S.leagues/GOAL*100,0,100)+'%';refreshToolbar();}
+// tips & panel
+const tip=$('tip'),panel=$('panel');
+function tileInfo(t){if(!t.b)return`<b>Empty plate</b><br>${t.ring===3?'Outer plate: piers and lighthouses allowed.':'Inner plate.'}`;const b=BT[t.b.type];return`<b>${b.name}</b>${t.b.dmg?' <span style="color:#d9534f">(damaged)</span>':''}<br>${b.desc}<br><span style="color:#8a7a5a">Load ${b.w}</span>`;}
+function openPanel(t,px,py){const b=t.b;panel.style.display='block';panel.style.left=Math.min(innerWidth-250,px+14)+'px';panel.style.top=Math.min(innerHeight-180,py-10)+'px';const bt=BT[b.type];
+  let acts='';if(b.dmg)acts+=`<button class="pri" data-a="fix">Repair (${Math.ceil(bt.cost*.5)} shells)</button>`;else if(b.type==='hut')acts+=`<button class="pri" data-a="up">Upgrade to Tall House (${BT.tower.cost})</button>`;
+  if(!bt.fixed)acts+=`<button data-a="del">Remove (+${Math.floor(bt.cost*.5)})</button>`;acts+='<button data-a="x">Close</button>';panel.innerHTML=tileInfo(t)+`<div class="acts">${acts}</div>`;
+  panel.querySelectorAll('button').forEach(btn=>btn.onclick=()=>{const a=btn.dataset.a;if(a==='fix'){const c=Math.ceil(bt.cost*.5);if(S.coins<c){toast('Not enough shells','',1.6);return;}S.coins-=c;b.dmg=false;b.g.rotation.x=b.g.rotation.z=0;sfx.build();puff(t);}
+    if(a==='up'){if(S.coins<BT.tower.cost){toast('Not enough shells','',1.6);return;}S.coins-=BT.tower.cost;placeBuilding(t,'tower');}
+    if(a==='del'){S.coins+=Math.floor(bt.cost*.5);t.group.remove(b.g);t.b=null;puff(t);sfx.click();}closePanel();refresh();});}
+function closePanel(){panel.style.display='none';}
+function canBuild(t,k){const b=BT[k];if(t.b)return'That plate is taken';if(b.edge&&t.ring!==3)return'Outer plates only';const c=counts();if(b.max&&(c[k]||0)>=b.max)return'Only '+b.max+' allowed';if(S.coins<b.cost)return'Needs '+b.cost+' shells';return null;}
+
+// raycast
+const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();let hover=null,downAt=null;
+function pickTile(e){const r=renderer.domElement.getBoundingClientRect();mouse.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(mouse,camera);const hits=ray.intersectObjects(shellG.children,true);for(const h of hits)if(h.object.userData.tile)return h.object.userData.tile;return null;}
+renderer.domElement.addEventListener('pointermove',e=>{if(!S.started)return;const t=pickTile(e);if(hover&&hover!==t)hover.topM.emissive.setHex(0);hover=t;
+  if(t){if(S.tool){const why=canBuild(t,S.tool);t.topM.emissive.setHex(why?0x5a1010:0x1f6a3a);tip.innerHTML=`<b>${BT[S.tool].name}</b><br>${why?'<span style="color:#d9534f">'+why+'</span>':'Click to build · '+BT[S.tool].cost+' shells'}`;}
+    else{t.topM.emissive.setHex(0x3a2a10);tip.innerHTML=tileInfo(t);}tip.style.display='block';tip.style.left=Math.min(innerWidth-250,e.clientX+16)+'px';tip.style.top=(e.clientY+16)+'px';}else tip.style.display='none';});
+renderer.domElement.addEventListener('pointerdown',e=>{downAt={x:e.clientX,y:e.clientY};audioInit();});
+renderer.domElement.addEventListener('pointerup',e=>{if(!downAt||!S.started||S.over)return;const moved=Math.hypot(e.clientX-downAt.x,e.clientY-downAt.y);downAt=null;if(moved>6)return;const t=pickTile(e);if(!t){closePanel();return;}
+  if(S.tool){const why=canBuild(t,S.tool);if(why){toast(why,'',1.6);sfx.bad();return;}S.coins-=BT[S.tool].cost;placeBuilding(t,S.tool);logMsg('Built a '+BT[t.b.type].name);if(e.pointerType==='touch'||S.coins<BT[S.tool].cost)S.tool=null;refresh();}
+  else if(t.b){openPanel(t,e.clientX,e.clientY);}});
+addEventListener('keydown',e=>{if(e.key==='Escape'){S.tool=null;closePanel();refreshToolbar();}const n=+e.key;if(n>=1&&n<=8&&S.started){S.tool=TOOLBAR[n-1];refreshToolbar();}if(e.code==='Space'&&S.started){e.preventDefault();setSpeed(S.spd===0?1:0);}});
+function setSpeed(v){S.spd=v;document.querySelectorAll('#speed button[data-s]').forEach(b=>b.classList.toggle('on',b.dataset.s===String(v)));}
+document.querySelectorAll('#speed button').forEach(b=>b.onclick=()=>{audioInit();const s=b.dataset.s;if(s==='m'){A.on=!A.on;if(AM)AM.gain.value=A.on?.7:0;b.textContent=A.on?'Sound':'Muted';return;}setSpeed(+s);});
+
+// ================================================================ simulation
+function dayTick(){const p=prod();S.food=Math.max(0,S.food+p.food);S.coins+=p.coins;S.joy=clamp(S.joy+(clamp(p.joyT,0,100)-S.joy)*.25,0,100);S.mood=clamp(S.mood+p.moodD,0,100);
+  const cap=housing();const before=S.pop;if(S.food<=0){S.pop=Math.max(0,S.pop-2);logMsg('Hungry citizens leave on rafts.');}else if(S.pop>cap)S.pop--;else if(S.joy>=35&&S.pop<cap)S.pop+=Math.min(3,Math.max(1,Math.round((cap-S.pop)*.3)));if(S.joy<20)S.pop=Math.max(0,S.pop-1);
+  setDelta('d-pop',S.pop-before);
+  S.leagues+=speed();if(S.soaked>0)S.soaked--;if(S.storm>0){S.storm--;if(S.storm===0)logMsg('The storm passes.');}
+  S.day++;
+  // grow
+  if(S.mood>=85)S.streak++;else S.streak=0;if(S.streak>=3&&S.grows<3){S.streak=0;S.grows++;S.capW+=8;toast('Mossback grew!','She can carry 8 more load',3.4);logMsg('Mossback grew a little bigger.');sfx.fanfare();}
+  // biome
+  let nb=0;for(let i=0;i<BIOMES.length-1;i++)if(S.leagues>=BIOMES[i].at)nb=i;if(nb!==S.biome){S.biome=nb;toast('Entering '+BIOMES[nb].name,['','Keep the lanterns lit.','Mind the ice.','The sea is glowing.'][nb],3.6);logMsg('Entered '+BIOMES[nb].name+'.');}
+  // hum when happy
+  if(S.mood>75&&Math.random()<.3)setTimeout(()=>sfx.hum(),1500);
+  // dive
+  if(S.mood<30&&Math.random()<(S.mood<15?.6:.35)){startDive();}
+  // endings
+  if(S.leagues>=GOAL){finish(true);return;}if(S.mood<=0){finish(false,'mood');return;}if(S.pop<=0){finish(false,'pop');return;}
+  // storms
+  let stormNow=false;if((S.biome===1||S.biome===3)&&S.storm===0&&Math.random()<.2){if(counts().light)S.stormWarn=true;else stormNow=true;}if(stormNow)startStorm();
+  // props for biome
+  const n=S.biome===2?4:2;for(let i=0;i<n;i++)spawnProp(S.biome===2?(Math.random()<.8?'berg':'rock'):S.biome===3?(Math.random()<.6?'jelly':'rock'):(Math.random()<.4?'island':'rock'));
+  // card
+  if(!S.card){if(S.stormWarn){S.stormWarn=false;showCard(STORM_CARD);}else if(Math.random()<.75||S.day<=3){const pool=CARDS.filter(c=>!S.used[c.id]&&(!c.need||c.need(S)));if(pool.length){let tot=pool.reduce((s,c)=>s+(c.w||1),0),r=Math.random()*tot;const c=pool.find(q=>(r-=(q.w||1))<0)||pool[0];showCard(c);}}}
+  if(S.day===2)toast('Tip','Mossback loses a little mood every day. Moss gardens, piers and shrines keep her content.',4.5);
+  refresh();}
+function startStorm(){S.storm=2;toast('Storm!','Hold on to your hats',2.6);logMsg('A storm hits Shellburg.');sfx.rumble(4,.6);if(Math.random()<.55)damageRandom();S.joy=clamp(S.joy-4,0,100);}
+function damageRandom(){const cands=TILES.filter(t=>t.b&&!t.b.dmg&&!BT[t.b.type].fixed);if(!cands.length)return;const t=pick(cands);t.b.dmg=true;t.b.g.rotation.z=.25;t.b.g.rotation.x=.12;puff(t);logMsg('The '+BT[t.b.type].name+' was damaged. Click it to repair.');}
+function startDive(){S.dive=6;S.food=Math.max(0,S.food-8);S.joy=clamp(S.joy-6,0,100);S.soaked=1;if(Math.random()<.3)S.pop=Math.max(0,S.pop-1);toast('Mossback dives!','She is in a mood. The outer plates are soaked.',3.6);logMsg('Mossback dove in a huff. Outer gardens soaked.');sfx.rumble(3.5,.7);}
+function hearts(){for(let i=0;i<10;i++){const p=new V3();head.getWorldPosition(p);puffAt(p.add(new V3(rnd(-2,2),rnd(2,4),rnd(-1,1))),1,0xff7a8a);}blush.forEach(b=>b.material.opacity=.9);setTimeout(()=>blush.forEach(b=>b.material.opacity=0),2500);}
+function finish(win,why){S.over=true;S.spd=0;const sc=Math.round(S.pop*10+S.joy*2+S.mood*2+S.coins*.5);let title,text;
+  if(win){spawnProp('coral',{x:0,z:-70});for(let i=0;i<4;i++)spawnProp('turtle',{x:(i%2?1:-1)*rnd(30,50),z:-rnd(20,80)});sfx.fanfare();
+    title=S.pop>=60&&S.mood>=70?'A Legendary Town':S.mood>=75?"Mossback's Favourite":S.pop>=40?'A Bustling Shell City':S.joy>=70?'The Happiest Little Town':'You Made It (Barely)';
+    text=`After ${S.day} days Old Mossback glides into the Great Reef. The coral glows and a dozen old turtles swim out to meet her. ${S.mood>=70?'She hums the whole way in.':'She sighs with relief.'} Shellburg settles in for a long, warm season.`;}
+  else{sfx.bad();title=why==='mood'?'She Has Had Enough':'Empty Shell';text=why==='mood'?'Old Mossback dives deep, and this time she does not come back up. Shellburg bobs on the waves as a hundred little rafts. Everyone agrees that the soup comment was a mistake.':"The last citizen paddles away on a raft. Mossback swims on alone, lighter, and a little lonely.";}
+  const es=$('endsheet');es.innerHTML=`<div class="eye">${win?'THE GREAT REEF · DAY '+S.day:'DAY '+S.day+' · '+Math.floor(S.leagues)+' LEAGUES'}</div><h1></h1><p class="hand"></p><div class="stats"><div><b>${S.pop}</b>citizens</div><div><b>${Math.round(S.mood)}</b>turtle mood</div><div><b>${sc}</b>score</div></div><button class="big" id="again">Sail again</button>`;
+  es.querySelector('h1').textContent=title;es.querySelector('.hand').textContent=text;let best=0;try{best=+localStorage.getItem('shellburg-best')||0;if(sc>best)localStorage.setItem('shellburg-best',sc);}catch(e){}
+  if(sc>best&&best>0)es.querySelector('.stats').insertAdjacentHTML('afterend','<p>New best score!</p>');setTimeout(()=>$('end').classList.remove('gone'),win?3500:1500);$('again').onclick=()=>location.reload();}
+
+// ================================================================ palette & day cycle
+const cA=new THREE.Color(),cB=new THREE.Color(),tmp=new THREE.Color();
+function biomeBlend(){const L=S.leagues;let i=0;for(let k=0;k<BIOMES.length-1;k++)if(L>=BIOMES[k].at)i=k;const a=BIOMES[i],b=BIOMES[Math.min(i+1,BIOMES.length-1)];const k=sstep(b.at-5,b.at+1,L);return{a,b,k};}
+const NIGHT={top:new THREE.Color(0x0b1238),bot:new THREE.Color(0x24306a),deep:new THREE.Color(0x061a2e),shal:new THREE.Color(0x0f4a5e),fog:new THREE.Color(0x1a2450)};
+let nightF=0;
+function updateEnv(dt){const {a,b,k}=biomeBlend();const mix=(p)=>tmp.setHex(a[p]).lerp(cB.setHex(b[p]),k).clone();
+  const dayPhase=S.dayT/DAY;const sunA=dayPhase*TAU-Math.PI/2;const el=Math.sin(sunA+Math.PI*.55);nightF=sstep(.05,-.3,el);const stormK=S.storm>0?1:0;S._stormV=lerp(S._stormV||0,stormK,dt*.6);
+  const top=mix('top').lerp(NIGHT.top,nightF*.85),bot=mix('bot').lerp(NIGHT.bot,nightF*.8),fog=mix('fog').lerp(NIGHT.fog,nightF*.85);const grey=new THREE.Color(0x6a7478);top.lerp(grey,S._stormV*.7);bot.lerp(grey,S._stormV*.6);fog.lerp(grey,S._stormV*.6);
+  skyMat.uniforms.uTop.value.copy(top);skyMat.uniforms.uBot.value.copy(bot);scene.fog.color.copy(fog);const near=lerp(a.near,b.near,k),far=lerp(a.far,b.far,k);scene.fog.near=near*(1-S._stormV*.5);scene.fog.far=far*(1-S._stormV*.4);
+  const sd=new V3(Math.cos(sunA)*.6,Math.max(.12,Math.abs(el))*1.1,-.5).normalize();skyMat.uniforms.uSun.value.copy(sd);skyMat.uniforms.uSunC.value.set(el>0?0xfff0d0:0xaabbff).multiplyScalar(el>0?(1-S._stormV):.25);skyMat.uniforms.uNight.value=nightF;
+  sun.position.copy(sd).multiplyScalar(60);sun.target.position.set(0,0,0);sun.intensity=lerp(2.5,.45,nightF)*(1-S._stormV*.6);sun.color.set(el>0?(el<.3?0xffd8a8:0xfff1dd):0x9fb4ff);
+  hemi.intensity=lerp(1.15,.5,nightF)*(1-S._stormV*.3);hemi.color.copy(top).lerp(new THREE.Color(0xffffff),.4);
+  oceanMat.uniforms.uDeep.value.copy(mix('deep').lerp(NIGHT.deep,nightF*.8));oceanMat.uniforms.uShal.value.copy(mix('shal').lerp(NIGHT.shal,nightF*.7));oceanMat.uniforms.uSky.value.copy(bot);oceanMat.uniforms.uSun.value.copy(sd);
+  oceanMat.uniforms.uGlow.value=lerp(a.glow,b.glow,k)*(.4+nightF*.6);oceanMat.uniforms.uNight.value=nightF;oceanMat.uniforms.uWave.value=lerp(oceanMat.uniforms.uWave.value,1+S._stormV*1.6+(S.biome===1?.2:0),dt);
+  renderer.toneMappingExposure=lerp(1.05,1.25,nightF);const glow=clamp(nightF*1.2+S._stormV*.5+(S.biome===1?.4:0),0,1);winMat.emissiveIntensity=glow*1.6;lampMat.emissiveIntensity=.3+glow*2.2;
+  rain.material.opacity=S._stormV*.5;}
+
+// ================================================================ loop
+const clock=new THREE.Clock();let oceanOff=0;
+function frame(){requestAnimationFrame(frame);const dt=Math.min(clock.getDelta(),.05);clk+=dt;const t=clk;
+  if(S.started&&!S.over&&!S.card&&S.spd>0){S.dayT+=dt*[0,1,2.2,4][S.spd];if(S.dayT>=DAY){S.dayT-=DAY;dayTick();}}
+  updateEnv(dt);
+  // turtle motion
+  const sp=S.over?(S.leagues>=GOAL?.4:3):speed();const vis=(S.spd===0||!S.started)?1.2:sp*1.8*(S.card?.6:1);oceanOff+=dt*vis;oceanMat.uniforms.uOff.value=oceanOff;oceanMat.uniforms.uT.value=t;skyMat.uniforms.uT.value=t;
+  const swim=t*(1.1+sp*.18);flippers.forEach(f=>{const ph=swim+(f.front?0:Math.PI*.6);f.piv.rotation.z=f.side*Math.sin(ph)*(f.front?.32:.18);f.piv.rotation.y=f.side*Math.cos(ph)*(f.front?.35:.2);});
+  let diveY=0;if(S.dive>0){S.dive-=dt;const k=S.dive>4.5?sstep(6,4.5,S.dive):S.dive>1.5?1:sstep(0,1.5,S.dive);diveY=-3.4*k;oceanMat.uniforms.uDive.value=k;}else oceanMat.uniforms.uDive.value=0;
+  const growS=1+S.grows*.05;turtle.scale.lerp(new V3(growS,growS,growS),dt*.8);
+  turtle.position.y=lerp(turtle.position.y,Math.sin(t*.8)*.16+diveY,S.dive>0?.05:.2);turtle.rotation.z=Math.sin(t*.5)*.022*(1+S._stormV*3);turtle.rotation.x=Math.sin(t*.8+1)*.015*(1+S._stormV*3);
+  head.rotation.y=Math.sin(t*.3)*.18;head.rotation.x=Math.sin(t*.5)*.06-(S.mood<30?.15:0);const bl=(t%4.3)<.12?.1:1;eyes.forEach(e=>e.scale.y=bl*(S.mood<30?.6:1));
+  // buildings anim
+  for(const tl of TILES){const b=tl.b;if(!b)continue;const age=clk-b.born;if(age<.8){const k=age/.8;const s=1+Math.sin(k*Math.PI)*.25*(1-k);b.g.scale.setScalar(Math.max(.01,sstep(0,.55,k)*s));}else if(b.g.scale.x!==1&&age<2)b.g.scale.setScalar(1);
+    const u=b.g.userData;if(u.kelp)u.kelp.forEach((kp,i)=>kp.rotation.z=Math.sin(t*1.5+i)*.2);if(u.gear)u.gear.rotation.z=t*2;if(u.flag)u.flag.rotation.y=Math.sin(t*3)*.3;if(u.boat)u.boat.position.y=.05+Math.sin(t*2+tl.q)*.05;
+    if(u.beam){u.beam.rotation.y=t*.8;u.bm.opacity=(nightF*.35+S._stormV*.2+(S.biome===1?.15:0));}
+    if(u.chim&&!b.dmg&&Math.random()<dt*1.4){const p=b.g.localToWorld(u.chim.clone());puffAt(p,.8,0xdddddd);}
+    if(b.dmg&&Math.random()<dt*2){const p=new V3();b.g.getWorldPosition(p);p.y+=1;puffAt(p,.7,0x666666);}}
+  // walkers
+  const want=S.started?clamp(Math.floor(S.pop/2),0,40):0;while(walkers.length<want)makeWalker();while(walkers.length>want){const w=walkers.pop();shellG.remove(w.g);}
+  for(const w of walkers){if(w.k>=1){const tt=pick(TILES);w.from.copy(w.to||w.from);w.to=new V3(tt.x+rnd(-.6,.6),0,tt.z+rnd(-.6,.6));w.len=w.from.distanceTo(w.to)+.01;w.k=0;}w.k=Math.min(1,w.k+dt*w.sp/w.len);const x=lerp(w.from.x,w.to.x,w.k),z=lerp(w.from.z,w.to.z,w.k);w.g.position.copy(domePoint(x,z));w.g.position.y+=Math.abs(Math.sin(clk*9+w.sp*40))*.05;w.g.rotation.y=Math.atan2(w.to.x-w.from.x,w.to.z-w.from.z);}
+  // props
+  for(let i=props.length-1;i>=0;i--){const p=props[i],u=p.userData;u.t+=dt;if(u.stay&&u.t<u.stay){p.position.z+=(u.whales?Math.sin(u.t*.5)*.05:0);if(u.whales)p.children.forEach(w=>{w.position.y=Math.sin(u.t*.8+w.userData.ph)*1.2-1;w.rotation.x=Math.cos(u.t*.8+w.userData.ph)*.2;});if(u.buddy){p.position.z+=dt*.5;p.position.x*=1-dt*.05;}}
+    else{p.position.z+=vis*dt*(u.stay?3:1);}p.position.y=Math.sin(u.t*.9+i)*.2;if(u.kind==='jelly')p.children.forEach((j,k)=>j.position.y=Math.sin(u.t*1.3+k)*.5);if(p.position.z>160){scene.remove(p);props.splice(i,1);}}
+  for(let i=puffs.length-1;i>=0;i--){const m=puffs[i],u=m.userData;u.t+=dt;m.position.addScaledVector(u.v,dt);m.scale.setScalar(1+u.t*.8);m.material.opacity=.8*(1-u.t/u.life);if(u.t>=u.life){scene.remove(m);m.geometry.dispose();if(m.material!==puffMat)m.material.dispose();puffs.splice(i,1);}}
+  gulls.forEach(g=>{const u=g.userData;u.a+=dt*u.s*.4;g.position.set(Math.cos(u.a)*u.r,u.h+Math.sin(u.a*3)*1.2,Math.sin(u.a)*u.r);g.rotation.set(0,-u.a+(u.s>0?0:Math.PI),Math.sin(clk*7+u.ph)*.5);g.visible=S._stormV<.5&&nightF<.7;});
+  rain.position.set(camera.position.x*.5,0,camera.position.z*.5);rain.position.y=-((clk*30)%12);
+  if(toastT>0){toastT-=dt;if(toastT<=0){$('toast').style.opacity=0;$('toast').style.transform='translateX(-50%) translateY(-10px)';}}
+  if(A.ctx){music();waveF.frequency.value=400+S._stormV*500+Math.sin(t*.4)*150;waveN.gain.value=.1+S._stormV*.2;}
+  controls.update();renderer.render(scene,camera);}
+
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+// start
+placeBuilding(tileAt(0,0),'hall',true);placeBuilding(tileAt(1,-1),'hut',true);placeBuilding(tileAt(-1,1),'farm',true);placeBuilding(tileAt(0,1),'park',true);
+for(let i=0;i<5;i++)spawnProp(Math.random()<.5?'island':'rock',{z:-rnd(20,260)});
+buildToolbar();buildVoyage();refresh();logMsg('Shellburg sets sail.');
+$('go').disabled=false;$('go').textContent='Start the voyage';
+$('go').onclick=()=>{audioInit();S.started=true;$('intro').classList.add('gone');sfx.hum();setTimeout(()=>toast('Day 1','Pick a building below, then click a shell plate',4),600);};
+frame();
+</script>

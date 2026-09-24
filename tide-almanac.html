@@ -1,0 +1,300 @@
+<title>Ebb &amp; Flood Almanac</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,300;1,400&family=IBM+Plex+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --abyss: #07101F;
+    --deep: #0D1B33;
+    --moon: #E6ECEF;
+    --mist: #8FA3B5;
+    --brine: #5CC2B6;
+    --sodium: #F0B060;
+    --line: rgba(143, 163, 181, .18);
+    --serif: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --sans: "Instrument Sans", system-ui, -apple-system, sans-serif;
+  }
+  html { background: var(--abyss); }
+  body { background: var(--abyss); color: var(--moon); font-family: var(--sans); font-size: 15px; line-height: 1.6; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 48px); padding-block: 28px 72px; }
+
+  .mast { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 24px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .mast .name { font-family: var(--serif); font-size: 26px; font-style: italic; font-weight: 400; letter-spacing: .01em; }
+  .mast .name b { font-style: normal; font-weight: 500; color: var(--brine); }
+  .eyebrow { font: 500 11px/1.4 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--mist); }
+
+  .stage { position: relative; margin-top: 24px; height: clamp(420px, 58vw, 600px); background: var(--deep); overflow: hidden; border-radius: 2px; }
+  #sea { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .readout { position: absolute; left: clamp(16px, 4vw, 44px); top: clamp(18px, 4vw, 40px); pointer-events: none; text-shadow: 0 2px 24px rgba(7, 16, 31, .8); }
+  .readout h1 { font-family: var(--serif); font-weight: 300; font-style: italic; font-size: clamp(56px, 10vw, 128px); line-height: .88; margin: 10px 0 6px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .readout h1 small { font: 300 .26em var(--mono); font-style: normal; color: var(--mist); letter-spacing: 0; margin-left: .3em; vertical-align: .9em; }
+  .state { font-family: var(--serif); font-style: italic; font-size: clamp(20px, 2.6vw, 30px); color: var(--brine); line-height: 1.2; }
+  .next { margin-top: 12px; font: 400 12.5px/1.8 var(--mono); color: var(--mist); font-variant-numeric: tabular-nums; }
+  .next b { color: var(--moon); font-weight: 500; }
+
+  .scrub { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px 20px; padding: 18px 0 8px; border-bottom: 1px solid var(--line); }
+  .scrub .when { font: 400 13px var(--mono); color: var(--moon); min-width: 9.5ch; font-variant-numeric: tabular-nums; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; cursor: ew-resize; }
+  input[type=range]::-webkit-slider-runnable-track { height: 1px; background: linear-gradient(90deg, var(--line), var(--mist), var(--line)); }
+  input[type=range]::-moz-range-track { height: 1px; background: var(--mist); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -7px; border-radius: 50%; background: var(--sodium); box-shadow: 0 0 0 5px rgba(240, 176, 96, .18); }
+  input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border: 0; border-radius: 50%; background: var(--sodium); box-shadow: 0 0 0 5px rgba(240, 176, 96, .18); }
+  input[type=range]:focus-visible { outline: 1px dashed var(--sodium); outline-offset: 4px; }
+  .btn { font: 500 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--abyss); background: var(--moon); border: 0; padding: 9px 14px; border-radius: 99px; cursor: pointer; }
+  .btn[aria-pressed=true] { background: transparent; color: var(--mist); box-shadow: inset 0 0 0 1px var(--line); }
+  .btn:focus-visible, .day:focus-visible { outline: 2px solid var(--sodium); outline-offset: 3px; }
+
+  h2 { font-family: var(--serif); font-weight: 400; font-style: italic; font-size: clamp(30px, 4vw, 44px); line-height: 1.05; margin: 56px 0 18px; text-wrap: balance; }
+  h2 span { font-style: normal; color: var(--mist); font-size: .5em; font-family: var(--mono); letter-spacing: .1em; vertical-align: .4em; margin-left: .5em; }
+
+  .week-scroll { overflow-x: auto; margin-inline: -4px; padding: 4px; }
+  .week { display: grid; grid-template-columns: repeat(7, minmax(132px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .day { all: unset; box-sizing: border-box; display: grid; grid-template-rows: auto auto auto 1fr; gap: 6px; padding: 16px 14px 18px; background: var(--abyss); cursor: pointer; transition: background .25s; }
+  .day:hover { background: #0B1729; }
+  .day.on { background: var(--deep); box-shadow: inset 0 2px 0 var(--sodium); }
+  .day .top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .day .dnum { font-family: var(--serif); font-size: 40px; line-height: 1; font-weight: 400; }
+  .day canvas { width: 30px; height: 30px; }
+  .coef { font: 500 11px var(--mono); color: var(--sodium); letter-spacing: .08em; }
+  .coef i { display: block; height: 2px; margin-top: 5px; background: var(--line); }
+  .coef i b { display: block; height: 100%; background: var(--sodium); }
+  .day ul { list-style: none; margin: 6px 0 0; padding: 0; font: 400 12px/1.9 var(--mono); color: var(--mist); font-variant-numeric: tabular-nums; }
+  .day li span { display: inline-block; width: 3ch; color: var(--moon); }
+  .day li.hw span { color: var(--brine); }
+
+  .notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 28px 40px; margin-top: 8px; }
+  .notes h3 { font: 500 11px var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--brine); margin: 0 0 8px; }
+  .notes p { margin: 0; color: #C3CFD8; max-width: 60ch; }
+  footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  @media (max-width: 560px) { .scrub { grid-template-columns: 1fr auto; } .scrub input { grid-column: 1 / -1; order: 3; } }
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <div class="name"><b>Ebb</b> &amp; Flood Almanac</div>
+    <div class="eyebrow">Brest · 48°23′N 4°30′W · Rade de Brest</div>
+  </header>
+
+  <section class="stage" aria-label="Animated harbour showing the current water level">
+    <canvas id="sea"></canvas>
+    <div class="readout">
+      <div class="eyebrow" id="dateline">—</div>
+      <h1><span id="height">0.00</span><small>m</small></h1>
+      <div class="state" id="state">—</div>
+      <div class="next" id="next"></div>
+    </div>
+  </section>
+
+  <div class="scrub">
+    <div class="when" id="when">—</div>
+    <input type="range" id="minute" min="0" max="1439" step="1" aria-label="Time of day">
+    <button class="btn" id="now" aria-pressed="false">Now</button>
+  </div>
+
+  <h2>The week’s water <span>7 DAYS</span></h2>
+  <div class="week-scroll"><div class="week" id="week"></div></div>
+
+  <h2>Reading the table</h2>
+  <div class="notes">
+    <div><h3>Coefficient</h3><p>The Breton habit of grading each tide from 20 to 120. Around 45 is a quiet neap; anything above 95 is a big spring tide that uncovers sandbars and pulls the sea far back from the quays.</p></div>
+    <div><h3>Spring &amp; neap</h3><p>When sun and moon line up at new and full moon, their pulls add together and the range swells. At the quarters they work against each other and the water barely bothers to move.</p></div>
+    <div><h3>Age of the tide</h3><p>The biggest tides arrive a day or two after the full or new moon, not on it. The ocean needs time to answer the call. The model here builds in that delay of about 36 hours.</p></div>
+  </div>
+
+  <footer>
+    <span class="eyebrow">Harmonic model · M2 with spring–neap modulation</span>
+    <span class="eyebrow">Illustrative, not for navigation · times in your local zone</span>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ── Tide & moon model ─────────────────────────────────────
+  const DAY = 864e5, SYN = 29.530588853;
+  const NM0 = Date.UTC(2000, 0, 6, 18, 14);          // reference new moon
+  const M2 = 12.4206012 * 36e5, REF = NM0 + 3.9 * 36e5;
+  const age = t => (((t - NM0) / DAY) % SYN + SYN) % SYN;
+  const amp = t => 2.25 + 1.15 * Math.cos(4 * Math.PI * (age(t) - 1.5) / SYN);
+  const H = t => { const p = 2 * Math.PI * (t - REF) / M2; return 4.2 + amp(t) * Math.cos(p) + .14 * Math.cos(p / 2 + .6); };
+  const coef = t => Math.round(2 * amp(t) / .061);
+  const phaseName = a => {
+    const p = a / SYN;
+    if (p < .03 || p > .97) return 'New moon';
+    if (p < .22) return 'Waxing crescent';
+    if (p < .28) return 'First quarter';
+    if (p < .47) return 'Waxing gibbous';
+    if (p < .53) return 'Full moon';
+    if (p < .72) return 'Waning gibbous';
+    if (p < .78) return 'Last quarter';
+    return 'Waning crescent';
+  };
+  const startOfDay = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  function extrema(d0) {
+    const out = []; let a = H(d0 - 12e4), b = H(d0);
+    for (let m = 2; m <= 1442; m += 2) {
+      const t = d0 + m * 6e4, c = H(t);
+      if (b > a && b >= c) out.push({ t: t - 12e4, h: b, hw: true });
+      if (b < a && b <= c) out.push({ t: t - 12e4, h: b, hw: false });
+      a = b; b = c;
+    }
+    return out.filter(e => e.t < d0 + DAY);
+  }
+  const hm = t => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+
+  // ── Moon drawing ──────────────────────────────────────────
+  function drawMoon(c, x, y, r, p, lit, dark) {
+    c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fillStyle = dark; c.fill();
+    const k = Math.cos(2 * Math.PI * p), PI = Math.PI;
+    c.beginPath();
+    if (p < .5) c.arc(x, y, r, -PI / 2, PI / 2, false), c.ellipse(x, y, r * Math.abs(k), r, 0, PI / 2, -PI / 2, k > 0);
+    else c.arc(x, y, r, PI / 2, 3 * PI / 2, false), c.ellipse(x, y, r * Math.abs(k), r, 0, 3 * PI / 2, PI / 2, k > 0);
+    c.fillStyle = lit; c.fill();
+  }
+
+  // ── State ─────────────────────────────────────────────────
+  const today = startOfDay(Date.now());
+  let day0 = today, live = true;
+  let minute = Math.floor((Date.now() - today) / 6e4);
+  let marks = extrema(day0);
+  const range = $('#minute'), nowBtn = $('#now');
+  range.value = minute;
+
+  function readout() {
+    const t = day0 + minute * 6e4, h = H(t);
+    const rate = H(t + 18e5) - H(t - 18e5);
+    $('#height').textContent = h.toFixed(2);
+    $('#dateline').textContent = new Date(t).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' }) + ' · ' + phaseName(age(t));
+    const verb = Math.abs(rate) < .12 ? (rate > 0 ? 'Slack water, about to ebb' : 'Slack water, turning') : rate > 0 ? 'Flooding' : 'Ebbing';
+    $('#state').textContent = `${verb} · ${rate > 0 ? '+' : '−'}${Math.abs(rate).toFixed(2)} m/h`;
+    const ahead = extrema(day0).concat(extrema(day0 + DAY)).filter(e => e.t > t);
+    const nh = ahead.find(e => e.hw), nl = ahead.find(e => !e.hw);
+    $('#next').innerHTML = `Next high <b>${hm(nh.t)}</b> · ${nh.h.toFixed(1)} m<br>Next low&nbsp; <b>${hm(nl.t)}</b> · ${nl.h.toFixed(1)} m<br>Coefficient <b>${coef(t)}</b>`;
+    $('#when').textContent = new Date(t).toLocaleDateString([], { weekday: 'short' }) + ' ' + hm(t);
+    nowBtn.setAttribute('aria-pressed', live);
+  }
+
+  range.addEventListener('input', () => { minute = +range.value; live = false; readout(); });
+  nowBtn.addEventListener('click', () => { live = true; selectDay(0); minute = Math.floor((Date.now() - today) / 6e4); range.value = minute; readout(); });
+  setInterval(() => { if (live && day0 === today) { minute = Math.floor((Date.now() - today) / 6e4); range.value = minute; readout(); } }, 30000);
+
+  // ── Week strip ────────────────────────────────────────────
+  const week = $('#week');
+  for (let i = 0; i < 7; i++) {
+    const d0 = today + i * DAY, mid = d0 + DAY / 2, c = coef(mid);
+    const b = document.createElement('button');
+    b.className = 'day' + (i === 0 ? ' on' : ''); b.dataset.i = i;
+    b.innerHTML = `<div class="top"><div><div class="eyebrow">${new Date(d0).toLocaleDateString([], { weekday: 'short' })}</div><div class="dnum">${new Date(d0).getDate()}</div></div><canvas width="60" height="60" aria-hidden="true"></canvas></div>
+      <div class="coef">COEF ${c}<i><b style="width:${Math.min(100, (c - 20))}%"></b></i></div>
+      <ul>${extrema(d0).map(e => `<li class="${e.hw ? 'hw' : ''}"><span>${e.hw ? 'HW' : 'LW'}</span>${hm(e.t)} · ${e.h.toFixed(1)}</li>`).join('')}</ul>`;
+    b.setAttribute('aria-label', `Show ${new Date(d0).toDateString()}`);
+    const mc = b.querySelector('canvas').getContext('2d');
+    drawMoon(mc, 30, 30, 26, age(mid) / SYN, '#E6ECEF', '#1A2A45');
+    b.addEventListener('click', () => { live = false; selectDay(i); readout(); });
+    week.appendChild(b);
+  }
+  function selectDay(i) {
+    day0 = today + i * DAY; marks = extrema(day0);
+    week.querySelectorAll('.day').forEach(d => d.classList.toggle('on', +d.dataset.i === i));
+  }
+
+  // ── Harbour canvas ────────────────────────────────────────
+  const cv = $('#sea'), cx = cv.getContext('2d');
+  let W = 0, Hh = 0;
+  function size() {
+    const dpr = Math.min(devicePixelRatio || 1, 2), r = cv.getBoundingClientRect();
+    W = r.width; Hh = r.height; cv.width = W * dpr; cv.height = Hh * dpr; cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  addEventListener('resize', size); size();
+  const stars = Array.from({ length: 160 }, () => ({ x: Math.random(), y: Math.random() * .6, r: Math.random() * 1.1 + .2, s: Math.random() * 6.28 }));
+  const yOf = h => Hh * (.9 - (h / 8.6) * .52);
+  const layers = [
+    { a: 4, f: .013, s: .7, c: 'rgba(92,194,182,.22)', o: 0 },
+    { a: 6, f: .008, s: -.45, c: 'rgba(28,86,108,.55)', o: 12 },
+    { a: 8, f: .0052, s: .32, c: 'rgba(11,36,62,.82)', o: 30 },
+    { a: 11, f: .0035, s: -.2, c: 'rgba(7,16,31,.95)', o: 56 },
+  ];
+  function wave(L, x, T) { return Math.sin(x * L.f + T * L.s) * L.a + Math.sin(x * L.f * 2.3 - T * L.s * 1.7) * L.a * .35; }
+
+  function frame(ms) {
+    const T = reduce ? 0 : ms / 1000;
+    const t = day0 + minute * 6e4, lvl = yOf(H(t));
+    const sky = cx.createLinearGradient(0, 0, 0, Hh);
+    sky.addColorStop(0, '#040A17'); sky.addColorStop(.55, '#10234A'); sky.addColorStop(1, '#1D3A5E');
+    cx.fillStyle = sky; cx.fillRect(0, 0, W, Hh);
+
+    for (const s of stars) {
+      cx.globalAlpha = .35 + .45 * Math.sin(T * 1.3 + s.s) ** 2;
+      cx.fillStyle = '#DCE6F0'; cx.fillRect(s.x * W, s.y * Hh, s.r, s.r);
+    }
+    cx.globalAlpha = 1;
+
+    const mx = W * .76, my = Hh * .2, mr = Math.max(16, Math.min(W, Hh) * .06);
+    const glow = cx.createRadialGradient(mx, my, mr * .6, mx, my, mr * 5);
+    glow.addColorStop(0, 'rgba(230,236,239,.22)'); glow.addColorStop(1, 'rgba(230,236,239,0)');
+    cx.fillStyle = glow; cx.fillRect(mx - mr * 5, my - mr * 5, mr * 10, mr * 10);
+    drawMoon(cx, mx, my, mr, age(t) / SYN, '#EEF2F3', 'rgba(24,42,72,.85)');
+
+    // water layers
+    layers.forEach((L, i) => {
+      cx.beginPath(); cx.moveTo(0, Hh);
+      for (let x = 0; x <= W + 8; x += 8) cx.lineTo(x, lvl + L.o + wave(L, x, T));
+      cx.lineTo(W, Hh); cx.closePath(); cx.fillStyle = L.c; cx.fill();
+      if (i === 0) {
+        cx.beginPath();
+        for (let x = 0; x <= W + 8; x += 8) cx[x ? 'lineTo' : 'moveTo'](x, lvl + wave(L, x, T));
+        cx.strokeStyle = 'rgba(230,236,239,.55)'; cx.lineWidth = 1; cx.stroke();
+      }
+    });
+
+    // moon glitter on the water
+    const lit = Math.abs(Math.cos(Math.PI * age(t) / SYN * 2 - Math.PI)) * .7 + .3;
+    for (let k = 0; k < 22; k++) {
+      const y = lvl + 8 + k * 9; if (y > Hh) break;
+      const w = mr * 1.6 * (1 - k / 26) * (.55 + .45 * Math.sin(T * 2.2 + k * 1.7));
+      cx.fillStyle = `rgba(238,242,243,${.42 * lit * (1 - k / 22)})`;
+      cx.fillRect(mx - w / 2 + Math.sin(T + k) * 4, y, w, 1.5);
+    }
+
+    // tide curve for the selected day
+    cx.setLineDash([2, 5]); cx.beginPath();
+    for (let m = 0; m <= 1440; m += 6) { const x = m / 1440 * W, y = yOf(H(day0 + m * 6e4)); cx[m ? 'lineTo' : 'moveTo'](x, y); }
+    cx.strokeStyle = 'rgba(240,176,96,.75)'; cx.lineWidth = 1.2; cx.stroke(); cx.setLineDash([]);
+
+    cx.font = '500 10.5px "IBM Plex Mono", monospace'; cx.textAlign = 'center';
+    for (const e of marks) {
+      const x = (e.t - day0) / DAY * W, y = yOf(e.h);
+      cx.fillStyle = 'rgba(240,176,96,.9)'; cx.beginPath(); cx.arc(x, y, 2.5, 0, 7); cx.fill();
+      cx.fillStyle = 'rgba(230,236,239,.8)';
+      if (x > 40 && x < W - 60) cx.fillText(`${e.hw ? 'HW' : 'LW'} ${hm(e.t)}`, x, e.hw ? y - 12 : y + 20);
+    }
+    for (let h = 0; h <= 24; h += 3) {
+      const x = h / 24 * W; if (x < 14 || x > W - 44) continue;
+      cx.fillStyle = 'rgba(230,236,239,.4)'; cx.fillText(String(h).padStart(2, '0'), x, Hh - 14);
+      cx.fillRect(x, Hh - 34, 1, 6);
+    }
+
+    // tide staff
+    const gx = W - 22; cx.textAlign = 'right';
+    for (let m = 0; m <= 8; m++) {
+      const y = yOf(m); cx.fillStyle = 'rgba(230,236,239,.5)';
+      cx.fillRect(gx, y, m % 2 ? 6 : 12, 1);
+      if (m % 2 === 0) cx.fillText(m + 'm', gx - 4, y + 3.5);
+    }
+
+    // now marker riding the surface
+    const nx = minute / 1440 * W;
+    cx.fillStyle = 'rgba(240,176,96,.25)'; cx.fillRect(nx, 0, 1, Hh);
+    cx.beginPath(); cx.arc(nx, lvl, 5, 0, 7); cx.fillStyle = '#F0B060'; cx.fill();
+    cx.beginPath(); cx.arc(nx, lvl, 11 + Math.sin(T * 3) * 2, 0, 7); cx.strokeStyle = 'rgba(240,176,96,.45)'; cx.stroke();
+
+    requestAnimationFrame(frame);
+  }
+  readout();
+  requestAnimationFrame(frame);
+})();
+</script>

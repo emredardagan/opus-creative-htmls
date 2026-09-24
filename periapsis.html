@@ -1,0 +1,279 @@
+<title>Periapsis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Major+Mono+Display&family=VT323&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --void: #030605;
+    --glass: #06100D;
+    --phos: #7CF7D4;
+    --phos-dim: #2E7F68;
+    --amber: #FFB24A;
+    --red: #FF5D5D;
+    --bezel: #1A1D1C;
+    --title: "Major Mono Display", "Courier New", monospace;
+    --hud: "VT323", "Courier New", ui-monospace, monospace;
+  }
+  html { background: var(--void); }
+  body { background: var(--void); color: var(--phos); font-family: var(--hud); font-size: 20px; line-height: 1.25; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 36px); padding-block: 20px 48px; }
+  header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 20px; flex-wrap: wrap; margin-bottom: 14px; }
+  h1 { margin: 0; font-family: var(--title); font-weight: 400; font-size: clamp(34px, 5vw, 58px); letter-spacing: .02em; text-shadow: 0 0 18px rgba(124, 247, 212, .55); }
+  .sub { color: var(--phos-dim); font-size: 20px; }
+
+  .bezel { background: linear-gradient(160deg, #262A29, var(--bezel) 50%, #0E100F); border-radius: 26px; padding: clamp(10px, 1.8vw, 20px); box-shadow: 0 30px 60px -30px #000, inset 0 1px 0 rgba(255,255,255,.08); }
+  .screen { position: relative; border-radius: 16px; overflow: hidden; background: radial-gradient(ellipse at center, #0A1813 0%, var(--glass) 70%, #020403 100%); aspect-ratio: 1000 / 640; max-width: 100%; }
+  .screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 1px, transparent 1px 3px), radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,.55) 100%); mix-blend-mode: multiply; }
+  #c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: none; }
+  #c:focus-visible { outline: 2px solid var(--amber); outline-offset: -4px; }
+  .hud { position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; gap: 8px 18px; flex-wrap: wrap; padding: 10px 16px; pointer-events: none; font-size: clamp(16px, 2.2vw, 24px); text-shadow: 0 0 8px rgba(124, 247, 212, .6); }
+  .hud .amber { color: var(--amber); text-shadow: 0 0 8px rgba(255, 178, 74, .6); }
+  .card { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(3, 6, 5, .72); text-align: center; padding: 16px; }
+  .card[hidden] { display: none !important; }
+  .card h2 { margin: 0; font-family: var(--title); font-weight: 400; font-size: clamp(26px, 5vw, 52px); text-shadow: 0 0 16px rgba(124, 247, 212, .6); }
+  .card p { margin: 10px 0 18px; font-size: clamp(18px, 2.4vw, 26px); color: #BFFBEA; }
+  .card .stars { font-size: 40px; letter-spacing: .2em; color: var(--amber); text-shadow: 0 0 12px rgba(255, 178, 74, .7); }
+  button { font: 400 22px var(--hud); letter-spacing: .08em; text-transform: uppercase; color: var(--void); background: var(--phos); border: 0; padding: 8px 20px; cursor: pointer; box-shadow: 0 0 18px rgba(124, 247, 212, .45); }
+  button.ghost { background: transparent; color: var(--phos); box-shadow: inset 0 0 0 1px var(--phos-dim); }
+  button:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+  .bar { display: flex; justify-content: space-between; align-items: center; gap: 12px 18px; flex-wrap: wrap; margin-top: 14px; }
+  .levels { display: flex; gap: 8px; flex-wrap: wrap; }
+  .levels button { width: 42px; padding: 6px 0; font-size: 20px; background: transparent; color: var(--phos-dim); box-shadow: inset 0 0 0 1px var(--phos-dim); }
+  .levels button.done { color: var(--amber); box-shadow: inset 0 0 0 1px var(--amber); }
+  .levels button[aria-current=true] { background: var(--phos); color: var(--void); box-shadow: 0 0 14px rgba(124,247,212,.5); }
+  .help { color: var(--phos-dim); font-size: 19px; }
+  .help b { color: var(--phos); font-weight: 400; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>periapsis</h1>
+    <div class="sub">Gravity golf · slingshot the probe into the capture ring</div>
+  </header>
+  <div class="bezel">
+    <div class="screen" id="screen">
+      <canvas id="c" tabindex="0" aria-label="Game screen. Drag back from anywhere to aim, release to launch. Or use arrow keys and Space."></canvas>
+      <div class="hud" aria-live="polite">
+        <span id="hLevel">LVL 1/6 · FIRST LIGHT</span>
+        <span><span id="hShots">SHOTS 0</span> · <span class="amber" id="hPar">PAR 1</span></span>
+        <span id="hVel">V 000 · 000°</span>
+      </div>
+      <div class="card" id="card" hidden>
+        <div>
+          <h2 id="cTitle">captured</h2>
+          <div class="stars" id="cStars">★★★</div>
+          <p id="cText">1 shot · par 1</p>
+          <button id="cBtn">Next orbit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="bar">
+    <div class="levels" id="levels" role="group" aria-label="Choose level"></div>
+    <div class="help"><b>Drag</b> back &amp; release · <b>←→</b> aim · <b>↑↓</b> power · <b>Space</b> launch · <b>R</b> reset</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const W = 1000, H = 640;
+  const LEVELS = [
+    { name: 'FIRST LIGHT', par: 1, start: [110, 320], target: [880, 300, 30], planets: [[480, 390, 42, 1.8e6]], rocks: [] },
+    { name: 'SLINGSHOT', par: 2, start: [110, 560], target: [880, 110, 28], planets: [[500, 330, 56, 3.2e6]], rocks: [] },
+    { name: 'BINARY', par: 2, start: [100, 110], target: [900, 540, 26], planets: [[380, 260, 34, 1.6e6], [640, 400, 34, 1.6e6]], rocks: [] },
+    { name: 'DARK SIDE', par: 3, start: [110, 320], target: [860, 320, 26], planets: [[560, 320, 70, 3.6e6]], rocks: [[760, 214, 12], [770, 428, 12]] },
+    { name: 'ORRERY', par: 3, start: [110, 110], target: [880, 540, 26], planets: [[500, 330, 46, 2.6e6]], moon: { dist: 150, speed: .9, r: 14, gm: 5e5 }, rocks: [] },
+    { name: 'NEEDLE', par: 3, start: [100, 540], target: [900, 100, 18], planets: [[330, 300, 40, 2.2e6], [600, 160, 36, 2e6], [700, 470, 44, 2.6e6]], rocks: [[830, 190, 10], [800, 70, 9]] },
+  ];
+  const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (_) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} } };
+  const best = store.get('periapsis-best', {});
+
+  const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+  let scale = 1;
+  function resize() {
+    const r = cv.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+    cv.width = r.width * dpr; cv.height = r.height * dpr; scale = r.width / W;
+    ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+  }
+  addEventListener('resize', resize); resize();
+
+  const stars = Array.from({ length: 140 }, () => [Math.random() * W, Math.random() * H, Math.random()]);
+  let L, li = 0, state = 'aim', shots = 0, t = 0, probe = null, trail = [], ghosts = [], aim = { ang: -.1, pow: .55 }, drag = null, boom = null, flightT = 0;
+
+  const $ = id => document.getElementById(id);
+  function bodiesAt(time) {
+    const out = L.planets.map(p => ({ x: p[0], y: p[1], r: p[2], gm: p[3] }));
+    if (L.moon) { const c = out[0], a = L.moon.speed * time; out.push({ x: c.x + Math.cos(a) * L.moon.dist, y: c.y + Math.sin(a) * L.moon.dist, r: L.moon.r, gm: L.moon.gm }); }
+    return out;
+  }
+  function velFromAim() { const v = 140 + aim.pow * 420; return [Math.cos(aim.ang) * v, Math.sin(aim.ang) * v]; }
+  const DT = 1 / 240;
+  function stepBody(b, time) {
+    let ax = 0, ay = 0;
+    for (const p of bodiesAt(time)) {
+      const dx = p.x - b.x, dy = p.y - b.y, d2 = dx * dx + dy * dy, d = Math.sqrt(d2);
+      if (d < p.r) return 'crash';
+      const a = p.gm / Math.max(d2, p.r * p.r);
+      ax += a * dx / d; ay += a * dy / d;
+    }
+    b.vx += ax * DT; b.vy += ay * DT; b.x += b.vx * DT; b.y += b.vy * DT;
+    for (const r of L.rocks) if (Math.hypot(r[0] - b.x, r[1] - b.y) < r[2] + 3) return 'crash';
+    if (Math.hypot(L.target[0] - b.x, L.target[1] - b.y) < L.target[2]) return 'win';
+    if (b.x < -250 || b.x > W + 250 || b.y < -250 || b.y > H + 250) return 'lost';
+    return null;
+  }
+
+  function load(i) {
+    li = i; L = LEVELS[i]; state = 'aim'; shots = 0; probe = null; trail = []; ghosts = []; boom = null;
+    const [sx, sy] = L.start, [tx, ty] = L.target; aim = { ang: Math.atan2(ty - sy, tx - sx), pow: .5 };
+    $('card').hidden = true; hud(); levelsBar();
+  }
+  function hud() {
+    $('hLevel').textContent = `LVL ${li + 1}/${LEVELS.length} · ${L.name}`;
+    $('hShots').textContent = `SHOTS ${shots}`; $('hPar').textContent = `PAR ${L.par}`;
+    const [vx, vy] = probe ? [probe.vx, probe.vy] : velFromAim();
+    const deg = ((Math.atan2(-vy, vx) * 180 / Math.PI) + 360) % 360;
+    $('hVel').textContent = `V ${String(Math.round(Math.hypot(vx, vy))).padStart(3, '0')} · ${String(Math.round(deg)).padStart(3, '0')}°`;
+  }
+  function levelsBar() {
+    $('levels').innerHTML = LEVELS.map((l, i) => `<button data-i="${i}" class="${best[i] ? 'done' : ''}" aria-current="${i === li}" aria-label="Level ${i + 1} ${l.name}${best[i] ? ', best ' + best[i] + ' shots' : ''}">${i + 1}</button>`).join('');
+    $('levels').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { load(+b.dataset.i); cv.focus(); }));
+  }
+
+  function launch() {
+    if (state !== 'aim') return;
+    const [vx, vy] = velFromAim();
+    probe = { x: L.start[0], y: L.start[1], vx, vy }; trail = []; flightT = 0;
+    shots++; state = 'flying'; hud();
+  }
+  function endShot(result) {
+    ghosts.unshift(trail.slice()); ghosts = ghosts.slice(0, 3);
+    if (result === 'win') {
+      state = 'won';
+      const s = shots <= L.par ? 3 : shots <= L.par + 2 ? 2 : 1;
+      if (!best[li] || shots < best[li]) { best[li] = shots; store.set('periapsis-best', best); }
+      $('cTitle').textContent = 'captured';
+      $('cStars').textContent = '★'.repeat(s) + '☆'.repeat(3 - s);
+      $('cText').textContent = `${shots} shot${shots > 1 ? 's' : ''} · par ${L.par}`;
+      const last = li === LEVELS.length - 1;
+      $('cBtn').textContent = last ? 'Fly the tour again' : 'Next orbit';
+      $('card').hidden = false; $('cBtn').focus();
+      levelsBar();
+    } else {
+      boom = { x: probe.x, y: probe.y, t: 0, lost: result === 'lost' };
+      state = 'aim'; probe = null;
+    }
+    hud();
+  }
+  $('cBtn').addEventListener('click', () => { load((li + 1) % LEVELS.length); cv.focus(); });
+
+  // ── Input ──
+  const toWorld = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H]; };
+  cv.addEventListener('pointerdown', e => { if (state !== 'aim') return; cv.setPointerCapture(e.pointerId); drag = { p0: toWorld(e) }; });
+  cv.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const [x, y] = toWorld(e), dx = drag.p0[0] - x, dy = drag.p0[1] - y, d = Math.hypot(dx, dy);
+    if (d > 6) { aim.ang = Math.atan2(dy, dx); aim.pow = Math.min(1, d / 220); hud(); }
+  });
+  cv.addEventListener('pointerup', e => {
+    if (!drag) return;
+    const [x, y] = toWorld(e), d = Math.hypot(drag.p0[0] - x, drag.p0[1] - y); drag = null;
+    if (d > 12) launch();
+  });
+  addEventListener('keydown', e => {
+    if (e.target.closest?.('button') && (e.key === ' ' || e.key === 'Enter')) return;
+    const k = e.key;
+    if (k === 'r' || k === 'R') { if (state === 'flying') endShot('lost'); return; }
+    if (state !== 'aim') return;
+    const fine = e.shiftKey ? .2 : 1;
+    if (k === 'ArrowLeft') aim.ang -= .035 * fine; else if (k === 'ArrowRight') aim.ang += .035 * fine;
+    else if (k === 'ArrowUp') aim.pow = Math.min(1, aim.pow + .02 * fine); else if (k === 'ArrowDown') aim.pow = Math.max(0, aim.pow - .02 * fine);
+    else if (k === ' ') launch(); else return;
+    e.preventDefault(); hud();
+  });
+
+  // ── Drawing ──
+  const P = '124,247,212', A = '255,178,74';
+  function glowLine(fn, col, w, a = 1) {
+    ctx.strokeStyle = `rgba(${col},${a * .25})`; ctx.lineWidth = w * 4; ctx.beginPath(); fn(); ctx.stroke();
+    ctx.strokeStyle = `rgba(${col},${a})`; ctx.lineWidth = w; ctx.beginPath(); fn(); ctx.stroke();
+  }
+  function frame(now) {
+    const dt = Math.min(.05, (now - (frame.last || now)) / 1000); frame.last = now; t += dt;
+    if (state === 'flying') {
+      for (let i = 0; i < Math.round(dt / DT); i++) {
+        flightT += DT;
+        const r = stepBody(probe, t);
+        if (i % 4 === 0) trail.push([probe.x, probe.y]);
+        if (r) { endShot(r); break; }
+        if (flightT > 14) { endShot('lost'); break; }
+      }
+      if (probe) hud();
+    }
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.lineCap = ctx.lineJoin = 'round';
+    for (const [x, y, b] of stars) { ctx.fillStyle = `rgba(${P},${.12 + .3 * b * (.7 + .3 * Math.sin(t * 2 + x))})`; ctx.fillRect(x, y, 1.5, 1.5); }
+
+    const bodies = bodiesAt(t);
+    if (L.moon) { const c = bodies[0]; ctx.setLineDash([2, 8]); glowLine(() => ctx.arc(c.x, c.y, L.moon.dist, 0, 7), P, .8, .25); ctx.setLineDash([]); }
+    bodies.forEach((b, bi) => {
+      ctx.setLineDash([3, 9]);
+      [1.9, 3, 4.4].forEach((k, i) => glowLine(() => ctx.arc(b.x, b.y, b.r * k, 0, 7), P, .7, .16 - i * .04));
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#04100C'; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill();
+      glowLine(() => ctx.arc(b.x, b.y, b.r, 0, 7), P, 1.6);
+      ctx.save(); ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.clip();
+      for (let k = -2; k <= 2; k++) glowLine(() => ctx.ellipse(b.x, b.y + k * b.r * .38, b.r, b.r * .12, 0, 0, 7), P, .6, .35);
+      const sp = t * (bi === bodies.length - 1 && L.moon ? 1.2 : .4);
+      glowLine(() => ctx.ellipse(b.x, b.y, Math.abs(Math.cos(sp)) * b.r, b.r, 0, 0, 7), P, .6, .35);
+      ctx.restore();
+    });
+    for (const r of L.rocks) {
+      glowLine(() => { for (let k = 0; k <= 7; k++) { const a = k / 7 * 6.283 + r[0], rr = r[2] * (.75 + .25 * Math.sin(k * 2.3 + r[1])); ctx[k ? 'lineTo' : 'moveTo'](r[0] + Math.cos(a) * rr, r[1] + Math.sin(a) * rr); } }, A, 1.3);
+    }
+
+    // target
+    const [tx, ty, tr] = L.target, pulse = 1 + .08 * Math.sin(t * 4);
+    ctx.setLineDash([6, 6]); ctx.lineDashOffset = -t * 20;
+    glowLine(() => ctx.arc(tx, ty, tr * pulse, 0, 7), A, 1.8);
+    ctx.setLineDash([]);
+    glowLine(() => { ctx.moveTo(tx - 6, ty); ctx.lineTo(tx + 6, ty); ctx.moveTo(tx, ty - 6); ctx.lineTo(tx, ty + 6); }, A, 1.4);
+
+    // ghost trails from earlier shots
+    ghosts.forEach((g, i) => { if (g.length > 1) glowLine(() => g.forEach(([x, y], k) => ctx[k ? 'lineTo' : 'moveTo'](x, y)), P, 1, .22 - i * .06); });
+
+    // launcher + aim preview
+    const [sx, sy] = L.start;
+    glowLine(() => { ctx.arc(sx, sy, 10, 0, 7); }, P, 1.4);
+    if (state === 'aim') {
+      const [vx, vy] = velFromAim(), sim = { x: sx, y: sy, vx, vy };
+      ctx.fillStyle = `rgba(${P},.9)`;
+      for (let i = 0; i < 260; i++) { if (stepBody(sim, t + i * DT)) break; if (i % 10 === 0) { ctx.globalAlpha = 1 - i / 260; ctx.fillRect(sim.x - 1.2, sim.y - 1.2, 2.4, 2.4); } }
+      ctx.globalAlpha = 1;
+      const len = 26 + aim.pow * 40;
+      glowLine(() => { ctx.moveTo(sx, sy); ctx.lineTo(sx + Math.cos(aim.ang) * len, sy + Math.sin(aim.ang) * len); }, A, 2);
+      ctx.fillStyle = `rgba(${A},.9)`; ctx.fillRect(sx - 22, sy + 16, 44 * aim.pow, 3);
+      ctx.strokeStyle = `rgba(${A},.4)`; ctx.lineWidth = 1; ctx.strokeRect(sx - 22, sy + 16, 44, 3);
+    }
+    if (probe) {
+      if (trail.length > 1) glowLine(() => { trail.forEach(([x, y], k) => ctx[k ? 'lineTo' : 'moveTo'](x, y)); ctx.lineTo(probe.x, probe.y); }, P, 1.3, .8);
+      const a = Math.atan2(probe.vy, probe.vx);
+      glowLine(() => { ctx.moveTo(probe.x + Math.cos(a) * 8, probe.y + Math.sin(a) * 8); ctx.lineTo(probe.x + Math.cos(a + 2.5) * 6, probe.y + Math.sin(a + 2.5) * 6); ctx.lineTo(probe.x + Math.cos(a - 2.5) * 6, probe.y + Math.sin(a - 2.5) * 6); ctx.closePath(); }, '255,255,255', 1.6);
+    }
+    if (boom) {
+      boom.t += dt;
+      const k = boom.t / .7;
+      if (k < 1) {
+        if (!boom.lost) for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283; glowLine(() => { ctx.moveTo(boom.x + Math.cos(a) * 30 * k, boom.y + Math.sin(a) * 30 * k); ctx.lineTo(boom.x + Math.cos(a) * 44 * k, boom.y + Math.sin(a) * 44 * k); }, '255,93,93', 1.6, 1 - k); }
+        ctx.fillStyle = `rgba(255,93,93,${1 - k})`; ctx.font = '24px VT323, monospace'; ctx.textAlign = 'center';
+        ctx.fillText(boom.lost ? 'SIGNAL LOST' : 'IMPACT', Math.max(70, Math.min(W - 70, boom.x)), Math.max(40, Math.min(H - 20, boom.y - 50)));
+      } else boom = null;
+    }
+    requestAnimationFrame(frame);
+  }
+  load(0);
+  requestAnimationFrame(frame);
+})();
+</script>

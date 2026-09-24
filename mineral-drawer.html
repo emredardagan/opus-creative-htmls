@@ -1,0 +1,312 @@
+<title>The Mineral Drawer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gloock&family=Spectral:ital,wght@0,400;0,500;1,400&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --velvet: #2B1419;
+    --velvet-deep: #170A0D;
+    --brass: #CDA55E;
+    --brass-dim: #8E7446;
+    --card: #EDE8DD;
+    --card-ink: #231B16;
+    --text: #EFE4DA;
+    --muted: #B79E95;
+    --uv: #1A0F3A;
+    --display: "Gloock", "Didot", Georgia, serif;
+    --serif: "Spectral", Georgia, serif;
+    --mono: "Spline Sans Mono", ui-monospace, Menlo, monospace;
+  }
+  html { background: var(--velvet-deep); }
+  body { background: radial-gradient(ellipse 90% 70% at 50% 35%, var(--velvet) 0%, var(--velvet-deep) 75%); background-color: var(--velvet-deep); color: var(--text); font-family: var(--serif); font-size: 16px; line-height: 1.6; min-height: 100vh; transition: background-color .8s; }
+  body.uv { background: radial-gradient(ellipse 90% 70% at 50% 35%, #2A1860 0%, #0B0620 75%); background-color: #0B0620; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 48px); padding-block: 28px 64px; }
+
+  header { display: flex; justify-content: space-between; align-items: end; gap: 12px 24px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px solid rgba(205, 165, 94, .35); }
+  h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(40px, 6vw, 76px); line-height: .95; letter-spacing: -.01em; }
+  h1 span { color: var(--brass); }
+  .drawer { font: 500 11px var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); text-align: right; }
+
+  .stage { position: relative; height: clamp(440px, 68vh, 720px); margin-top: 12px; }
+  #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+  #gl:active { cursor: grabbing; }
+  .hint { position: absolute; right: 0; top: 14px; font: 400 11px var(--mono); letter-spacing: .1em; color: var(--muted); text-transform: uppercase; pointer-events: none; }
+
+  .card { position: absolute; left: 0; bottom: 18px; width: min(340px, 100%); background: var(--card); color: var(--card-ink); padding: 18px 20px 16px; box-shadow: 0 20px 40px -18px rgba(0,0,0,.7); transform: rotate(-1.2deg); transition: opacity .3s; }
+  .card .no { display: flex; justify-content: space-between; font: 500 10.5px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: #6E6158; border-bottom: 1px solid rgba(35, 27, 22, .25); padding-bottom: 8px; }
+  .card h2 { font-family: var(--display); font-weight: 400; font-size: 38px; line-height: 1; margin: 12px 0 2px; }
+  .card .formula { font-style: italic; font-size: 18px; color: #5B4C42; }
+  .card dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 14px; margin: 12px 0 10px; font-size: 14px; }
+  .card dt { font: 500 10.5px/2 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: #6E6158; }
+  .card dd { margin: 0; }
+  .mohs { display: flex; gap: 2px; margin-top: 7px; }
+  .mohs i { flex: 1; height: 5px; background: rgba(35, 27, 22, .14); }
+  .mohs i.on { background: var(--card-ink); }
+  .card p { margin: 0; font-size: 14px; line-height: 1.5; color: #3E332C; }
+
+  .tray { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; align-items: center; }
+  .tab { font: 500 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--brass); background: linear-gradient(180deg, rgba(205,165,94,.14), rgba(205,165,94,.04)); border: 1px solid var(--brass-dim); padding: 11px 16px; cursor: pointer; border-radius: 2px; display: flex; gap: 10px; align-items: baseline; }
+  .tab small { font-size: 10px; color: var(--muted); }
+  .tab[aria-pressed=true] { background: var(--brass); color: var(--velvet-deep); border-color: var(--brass); }
+  .tab[aria-pressed=true] small { color: #5A3F20; }
+  .tab:focus-visible, .uvbtn:focus-visible, #gl:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+  .spacer { flex: 1; }
+  .uvbtn { font: 500 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; background: transparent; color: #B8A7FF; border: 1px solid #5D4BB5; padding: 11px 16px; border-radius: 99px; cursor: pointer; }
+  .uvbtn[aria-pressed=true] { background: #7A62FF; color: #0B0620; border-color: #7A62FF; box-shadow: 0 0 24px #7A62FF; }
+
+  .note { margin-top: 44px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px 40px; color: var(--muted); font-size: 15px; }
+  .note b { display: block; font: 500 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--brass); margin-bottom: 4px; }
+  .fallback { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-style: italic; }
+
+  @media (max-width: 720px) {
+    .stage { height: auto; }
+    #gl { position: relative; height: 380px; }
+    .card { position: relative; bottom: auto; margin-top: 8px; transform: none; width: 100%; }
+    .hint { display: none; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>The Mineral <span>Drawer</span></h1>
+    <div class="drawer">Drawer 3 of 12<br>Silicates · Halides · Native elements · Sulfides</div>
+  </header>
+
+  <section class="stage">
+    <canvas id="gl" tabindex="0" aria-label="3D specimen. Drag to turn it; arrow keys also rotate."></canvas>
+    <div class="hint">Drag to turn the specimen</div>
+    <article class="card" id="card" aria-live="polite">
+      <div class="no"><span id="cNo">Cat. No. 114</span><span id="cCls">Silicate</span></div>
+      <h2 id="cName">Quartz</h2>
+      <div class="formula" id="cFormula">SiO₂</div>
+      <dl>
+        <dt>System</dt><dd id="cSys">Trigonal</dd>
+        <dt>Locality</dt><dd id="cLoc">Hot Springs, Arkansas</dd>
+        <dt>Hardness</dt><dd><span id="cMohs">7</span> Mohs<div class="mohs" id="mohs"></div></dd>
+      </dl>
+      <p id="cNote">—</p>
+    </article>
+  </section>
+
+  <div class="tray" role="group" aria-label="Choose specimen">
+    <button class="tab" data-i="0" aria-pressed="true">Quartz <small>114</small></button>
+    <button class="tab" data-i="1" aria-pressed="false">Fluorite <small>207</small></button>
+    <button class="tab" data-i="2" aria-pressed="false">Bismuth <small>311</small></button>
+    <button class="tab" data-i="3" aria-pressed="false">Pyrite <small>452</small></button>
+    <span class="spacer"></span>
+    <button class="uvbtn" id="uv" aria-pressed="false">UV lamp</button>
+  </div>
+
+  <div class="note">
+    <div><b>Why the UV lamp</b>Fluorite gave its name to fluorescence. Under longwave ultraviolet, traces of europium in the crystal glow violet-blue while everything else in the drawer goes dark.</div>
+    <div><b>Rainbow bismuth</b>The colours are not pigment. A film of oxide only a few hundred nanometres thick interferes with light, and its thickness decides the hue.</div>
+    <div><b>Stepped edges</b>Bismuth and some pyrite grow as hopper crystals. Edges grow faster than faces, leaving hollow staircases behind.</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  const SPEC = [
+    { no: 'Cat. No. 114', cls: 'Silicate', name: 'Quartz', f: 'SiO₂', sys: 'Trigonal', loc: 'Hot Springs, Arkansas', mohs: 7, note: 'Six-sided prisms capped by pyramids, grown from hot silica-rich water in cracks of the host rock.' },
+    { no: 'Cat. No. 207', cls: 'Halide', name: 'Fluorite', f: 'CaF₂', sys: 'Cubic', loc: 'Weardale, County Durham', mohs: 4, note: 'Interpenetrating cubes zoned purple and green. Switch on the UV lamp to see why it matters.' },
+    { no: 'Cat. No. 311', cls: 'Native element', name: 'Bismuth', f: 'Bi', sys: 'Trigonal', loc: 'Laboratory grown', mohs: 2.5, note: 'Cooled from a melt at 271 °C. Hopper growth leaves square spirals; oxide films paint them.' },
+    { no: 'Cat. No. 452', cls: 'Sulfide', name: 'Pyrite', f: 'FeS₂', sys: 'Cubic', loc: 'Navajún, La Rioja', mohs: 6.5, note: 'Near-perfect metallic cubes that grew in soft marl. Called fool’s gold since the gold rushes.' },
+  ];
+  const canvas = document.getElementById('gl');
+  if (!window.THREE) { canvas.insertAdjacentHTML('afterend', '<div class="fallback">3D view needs WebGL and the three.js library.</div>'); return; }
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(32, 1, .1, 100);
+  camera.position.set(0, 1.6, 8.2); camera.lookAt(0, .5, 0);
+
+  // Studio environment baked into a PMREM
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const envScene = new THREE.Scene();
+  envScene.add(new THREE.Mesh(new THREE.SphereGeometry(20, 32, 16), new THREE.MeshBasicMaterial({ color: 0x3a1c22, side: THREE.BackSide })));
+  const panel = (w, h, c, k, p, r) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(k), side: THREE.DoubleSide })); m.position.set(...p); m.lookAt(0, 0, 0); envScene.add(m); return m; };
+  panel(10, 4, 0xffffff, 5, [0, 12, 4]); panel(3, 10, 0xffe2c0, 3, [-12, 2, 2]); panel(3, 10, 0xc8d8ff, 2.2, [12, 3, -3]); panel(12, 2, 0xffffff, 1.2, [0, -6, 10]);
+  const envTex = pmrem.fromScene(envScene, .04).texture;
+  scene.environment = envTex;
+
+  const spot = new THREE.SpotLight(0xffe7c8, 2.2, 30, .5, .6, 1);
+  spot.position.set(2.5, 9, 4); spot.castShadow = true; spot.shadow.mapSize.set(1024, 1024); spot.shadow.bias = -.0005;
+  scene.add(spot);
+  const rim = new THREE.DirectionalLight(0xa9c3ff, .8); rim.position.set(-5, 3, -5); scene.add(rim);
+  const uvLight = new THREE.PointLight(0x7a52ff, 0, 20); uvLight.position.set(0, 5, 4); scene.add(uvLight);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.ShadowMaterial({ opacity: .45 }));
+  floor.rotation.x = -Math.PI / 2; floor.position.y = -.62; floor.receiveShadow = true; scene.add(floor);
+
+  // ── Helpers ──
+  let seed = 11;
+  const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const rr = (a, b) => a + R() * (b - a);
+  const UP = new THREE.Vector3(0, 1, 0);
+  function rock(scaleY = .5) {
+    const g = new THREE.IcosahedronGeometry(1.35, 3), p = g.attributes.position, v = new THREE.Vector3();
+    for (let i = 0; i < p.count; i++) {
+      v.fromBufferAttribute(p, i);
+      const n = 1 + .12 * Math.sin(v.x * 3.1 + v.z * 1.7) + .08 * Math.sin(v.y * 5.3 - v.x * 2.2) + .05 * Math.sin(v.z * 9 + v.y * 4);
+      v.multiplyScalar(n); v.y *= scaleY; p.setXYZ(i, v.x, v.y, v.z);
+    }
+    g.computeVertexNormals();
+    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x3d342f, roughness: .95, metalness: 0, flatShading: true }));
+    m.castShadow = m.receiveShadow = true; m.position.y = -.12;
+    return m;
+  }
+  function tilt(obj, max) { const d = new THREE.Vector3(rr(-1, 1), 0, rr(-1, 1)).normalize().multiplyScalar(Math.tan(rr(0, max))); d.y = 1; obj.quaternion.setFromUnitVectors(UP, d.normalize()); }
+  const fluoriteMats = [];
+
+  function quartz() {
+    seed = 11; const g = new THREE.Group(); g.add(rock());
+    const mat = new THREE.MeshPhysicalMaterial({ color: 0xf1f4ff, roughness: .06, metalness: 0, transparent: true, opacity: .42, clearcoat: 1, clearcoatRoughness: .04, envMapIntensity: 2.4, flatShading: true, side: THREE.DoubleSide, depthWrite: false });
+    const smoky = mat.clone(); smoky.color.set(0xd9c8b8); smoky.opacity = .55;
+    for (let i = 0; i < 17; i++) {
+      const h = rr(.7, 2.1) * (i < 3 ? 1.25 : 1), r = rr(.09, .22) * (i < 3 ? 1.4 : 1);
+      const c = new THREE.Group();
+      const m = i % 5 === 0 ? smoky : mat;
+      const prism = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.05, h, 6), m); prism.position.y = h / 2;
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(r, r * 1.5, 6), m); tip.position.y = h + r * .75;
+      prism.castShadow = tip.castShadow = true;
+      c.add(prism, tip);
+      const a = rr(0, Math.PI * 2), d = Math.sqrt(R()) * .75;
+      c.position.set(Math.cos(a) * d, .35 - d * .25, Math.sin(a) * d);
+      tilt(c, .75); c.rotateY(rr(0, 1));
+      g.add(c);
+    }
+    return g;
+  }
+  function fluorite() {
+    seed = 23; const g = new THREE.Group(); g.add(rock(.42));
+    const cols = [0x7c48c9, 0x5a2f9e, 0x4fb58c, 0x6fc9b2];
+    for (let i = 0; i < 13; i++) {
+      const s = rr(.35, .95) * (i === 0 ? 1.5 : 1);
+      const mat = new THREE.MeshPhysicalMaterial({ color: cols[i % 4], roughness: .12, metalness: 0, transparent: true, opacity: .78, clearcoat: 1, envMapIntensity: 1.6, emissive: 0x6d5cff, emissiveIntensity: 0, flatShading: true });
+      fluoriteMats.push(mat);
+      const geo = i % 6 === 5 ? new THREE.OctahedronGeometry(s * .7) : new THREE.BoxGeometry(s, s, s);
+      const m = new THREE.Mesh(geo, mat); m.castShadow = true;
+      const a = rr(0, Math.PI * 2), d = Math.sqrt(R()) * .8;
+      m.position.set(Math.cos(a) * d, .25 + s * .35, Math.sin(a) * d);
+      m.rotation.set(rr(-.5, .5), rr(0, Math.PI), rr(-.5, .5));
+      g.add(m);
+    }
+    return g;
+  }
+  function bismuth() {
+    seed = 37; const g = new THREE.Group();
+    const irid = [0xf2c14e, 0xe86fb0, 0x9b5de5, 0x3f8efc, 0x2ec4b6, 0x8fe388, 0xf2c14e, 0xf07167];
+    const hopper = (size, steps, off) => {
+      const h = new THREE.Group(), t = size * .075;
+      for (let k = 0; k < steps; k++) {
+        const s = size * (1 - k * .115); if (s < t * 3) break;
+        const mat = new THREE.MeshStandardMaterial({ color: irid[(k + off) % irid.length], metalness: 1, roughness: .2, envMapIntensity: 1.4 });
+        const y = -k * t * .95;
+        [[s, t, t, 0, (s - t) / 2], [s, t, t, 0, -(s - t) / 2], [t, t, s - 2 * t, (s - t) / 2, 0], [t, t, s - 2 * t, -(s - t) / 2, 0]].forEach(([w, hh, d, x, z]) => {
+          const b = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), mat); b.position.set(x, y, z); b.castShadow = true; h.add(b);
+        });
+      }
+      return h;
+    };
+    const specs = [[2.1, 9, 0, [0, .55, 0], [0, .3, 0]], [1.4, 8, 3, [-.9, .75, .5], [.5, .9, .2]], [1.1, 7, 5, [.95, .6, -.4], [-.4, -.6, .3]], [.8, 6, 2, [.3, 1.35, .6], [.9, .2, -.5]]];
+    specs.forEach(([s, n, o, p, r]) => { const h = hopper(s, n, o); h.position.set(...p); h.rotation.set(...r); g.add(h); });
+    return g;
+  }
+  function pyrite() {
+    seed = 53; const g = new THREE.Group(); g.add(rock(.4));
+    const mat = new THREE.MeshStandardMaterial({ color: 0xd8b963, metalness: 1, roughness: .28, envMapIntensity: 1.5 });
+    const dull = mat.clone(); dull.roughness = .45; dull.color.set(0xb89a4c);
+    for (let i = 0; i < 9; i++) {
+      const s = i === 0 ? 1.15 : rr(.3, .8);
+      const m = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), i % 3 ? mat : dull); m.castShadow = true;
+      const a = rr(0, Math.PI * 2), d = i === 0 ? 0 : rr(.35, .85);
+      m.position.set(Math.cos(a) * d, .3 + s * .38, Math.sin(a) * d);
+      m.rotation.set(rr(-.35, .35), rr(0, Math.PI / 2), rr(-.35, .35));
+      g.add(m);
+    }
+    return g;
+  }
+  const builders = [quartz, fluorite, bismuth, pyrite];
+  const built = builders.map(b => b());
+  const holder = new THREE.Group(); scene.add(holder);
+
+  // ── Card ──
+  const $ = id => document.getElementById(id);
+  const mohsEl = $('mohs'); mohsEl.innerHTML = '<i></i>'.repeat(10);
+  function card(i) {
+    const s = SPEC[i];
+    $('cNo').textContent = s.no; $('cCls').textContent = s.cls; $('cName').textContent = s.name; $('cFormula').textContent = s.f;
+    $('cSys').textContent = s.sys; $('cLoc').textContent = s.loc; $('cMohs').textContent = s.mohs; $('cNote').textContent = s.note;
+    [...mohsEl.children].forEach((el, k) => el.classList.toggle('on', k < Math.round(s.mohs)));
+  }
+
+  // ── Switching ──
+  let cur = 0, swap = null;
+  holder.add(built[0]); card(0);
+  const tabs = [...document.querySelectorAll('.tab')];
+  function show(i) {
+    if (i === cur) return;
+    tabs.forEach(t => t.setAttribute('aria-pressed', String(+t.dataset.i === i)));
+    swap = { from: cur, to: i, t0: performance.now() }; cur = i; card(i);
+  }
+  tabs.forEach(t => t.addEventListener('click', () => show(+t.dataset.i)));
+
+  // ── UV lamp ──
+  let uv = false, uvMix = 0;
+  $('uv').addEventListener('click', e => { uv = !uv; e.currentTarget.setAttribute('aria-pressed', uv); document.body.classList.toggle('uv', uv); });
+
+  // ── Drag to rotate ──
+  let rotY = .4, rotX = .12, velY = 0, velX = 0, dragging = false, lx = 0, ly = 0, idle = 0;
+  canvas.addEventListener('pointerdown', e => { dragging = true; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointermove', e => { if (!dragging) return; velY = (e.clientX - lx) * .008; velX = (e.clientY - ly) * .005; lx = e.clientX; ly = e.clientY; rotY += velY; rotX = Math.max(-.35, Math.min(.6, rotX + velX)); idle = 0; });
+  canvas.addEventListener('pointerup', () => dragging = false);
+  canvas.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') velY = -.06; if (e.key === 'ArrowRight') velY = .06; if (e.key === 'ArrowUp') rotX = Math.max(-.35, rotX - .08); if (e.key === 'ArrowDown') rotX = Math.min(.6, rotX + .08); idle = 0; });
+
+  function resize() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    renderer.setSize(w, h, false); camera.aspect = w / h;
+    camera.position.z = w < 600 ? 10.5 : 8.2;
+    camera.updateProjectionMatrix();
+  }
+  addEventListener('resize', resize); resize();
+
+  const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now; idle += dt;
+    if (!dragging) { rotY += velY; velY *= .94; velX *= .9; if (idle > 1.5 && !reduce) rotY += dt * .22; }
+    holder.rotation.set(rotX, rotY, 0);
+
+    if (swap) {
+      const p = Math.min(1, (now - swap.t0) / 700);
+      if (p < .5) holder.scale.setScalar(Math.max(.001, 1 - ease(p * 2)));
+      else {
+        if (holder.children[0] !== built[swap.to]) { holder.remove(holder.children[0]); holder.add(built[swap.to]); rotY += Math.PI * .4; }
+        holder.scale.setScalar(Math.max(.001, ease((p - .5) * 2)));
+      }
+      if (p >= 1) { holder.scale.setScalar(1); swap = null; }
+    }
+
+    uvMix += ((uv ? 1 : 0) - uvMix) * Math.min(1, dt * 5);
+    spot.intensity = 2.2 * (1 - uvMix) + .02;
+    rim.intensity = .8 * (1 - uvMix);
+    uvLight.intensity = 2.5 * uvMix;
+    renderer.toneMappingExposure = 1.05 - .35 * uvMix;
+    scene.environment = uvMix > .6 ? null : envTex;
+    const flick = reduce ? 1 : .92 + .08 * Math.sin(now / 90);
+    fluoriteMats.forEach(m => { m.emissiveIntensity = 2.4 * uvMix * flick; });
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>

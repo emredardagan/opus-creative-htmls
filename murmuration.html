@@ -1,0 +1,278 @@
+<title>Murmuration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --sky-top: #6F7FA8;
+    --sky-mid: #D9A3A0;
+    --sky-low: #F4C58F;
+    --ink: #1B1A24;
+    --paper: #FFF7EE;
+    --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+    --sans: "Manrope", system-ui, -apple-system, sans-serif;
+  }
+  html, body { height: 100%; }
+  html { background: var(--ink); }
+  body { background: var(--ink); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.55; overflow-x: hidden; }
+  .stage { position: relative; height: 100%; min-height: 560px; overflow: hidden; background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 58%, var(--sky-low) 86%); }
+  .sun { position: absolute; left: 62%; bottom: 13%; width: clamp(80px, 12vw, 160px); aspect-ratio: 1; max-width: 100%; border-radius: 50%; background: radial-gradient(circle, rgba(255, 238, 205, .95) 0 38%, rgba(255, 214, 160, .35) 55%, transparent 70%); filter: blur(1px); transition: bottom .6s, opacity .6s; }
+  #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: none; }
+  .land { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 22%; pointer-events: none; }
+
+  .title { position: absolute; left: clamp(16px, 4vw, 56px); top: clamp(20px, 4vw, 48px); pointer-events: none; max-width: min(520px, calc(100% - 32px)); }
+  .title h1 { margin: 0; font-family: var(--serif); font-weight: 400; font-style: italic; font-size: clamp(60px, 10vw, 148px); line-height: .85; letter-spacing: -.02em; color: var(--ink); mix-blend-mode: multiply; }
+  .title p { margin: 14px 0 0; font-size: 15px; max-width: 38ch; color: rgba(27, 26, 36, .78); }
+  .title .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: rgba(27, 26, 36, .7); margin-bottom: 10px; }
+
+  .panel { position: absolute; right: clamp(16px, 3vw, 40px); bottom: clamp(16px, 3vw, 36px); width: min(300px, calc(100% - 32px)); background: rgba(255, 247, 238, .72); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-radius: 14px; padding: 16px 18px; display: grid; gap: 14px; box-shadow: 0 20px 40px -24px rgba(27, 26, 36, .5); }
+  .count { display: flex; justify-content: space-between; align-items: baseline; }
+  .count b { font-family: var(--serif); font-weight: 400; font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .count span { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: rgba(27, 26, 36, .6); }
+  .field label { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: rgba(27, 26, 36, .65); margin-bottom: 4px; }
+  .field output { color: var(--ink); }
+  input[type=range] { width: 100%; accent-color: var(--ink); }
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: rgba(27, 26, 36, .08); border-radius: 8px; padding: 3px; }
+  .seg button { font: 600 12px var(--sans); border: 0; background: transparent; color: var(--ink); border-radius: 6px; padding: 7px 0; cursor: pointer; }
+  .seg button[aria-pressed=true] { background: var(--ink); color: var(--paper); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .panel small { font-size: 12px; color: rgba(27, 26, 36, .65); }
+
+  .below { background: var(--ink); color: #EDE3DA; padding-inline: clamp(16px, 4vw, 56px); padding-block: 56px 72px; }
+  .below .cols { max-width: 1140px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 28px 48px; }
+  .below h2 { font-family: var(--serif); font-weight: 400; font-style: italic; font-size: 34px; line-height: 1.05; margin: 0 0 8px; color: #F4C58F; }
+  .below p { margin: 0; color: #C9BEB6; max-width: 46ch; }
+  .fallback { position: absolute; inset: 0; display: grid; place-items: center; font-style: italic; }
+  @media (max-width: 640px) { .title p { display: none; } .panel { padding: 12px 14px; gap: 10px; } }
+</style>
+
+<section class="stage" id="stage">
+  <div class="sun" id="sun" aria-hidden="true"></div>
+  <canvas id="gl" aria-label="A flock of starlings. Move the pointer to play the falcon."></canvas>
+  <svg class="land" id="land" viewBox="0 0 1000 200" preserveAspectRatio="none" aria-hidden="true"></svg>
+  <div class="title">
+    <div class="eyebrow">Somerset Levels · a November dusk</div>
+    <h1>Murmuration</h1>
+    <p>Each starling follows only its nearest few neighbours, and the whole flock turns as one. Move your pointer through them to play the peregrine.</p>
+  </div>
+  <div class="panel">
+    <div class="count"><b id="cnt">2,400</b><span>Starlings</span></div>
+    <div class="seg" role="group" aria-label="Flock size">
+      <button data-n="1200" aria-pressed="false">1.2k</button>
+      <button data-n="2400" aria-pressed="true">2.4k</button>
+      <button data-n="4000" aria-pressed="false">4k</button>
+    </div>
+    <div class="field"><label for="k">Neighbours watched <output id="ko">7</output></label><input type="range" id="k" min="2" max="16" value="7"></div>
+    <div class="field"><label for="dusk">Light <output id="duo">Golden hour</output></label><input type="range" id="dusk" min="0" max="100" value="20"></div>
+    <small>Starlings track about seven neighbours, whatever the distance.</small>
+  </div>
+</section>
+
+<section class="below">
+  <div class="cols">
+    <div><h2>Seven neighbours</h2><p>Field studies in Rome found each bird keeps track of a fixed number of neighbours, about six or seven, rather than everyone within a set distance. That is why a flock holds together while it stretches and thins.</p></div>
+    <div><h2>Three rules</h2><p>Steer away from birds that are too close. Match the heading of the ones nearby. Drift toward their centre. Put those three together, add a falcon, and the sky starts to boil.</p></div>
+    <div><h2>Why at dusk</h2><p>Flocks gather over the roost before settling for the night. Safety in numbers is the usual explanation. A peregrine struggles to pick one target out of a wheeling cloud of thousands.</p></div>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  const canvas = document.getElementById('gl'), stage = document.getElementById('stage');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ── Treeline silhouette ──
+  (() => {
+    let d = 'M0 200 L0 150', x = 0;
+    while (x < 1000) {
+      const tree = Math.random() < .35;
+      if (tree) { const w = 14 + Math.random() * 30, h = 20 + Math.random() * 40; d += ` L${x} 148 Q${x + w * .1} ${148 - h} ${x + w / 2} ${146 - h} Q${x + w * .9} ${148 - h} ${x + w} 148`; x += w; }
+      else { const w = 6 + Math.random() * 30; x += w; d += ` L${x} ${146 + Math.random() * 6}`; }
+    }
+    d += ' L1000 200 Z';
+    document.getElementById('land').innerHTML = `<path d="${d}" fill="#1B1A24"/><rect x="0" y="170" width="1000" height="30" fill="#1B1A24"/>`;
+  })();
+  if (!window.THREE) { canvas.insertAdjacentHTML('afterend', '<div class="fallback">This flock needs WebGL and the three.js library.</div>'); return; }
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0xd9a3a0, 55, 120);
+  const camera = new THREE.PerspectiveCamera(50, 1, .1, 400);
+  camera.position.set(0, 4, 70);
+
+  // Bird: a flat chevron with raised wingtips, nose along +z
+  const bird = new THREE.BufferGeometry();
+  bird.setAttribute('position', new THREE.Float32BufferAttribute([
+    0, 0, .45, -.62, .14, -.18, 0, 0, -.22,
+    0, 0, .45, 0, 0, -.22, .62, .14, -.18,
+  ], 3));
+  const mat = new THREE.MeshBasicMaterial({ color: 0x1b1a24, side: THREE.DoubleSide, fog: true });
+
+  const MAX = 4000;
+  const pos = new Float32Array(MAX * 3), vel = new Float32Array(MAX * 3), phase = new Float32Array(MAX);
+  const head = new Int32Array(8192), next = new Int32Array(MAX);
+  let N = 2400, K = 7, mesh = null;
+  const B = { x: 38, y: 15, z: 22 };
+  function spawn() {
+    for (let i = 0; i < MAX; i++) {
+      pos[i * 3] = (Math.random() - .5) * 22; pos[i * 3 + 1] = 8 + (Math.random() - .5) * 8; pos[i * 3 + 2] = (Math.random() - .5) * 12;
+      const a = Math.random() * 6.28; vel[i * 3] = Math.cos(a) * .4; vel[i * 3 + 1] = (Math.random() - .5) * .1; vel[i * 3 + 2] = Math.sin(a) * .4;
+      phase[i] = Math.random() * 6.28;
+    }
+  }
+  function build() {
+    if (mesh) scene.remove(mesh);
+    mesh = new THREE.InstancedMesh(bird, mat, N);
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    mesh.frustumCulled = false;
+    scene.add(mesh);
+    document.getElementById('cnt').textContent = N.toLocaleString('en-GB');
+  }
+  spawn(); build();
+
+  const falcon = new THREE.Mesh(bird, new THREE.MeshBasicMaterial({ color: 0x0c0b12, side: THREE.DoubleSide }));
+  falcon.scale.setScalar(2.4); scene.add(falcon);
+  const fPos = new THREE.Vector3(80, 20, 0), fTarget = new THREE.Vector3(80, 20, 0), fVel = new THREE.Vector3();
+  let pointerAt = -1e9;
+
+  // Pointer → point on the z = 0 plane
+  const ray = new THREE.Raycaster(), plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), ndc = new THREE.Vector2(), hit = new THREE.Vector3();
+  canvas.addEventListener('pointermove', e => {
+    const r = canvas.getBoundingClientRect();
+    ndc.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    if (ray.ray.intersectPlane(plane, hit)) { fTarget.copy(hit); pointerAt = performance.now(); }
+  });
+  canvas.addEventListener('pointerleave', () => { pointerAt = -1e9; });
+
+  const CELL = 3.2, R2 = CELL * CELL;
+  const hash = (x, y, z) => ((x * 73856093) ^ (y * 19349663) ^ (z * 83492791)) & 8191;
+  function step(dt) {
+    head.fill(-1);
+    for (let i = 0; i < N; i++) {
+      const h = hash(Math.floor(pos[i * 3] / CELL), Math.floor(pos[i * 3 + 1] / CELL), Math.floor(pos[i * 3 + 2] / CELL));
+      next[i] = head[h]; head[h] = i;
+    }
+    const s = dt * 60, fx = fPos.x, fy = fPos.y, fz = fPos.z;
+    let mx = 0, my = 0, mz = 0;
+    for (let i = 0; i < N; i++) { mx += pos[i * 3]; my += pos[i * 3 + 1]; mz += pos[i * 3 + 2]; }
+    mx /= N; my /= N; mz /= N;
+    for (let i = 0; i < N; i++) {
+      const ix = i * 3, px = pos[ix], py = pos[ix + 1], pz = pos[ix + 2];
+      let vx = vel[ix], vy = vel[ix + 1], vz = vel[ix + 2];
+      let ax = 0, ay = 0, az = 0, cx = 0, cy = 0, cz = 0, sx = 0, sy = 0, sz = 0, n = 0;
+      const gx = Math.floor(px / CELL), gy = Math.floor(py / CELL), gz = Math.floor(pz / CELL);
+      outer:
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
+        for (let j = head[hash(gx + dx, gy + dy, gz + dz)]; j !== -1; j = next[j]) {
+          if (j === i) continue;
+          const jx = j * 3, ex = pos[jx] - px, ey = pos[jx + 1] - py, ez = pos[jx + 2] - pz, d2 = ex * ex + ey * ey + ez * ez;
+          if (d2 > R2 || d2 === 0) continue;
+          ax += vel[jx]; ay += vel[jx + 1]; az += vel[jx + 2];
+          cx += ex; cy += ey; cz += ez;
+          if (d2 < 1.3) { sx -= ex / d2; sy -= ey / d2; sz -= ez / d2; }
+          if (++n >= K) break outer;
+        }
+      }
+      if (n) {
+        vx += (ax / n - vx) * .06 + cx / n * .006 + sx * .05;
+        vy += (ay / n - vy) * .06 + cy / n * .006 + sy * .05;
+        vz += (az / n - vz) * .06 + cz / n * .006 + sz * .05;
+      }
+      // gentle pull toward the flock's centre keeps one cloud instead of many
+      vx += (mx - px) * .0007; vy += (my - py) * .0009; vz += (mz - pz) * .0007;
+      // soft ellipsoid boundary around the roost
+      const bx = px / B.x, by = (py - 8) / B.y, bz = pz / B.z, bd = bx * bx + by * by + bz * bz;
+      if (bd > 1) { const k = .004 * (bd - 1 + .5); vx -= bx * k * 2; vy -= by * k * 3; vz -= bz * k * 2; }
+      // flee the falcon
+      const qx = px - fx, qy = py - fy, qz = pz - fz, q2 = qx * qx + qy * qy + qz * qz;
+      if (q2 < 160) { const k = .9 / (q2 + 4); vx += qx * k; vy += qy * k; vz += qz * k; }
+      const sp = Math.hypot(vx, vy, vz), cl = Math.min(.78, Math.max(.36, sp)) / (sp || 1);
+      vx *= cl; vy *= cl; vz *= cl;
+      vel[ix] = vx; vel[ix + 1] = vy; vel[ix + 2] = vz;
+      pos[ix] = px + vx * s; pos[ix + 1] = py + vy * s; pos[ix + 2] = pz + vz * s;
+    }
+  }
+
+  const dummy = new THREE.Object3D(), tgt = new THREE.Vector3();
+  function draw(t) {
+    for (let i = 0; i < N; i++) {
+      const ix = i * 3;
+      dummy.position.set(pos[ix], pos[ix + 1], pos[ix + 2]);
+      tgt.set(pos[ix] + vel[ix], pos[ix + 1] + vel[ix + 1], pos[ix + 2] + vel[ix + 2]);
+      dummy.lookAt(tgt);
+      const f = reduce ? 1 : Math.sin(t * 14 + phase[i]);
+      dummy.scale.set(1, f * 1.6, 1);
+      dummy.updateMatrix(); mesh.setMatrixAt(i, dummy.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+  }
+
+  // ── Falcon: follows the pointer, or makes its own passes ──
+  function moveFalcon(t, dt) {
+    if (performance.now() - pointerAt > 3000) {
+      const cyc = (t % 14) / 14;
+      if (cyc < .35) { const u = cyc / .35; fTarget.set(-70 + 140 * u, 26 - 30 * Math.sin(u * Math.PI), 6 * Math.sin(u * 6)); }
+      else fTarget.set(90, 30, -10);
+    }
+    fVel.subVectors(fTarget, fPos).multiplyScalar(Math.min(1, dt * 3.2));
+    fPos.add(fVel);
+    falcon.position.copy(fPos);
+    tgt.copy(fPos).add(fVel.lengthSq() > 1e-4 ? fVel : new THREE.Vector3(1, 0, 0));
+    falcon.lookAt(tgt);
+    falcon.scale.y = 2.4 * (reduce ? 1 : Math.sin(t * 9));
+  }
+
+  // ── Light (golden hour → blue hour) ──
+  const PAL = [
+    ['#6F7FA8', '#D9A3A0', '#F4C58F', 'Golden hour'],
+    ['#46507E', '#B98A9E', '#E8A378', 'Sunset'],
+    ['#252B4F', '#5E5A86', '#A77E8A', 'Blue hour'],
+  ];
+  const mix = (a, b, t) => { const A = parseInt(a.slice(1), 16), Bc = parseInt(b.slice(1), 16); const c = [16, 8, 0].map(sh => Math.round(((A >> sh) & 255) + ((((Bc >> sh) & 255) - ((A >> sh) & 255)) * t))); return '#' + c.map(v => v.toString(16).padStart(2, '0')).join(''); };
+  const sun = document.getElementById('sun');
+  function light(v) {
+    const u = v / 100 * 2, i = Math.min(1, Math.floor(u)), t = u - i;
+    const top = mix(PAL[i][0], PAL[i + 1][0], t), mid = mix(PAL[i][1], PAL[i + 1][1], t), low = mix(PAL[i][2], PAL[i + 1][2], t);
+    stage.style.setProperty('--sky-top', top); stage.style.setProperty('--sky-mid', mid); stage.style.setProperty('--sky-low', low);
+    scene.fog.color.set(mid);
+    sun.style.bottom = (13 - v * .16) + '%'; sun.style.opacity = Math.max(0, 1 - v / 70);
+    document.getElementById('duo').textContent = PAL[Math.round(u)][3];
+  }
+  const dusk = document.getElementById('dusk');
+  dusk.addEventListener('input', () => light(+dusk.value)); light(20);
+  const kIn = document.getElementById('k');
+  kIn.addEventListener('input', () => { K = +kIn.value; document.getElementById('ko').textContent = K; });
+  const segBtns = [...document.querySelectorAll('.seg button')];
+  segBtns.forEach(b => b.addEventListener('click', () => { N = +b.dataset.n; segBtns.forEach(x => x.setAttribute('aria-pressed', String(x === b))); build(); }));
+
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    renderer.setSize(w, h, false); camera.aspect = w / h;
+    camera.position.z = w < 700 ? 92 : 64;
+    scene.fog.near = camera.position.z - 12; scene.fog.far = camera.position.z + 60;
+    // keep the roost inside the visible width, even on a portrait phone
+    const halfW = camera.position.z * Math.tan(THREE.MathUtils.degToRad(25)) * camera.aspect;
+    B.x = Math.min(38, halfW * .7); B.z = Math.min(22, B.x * .8);
+    camera.updateProjectionMatrix();
+  }
+  addEventListener('resize', resize); resize();
+
+  // warm up so the first frame already shows a flock
+  for (let i = 0; i < 120; i++) step(1 / 60);
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(1 / 30, (now - last) / 1000); last = now;
+    const t = now / 1000;
+    moveFalcon(t, dt);
+    step(reduce ? dt * .5 : dt);
+    draw(t);
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>

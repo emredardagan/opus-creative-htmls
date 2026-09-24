@@ -1,0 +1,284 @@
+<title>Halvøy Central Departures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --hall: #121315;
+    --housing: #08090A;
+    --flap: #1E1F21;
+    --flap-hi: #26272A;
+    --char: #EFEAD8;
+    --signal: #F7C41B;
+    --amber: #FFB000;
+    --red: #FF5A3C;
+    --green: #7BD88F;
+    --steel: #6E737B;
+    --cw: clamp(15px, 2.35vw, 29px);
+    --ch: calc(var(--cw) * 1.55);
+    --cond: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif-condensed, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  }
+  html { background: var(--hall); }
+  body { background: radial-gradient(ellipse 120% 70% at 50% 0%, #22252A 0%, var(--hall) 60%); background-color: var(--hall); color: var(--char); font-family: var(--cond); min-height: 100vh; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 40px); padding-block: clamp(20px, 4vw, 48px) 60px; }
+
+  /* signage plate */
+  .plate { display: flex; flex-wrap: wrap; align-items: stretch; background: var(--signal); color: #111; border-radius: 4px 4px 0 0; overflow: hidden; }
+  .plate .pict { display: grid; place-items: center; background: #111; color: var(--signal); padding: 10px 16px; }
+  .plate .pict svg { width: 38px; height: 38px; }
+  .plate h1 { margin: 0; padding: 10px 18px; font-weight: 700; font-size: clamp(28px, 4.2vw, 50px); line-height: 1; letter-spacing: .01em; text-transform: uppercase; align-self: center; flex: 1; }
+  .plate h1 small { display: block; font-weight: 600; font-size: .42em; letter-spacing: .12em; margin-top: 4px; opacity: .75; }
+  .plate .clock { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: #111; }
+  .plate .clock .lbl { font: 500 10px var(--mono); letter-spacing: .14em; color: var(--steel); text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); }
+
+  /* board housing */
+  .housing { background: var(--housing); border-radius: 0 0 6px 6px; padding: clamp(12px, 2vw, 22px); position: relative; box-shadow: 0 30px 80px -20px rgba(0,0,0,.8), inset 0 0 0 1px #1A1B1D; }
+  .housing::before, .housing::after { content: ""; position: absolute; bottom: 8px; width: 7px; height: 7px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #555, #1a1a1a); }
+  .housing::before { left: 8px; } .housing::after { right: 8px; }
+  .scroll { overflow-x: auto; padding-bottom: 4px; }
+  .board { display: grid; gap: calc(var(--cw) * .32); width: max-content; margin: 0 auto; }
+  .cols, .line { display: flex; gap: calc(var(--cw) * .7); }
+  .cols span { font: 500 10px var(--mono); letter-spacing: .16em; color: var(--steel); text-transform: uppercase; }
+  .grp { display: flex; gap: 2px; }
+
+  /* the flap */
+  .f { position: relative; width: var(--cw); height: var(--ch); perspective: calc(var(--ch) * 6); font-weight: 600; font-size: calc(var(--ch) * .8); text-align: center; color: var(--ink, var(--char)); }
+  .f > div { position: absolute; left: 0; right: 0; height: 50%; overflow: hidden; background: linear-gradient(var(--flap-hi), var(--flap)); }
+  .f > div > span { display: block; height: var(--ch); line-height: var(--ch); }
+  .f .t, .f .lt { top: 0; border-radius: 2px 2px 0 0; }
+  .f .b, .f .lb { bottom: 0; border-radius: 0 0 2px 2px; background: linear-gradient(var(--flap), #19191B); }
+  .f .b > span, .f .lb > span { transform: translateY(-50%); }
+  .f .lt { transform-origin: 50% 100%; backface-visibility: hidden; z-index: 2; }
+  .f .lb { transform-origin: 50% 0; transform: rotateX(90deg); z-index: 2; }
+  .f::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - .5px); height: 1px; background: #000; z-index: 3; }
+  .f::before { content: ""; position: absolute; left: -1px; top: calc(50% - 2px); width: 2px; height: 4px; background: #3a3b3e; z-index: 4; }
+  .row { transition: opacity .3s; }
+  .row .rem { --ink: var(--char); }
+  .row.st-delay .rem { --ink: var(--amber); }
+  .row.st-cancel .rem { --ink: var(--red); }
+  .row.st-cancel .dst { --ink: #8b877a; }
+  .row.st-board .rem { --ink: var(--green); }
+  .row.st-trk .trk, .row.st-trk .rem { --ink: var(--signal); }
+  .row.st-gone .rem { --ink: var(--steel); }
+  .notice { margin-top: calc(var(--cw) * .5); padding-top: calc(var(--cw) * .6); border-top: 1px solid #1C1D20; }
+  .notice .grp .f { --ink: var(--signal); }
+
+  /* controls */
+  .deck { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 24px; margin-top: 26px; align-items: end; }
+  .field label { display: block; font: 500 10.5px var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--steel); margin-bottom: 8px; }
+  .field .in { display: flex; gap: 8px; }
+  input[type=text] { flex: 1; min-width: 0; font: 600 22px var(--cond); letter-spacing: .08em; text-transform: uppercase; color: var(--char); background: #0B0C0D; border: 1px solid #2A2C30; border-radius: 3px; padding: 10px 14px; }
+  input[type=text]::placeholder { color: #4b4f55; }
+  button { font: 700 16px var(--cond); letter-spacing: .1em; text-transform: uppercase; border: 0; border-radius: 3px; padding: 10px 18px; cursor: pointer; background: var(--signal); color: #111; }
+  button.ghost { background: transparent; color: var(--char); box-shadow: inset 0 0 0 1px #2F3236; }
+  button.ghost[aria-pressed=true] { color: var(--signal); box-shadow: inset 0 0 0 1px var(--signal); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+  .side { display: flex; gap: 8px; flex-wrap: wrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 28px; font: 400 11.5px var(--mono); color: var(--steel); }
+  .legend i { display: inline-block; width: 9px; height: 9px; margin-right: 7px; border-radius: 1px; vertical-align: -1px; }
+  @media (max-width: 640px) { .deck { grid-template-columns: minmax(0, 1fr); } .plate .clock .lbl { display: none; } }
+</style>
+
+<div class="wrap">
+  <header class="plate">
+    <div class="pict" aria-hidden="true">
+      <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="4" width="22" height="24" rx="5"/><path d="M9 17h22M15 23h.01M25 23h.01M14 32l-4 5M26 32l4 5M12 36h16"/><rect x="14" y="8" width="12" height="5" rx="1"/></svg>
+    </div>
+    <h1>Avgang · Departures<small>Halvøy Central · Main Hall</small></h1>
+    <div class="clock"><span class="lbl">Local</span><div class="grp" id="clock" role="timer" aria-label="Current time"></div></div>
+  </header>
+
+  <div class="housing">
+    <div class="scroll">
+      <div class="board" id="board" aria-live="polite">
+        <div class="cols" aria-hidden="true" id="cols"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="deck">
+    <form class="field" id="form">
+      <label for="msg">Passenger notice · letters, digits, : . - /</label>
+      <div class="in">
+        <input type="text" id="msg" maxlength="34" placeholder="Write to the board" autocomplete="off">
+        <button type="submit">Send</button>
+      </div>
+    </form>
+    <div class="side">
+      <button class="ghost" id="sound" aria-pressed="false">Sound off</button>
+      <button class="ghost" id="shuffle">Shuffle</button>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--green)"></i>Boarding</span>
+    <span><i style="background:var(--amber)"></i>Delayed</span>
+    <span><i style="background:var(--signal)"></i>Track changed</span>
+    <span><i style="background:var(--red)"></i>Cancelled</span>
+    <span>Simulated traffic · the board updates every few seconds</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const CH = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:.-/';
+  const clean = s => s.toUpperCase().replace(/Ø/g, 'O').replace(/Å/g, 'A').replace(/Æ/g, 'E').split('').map(c => CH.includes(c) ? c : ' ').join('');
+
+  // ── Sound: a short filtered noise tick, throttled ──
+  let ac = null, buf = null, soundOn = false, lastTick = 0;
+  function initAudio() {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    buf = ac.createBuffer(1, ac.sampleRate * .012, ac.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+  }
+  function tick() {
+    if (!soundOn || !ac) return;
+    const now = ac.currentTime; if (now - lastTick < .014) return; lastTick = now;
+    const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = buf; f.type = 'bandpass'; f.frequency.value = 2200 + Math.random() * 1400; g.gain.value = .22;
+    s.connect(f).connect(g).connect(ac.destination); s.start();
+  }
+
+  // ── Flap cells ──
+  function makeCell() {
+    const el = document.createElement('div');
+    el.className = 'f';
+    el.innerHTML = '<div class="t"><span> </span></div><div class="b"><span> </span></div><div class="lt"><span> </span></div><div class="lb"><span> </span></div>';
+    const [t, b, lt, lb] = el.children;
+    const cell = { el, c: ' ', target: ' ', busy: false, t: t.firstChild, b: b.firstChild, lt: lt.firstChild, lb: lb.firstChild, LT: lt, LB: lb };
+    return cell;
+  }
+  const D = 42;
+  function step(cell) {
+    if (cell.c === cell.target) { cell.busy = false; return; }
+    const next = CH[(CH.indexOf(cell.c) + 1) % CH.length], cur = cell.c;
+    cell.t.textContent = next; cell.b.textContent = cur; cell.lt.textContent = cur; cell.lb.textContent = next;
+    tick();
+    // Timers drive the sequence; the animations are cosmetic, so a throttled tab never stalls the board.
+    const down = cell.LT.animate([{ transform: 'rotateX(0deg)' }, { transform: 'rotateX(-90deg)' }], { duration: D, easing: 'ease-in', fill: 'forwards' });
+    setTimeout(() => {
+      cell.lt.textContent = next; down.cancel();
+      cell.LB.animate([{ transform: 'rotateX(90deg)' }, { transform: 'rotateX(0deg)' }], { duration: D, easing: 'ease-out' });
+    }, D);
+    setTimeout(() => { cell.b.textContent = next; cell.c = next; step(cell); }, D * 2);
+  }
+  function setCell(cell, ch, delay = 0) {
+    cell.target = ch;
+    if (reduce) { cell.c = ch; [cell.t, cell.b, cell.lt, cell.lb].forEach(s => s.textContent = ch); return; }
+    if (cell.busy) return;
+    cell.busy = true; setTimeout(() => step(cell), delay);
+  }
+  function group(n, cls) {
+    const g = document.createElement('div'); g.className = 'grp ' + (cls || '');
+    const cells = Array.from({ length: n }, () => { const c = makeCell(); g.appendChild(c.el); return c; });
+    return { g, cells, set(str, stagger = 18) { const s = clean(str).padEnd(n).slice(0, n); cells.forEach((c, i) => setCell(c, s[i], i * stagger + Math.random() * 40)); } };
+  }
+
+  // ── Layout ──
+  const COLS = [['Time', 5, 'tim'], ['Train', 4, 'trn'], ['Destination', 13, 'dst'], ['Trk', 2, 'trk'], ['Remarks', 9, 'rem']];
+  const board = document.getElementById('board'), colsEl = document.getElementById('cols');
+  COLS.forEach(([name, n]) => { const s = document.createElement('span'); s.textContent = name; s.style.width = `calc(${n} * var(--cw) + ${n - 1} * 2px)`; colsEl.appendChild(s); });
+  const ROWS = 8;
+  const rowsUI = Array.from({ length: ROWS }, () => {
+    const line = document.createElement('div'); line.className = 'line row';
+    const parts = COLS.map(([, n, cls]) => { const g = group(n, cls); line.appendChild(g.g); return g; });
+    board.appendChild(line);
+    return { line, parts };
+  });
+  const notice = group(COLS.reduce((a, c) => a + c[1], 0) + 3);
+  const nl = document.createElement('div'); nl.className = 'line notice'; nl.appendChild(notice.g); board.appendChild(nl);
+  // make the notice line span the same width as the table
+  notice.g.style.gap = '2px';
+
+  const clock = group(8);
+  document.getElementById('clock').appendChild(clock.g);
+  const hhmmss = d => d.toLocaleTimeString('en-GB', { hour12: false });
+  const hm = d => d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+  clock.set(hhmmss(new Date()), 0);
+  setInterval(() => clock.set(hhmmss(new Date()), 0), 1000);
+
+  // ── Simulated timetable ──
+  const ROUTES = [
+    ['R10', 'Lillehammer'], ['F4', 'Bergen'], ['R20', 'Halden'], ['FLY1', 'Gardermoen'], ['F6', 'Trondheim S'],
+    ['RE11', 'Skien'], ['F5', 'Stavanger'], ['R13', 'Drammen'], ['F7', 'Bodo'], ['SJ', 'Stockholm C'],
+    ['RE30', 'Gjovik'], ['R21', 'Moss'], ['F3', 'Kristiansand'], ['SJ', 'Goteborg C'], ['L2', 'Ski'], ['F41', 'Myrdal'],
+  ];
+  let ri = 0;
+  const nextRoute = () => ROUTES[ri++ % ROUTES.length];
+  const START = Date.now();
+  let sched = [];
+  let lastT = Math.ceil(START / 6e4) * 6e4;
+  function newTrain(status = 'ON TIME') {
+    lastT += (3 + Math.floor(Math.random() * 7)) * 6e4;
+    const [trn, dst] = nextRoute();
+    return { t: new Date(lastT), trn, dst, trk: String(1 + Math.floor(Math.random() * 19)), rem: status, cls: '' };
+  }
+  for (let i = 0; i < ROWS; i++) sched.push(newTrain());
+  sched[0].rem = 'BOARDING'; sched[0].cls = 'st-board';
+  sched[2].rem = 'DELAY 8M'; sched[2].cls = 'st-delay';
+  sched[5].rem = 'CANCELLED'; sched[5].cls = 'st-cancel';
+
+  function render(i) {
+    const r = sched[i], ui = rowsUI[i];
+    ui.line.className = 'line row ' + (r.cls || '');
+    const vals = [hm(r.t), r.trn, r.dst, r.trk.padStart(2), r.rem];
+    ui.parts.forEach((p, k) => p.set(vals[k]));
+  }
+  function renderAll() { sched.forEach((_, i) => render(i)); }
+  renderAll();
+
+  const NOTICES = ['MIND THE GAP BETWEEN TRAIN AND PLATFORM', 'QUIET ZONE IN CARRIAGE 5', 'TICKETS ARE CHECKED ON BOARD', 'WELCOME TO HALVOY CENTRAL'];
+  let ni = 0;
+  notice.set(NOTICES[0], 14);
+
+  // ── Traffic simulation ──
+  let beat = 0;
+  function simulate() {
+    beat++;
+    const top = sched[0];
+    if (top.rem === 'BOARDING') { top.rem = 'DEPARTED'; top.cls = 'st-gone'; render(0); return; }
+    if (top.rem === 'DEPARTED' || top.rem === 'CANCELLED') {
+      sched.shift(); sched.push(newTrain());
+      if (sched[0].rem !== 'CANCELLED') { sched[0].rem = 'BOARDING'; sched[0].cls = 'st-board'; }
+      renderAll(); return;
+    }
+    // random event on a mid-board row
+    const i = 1 + Math.floor(Math.random() * (ROWS - 1)), r = sched[i];
+    const roll = Math.random();
+    if (r.rem === 'CANCELLED') return;
+    if (roll < .45) { const m = 3 + Math.floor(Math.random() * 20); r.rem = `DELAY ${m}M`; r.cls = 'st-delay'; }
+    else if (roll < .75) { r.trk = String(1 + Math.floor(Math.random() * 19)); r.rem = 'NEW TRACK'; r.cls = 'st-trk'; }
+    else if (roll < .85) { r.rem = 'CANCELLED'; r.cls = 'st-cancel'; }
+    else { r.rem = 'ON TIME'; r.cls = ''; }
+    render(i);
+    if (beat % 3 === 0) { top.rem = 'BOARDING'; top.cls = 'st-board'; render(0); }
+  }
+  setInterval(simulate, 5200);
+  setInterval(() => { ni = (ni + 1) % NOTICES.length; notice.set(NOTICES[ni], 14); }, 21000);
+
+  // ── Controls ──
+  document.getElementById('form').addEventListener('submit', e => {
+    e.preventDefault();
+    const v = document.getElementById('msg').value.trim();
+    if (!v) return;
+    NOTICES.splice(ni + 1, 0, clean(v)); ni++;
+    notice.set(v, 14);
+  });
+  const sBtn = document.getElementById('sound');
+  sBtn.addEventListener('click', () => {
+    if (!ac) try { initAudio(); } catch (_) { return; }
+    ac.resume && ac.resume();
+    soundOn = !soundOn;
+    sBtn.setAttribute('aria-pressed', soundOn); sBtn.textContent = soundOn ? 'Sound on' : 'Sound off';
+  });
+  document.getElementById('shuffle').addEventListener('click', () => {
+    rowsUI.forEach(u => u.parts.forEach(p => p.cells.forEach(c => { c.target = CH[1 + Math.floor(Math.random() * 26)]; })));
+    rowsUI.forEach(u => u.parts.forEach(p => p.cells.forEach(c => setCell(c, c.target))));
+    setTimeout(renderAll, 1400);
+  });
+})();
+</script>

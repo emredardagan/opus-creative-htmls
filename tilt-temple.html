@@ -1,0 +1,307 @@
+<title>Tilt Temple</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Figtree:wght@400;500;600&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --cave: #0F0D0A;
+    --stone: #2A241C;
+    --jade: #5FC9A0;
+    --gold: #E8B65A;
+    --sand: #EADCC0;
+    --dim: #9C8F78;
+    --ruby: #E0605A;
+    --display: "Marcellus", "Trajan Pro", Georgia, serif;
+    --sans: "Figtree", system-ui, sans-serif;
+  }
+  html, body { height: 100%; }
+  html { background: var(--cave); }
+  body { background: radial-gradient(ellipse 80% 60% at 50% 40%, #2B2319 0%, var(--cave) 70%); background-color: var(--cave); color: var(--sand); font-family: var(--sans); font-size: 15px; overflow: hidden; }
+  .game { position: relative; height: 100%; min-height: 520px; }
+  #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: none; }
+  .hud { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: calc(env(safe-area-inset-top, 0px) + 16px) clamp(16px, 3vw, 32px) 0; pointer-events: none; }
+  .hud .lvl { font-family: var(--display); font-size: clamp(22px, 3vw, 32px); line-height: 1.05; }
+  .hud .lvl small { display: block; font: 600 11px var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+  .hud .right { text-align: right; font-variant-numeric: tabular-nums; }
+  .hud .time { font-family: var(--display); font-size: clamp(26px, 3.4vw, 38px); line-height: 1; }
+  .hud .gems { margin-top: 6px; font-size: 13px; color: var(--jade); letter-spacing: .06em; }
+  .hud .falls { font-size: 13px; color: var(--dim); }
+  .hint { position: absolute; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); left: 0; right: 0; text-align: center; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); pointer-events: none; }
+  .overlay { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 20px 16px; background: radial-gradient(ellipse at center, rgba(15, 13, 10, .45), rgba(15, 13, 10, .9)); }
+  .overlay[hidden] { display: none !important; }
+  .overlay .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: var(--gold); }
+  .overlay h1, .overlay h2 { font-family: var(--display); font-weight: 400; margin: 10px 0 12px; line-height: .95; }
+  .overlay h1 { font-size: clamp(54px, 10vw, 118px); text-shadow: 0 0 40px rgba(232, 182, 90, .3); }
+  .overlay h2 { font-size: clamp(38px, 6vw, 64px); }
+  .overlay p { max-width: 44ch; margin: 0 auto 22px; line-height: 1.55; color: #D8CCB4; }
+  .keys { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin-bottom: 24px; font-size: 13px; color: var(--dim); }
+  kbd { font: 600 12px var(--sans); border: 1px solid rgba(234, 220, 192, .3); border-radius: 4px; padding: 1px 6px; color: var(--sand); margin-right: 3px; }
+  .btn { font: 600 14px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: #1B140A; background: linear-gradient(180deg, #F3CE7F, var(--gold)); border: 0; padding: 14px 28px; border-radius: 3px; cursor: pointer; box-shadow: 0 10px 30px -10px rgba(232, 182, 90, .7); }
+  .btn:focus-visible { outline: 2px solid var(--sand); outline-offset: 4px; }
+  .stats { display: flex; gap: 28px; justify-content: center; margin-bottom: 22px; }
+  .stats b { display: block; font-family: var(--display); font-size: 34px; font-weight: 400; font-variant-numeric: tabular-nums; }
+  .stats span { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); }
+  .fallback { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); color: var(--dim); }
+</style>
+
+<div class="game" id="game">
+  <canvas id="gl" tabindex="0" aria-label="Tilt Temple board. Move the pointer or use arrow keys to tilt."></canvas>
+  <div class="hud">
+    <div class="lvl"><small id="lvlNo">Chamber I of III</small><span id="lvlName">The Antechamber</span></div>
+    <div class="right"><div class="time" id="time">0.0s</div><div class="gems" id="gems">◆ 0 / 0 jade</div><div class="falls" id="falls">0 falls</div></div>
+  </div>
+  <div class="hint">Tilt with the pointer, a finger, or the arrow keys · avoid the pits</div>
+
+  <div class="overlay" id="start">
+    <div>
+      <div class="eyebrow">A rolling-stone puzzle</div>
+      <h1>Tilt Temple</h1>
+      <p>Guide the golden sphere through three carved chambers to the sun altar. Gather the jade on the way. Mind the pits: one slip and you start the chamber again.</p>
+      <div class="keys"><span>Move the pointer to tilt</span><span><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> or <kbd>WASD</kbd></span><span>Touch: drag</span></div>
+      <button class="btn" id="go">Enter the temple</button>
+    </div>
+  </div>
+  <div class="overlay" id="done" hidden>
+    <div>
+      <div class="eyebrow" id="doneEyebrow">Chamber cleared</div>
+      <h2 id="doneTitle">The Antechamber</h2>
+      <div class="stats"><div><b id="dTime">0.0s</b><span>Time</span></div><div><b id="dGems">0/0</b><span>Jade</span></div><div><b id="dFalls">0</b><span>Falls</span></div></div>
+      <button class="btn" id="next">Next chamber</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  const canvas = document.getElementById('gl'), game = document.getElementById('game');
+  if (!window.THREE) { canvas.insertAdjacentHTML('afterend', '<div class="fallback">Tilt Temple needs WebGL and three.js.</div>'); return; }
+  const $ = id => document.getElementById(id);
+
+  // # wall · . floor · O pit · S start · G goal · * jade
+  const LEVELS = [
+    { name: 'The Antechamber', map: [
+      '###########',
+      '#S..#.....#',
+      '#.#.#.###.#',
+      '#.#...#*..#',
+      '#.#####.###',
+      '#...O...#.#',
+      '###.###.#.#',
+      '#*..#...O.#',
+      '#.###....##',
+      '#.....O..G#',
+      '###########'] },
+    { name: 'Hall of Pits', map: [
+      '#############',
+      '#S....O.....#',
+      '#.###.#.###.#',
+      '#.#*..#..O#.#',
+      '#.#.#####.#.#',
+      '#...O...#...#',
+      '###.###.#.###',
+      '#...#*O.#...#',
+      '#.#.#...###.#',
+      '#.#...#...O.#',
+      '#.#####O#.#.#',
+      '#*......#..G#',
+      '#############'] },
+    { name: 'The Sun Altar', map: [
+      '#############',
+      '#S.O.....O.*#',
+      '#.#.#.#.#.#.#',
+      '#...O...O...#',
+      '###.#####.###',
+      '#*O.......O*#',
+      '#.#.#.O.#.#.#',
+      '#...#...#...#',
+      '#.#.#.#.#.#.#',
+      '#O..O.#.O..O#',
+      '#.###.#.###.#',
+      '#.....#....G#',
+      '#############'] },
+  ];
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, 1, .1, 200);
+
+  scene.add(new THREE.HemisphereLight(0xffe2b0, 0x1a120a, .45));
+  const sun = new THREE.DirectionalLight(0xffd79a, 1.1); sun.position.set(-6, 14, 6); sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10 }); sun.shadow.bias = -.0008;
+  scene.add(sun);
+  const torchA = new THREE.PointLight(0xff8a3d, 1.2, 22, 2), torchB = new THREE.PointLight(0xff8a3d, 1.2, 22, 2);
+  scene.add(torchA, torchB);
+
+  // Procedural stone texture
+  function stoneTex(base, speck, lines) {
+    const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+    g.fillStyle = base; g.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 900; i++) { g.fillStyle = speck[i % speck.length]; g.globalAlpha = Math.random() * .25; g.fillRect(Math.random() * 128, Math.random() * 128, 2, 2); }
+    g.globalAlpha = .35; g.strokeStyle = lines; g.lineWidth = 2; g.strokeRect(1, 1, 126, 126);
+    if (lines) { g.globalAlpha = .18; g.beginPath(); g.moveTo(20, 64); g.lineTo(64, 20); g.lineTo(108, 64); g.lineTo(64, 108); g.closePath(); g.stroke(); }
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return t;
+  }
+  const floorMat = new THREE.MeshStandardMaterial({ map: stoneTex('#4A3C2C', ['#6a5842', '#33291e'], '#1e170f'), roughness: .9 });
+  const wallMat = new THREE.MeshStandardMaterial({ map: stoneTex('#8B7556', ['#a58d6a', '#5d4c37'], '#3d3020'), roughness: .85 });
+  const rimMat = new THREE.MeshStandardMaterial({ color: 0x3b2f22, roughness: 1 });
+  const goalMat = new THREE.MeshStandardMaterial({ color: 0xe8b65a, emissive: 0xb8702a, emissiveIntensity: .8, metalness: .6, roughness: .3 });
+  const jadeMat = new THREE.MeshStandardMaterial({ color: 0x5fc9a0, emissive: 0x1e6a50, emissiveIntensity: .7, roughness: .2, metalness: .1, flatShading: true });
+  const ballMat = new THREE.MeshStandardMaterial({ color: 0xffd27a, emissive: 0x6b4410, emissiveIntensity: .9, metalness: .75, roughness: .2 });
+
+  const pivot = new THREE.Group(); scene.add(pivot);
+  let board = null, level, li = 0, grid, W, H, ball, ballMesh, gems = [], got = 0, falls = 0, time = 0, state = 'title', start = [0, 0], goal = [0, 0], goalMesh, fallT = 0;
+  const R = .33;
+  const cellX = x => x - W / 2 + .5, cellZ = z => z - H / 2 + .5;
+
+  function buildLevel(i) {
+    li = i; level = LEVELS[i]; grid = level.map.map(r => [...r]); H = grid.length; W = grid[0].length;
+    if (board) pivot.remove(board);
+    board = new THREE.Group(); pivot.add(board);
+    gems = []; got = 0; falls = 0; time = 0;
+    const base = new THREE.Mesh(new THREE.BoxGeometry(W + .6, .6, H + .6), rimMat); base.position.y = -.55; base.receiveShadow = true; board.add(base);
+    const wallGeo = new THREE.BoxGeometry(1, .8, 1), tileGeo = new THREE.BoxGeometry(.98, .2, .98);
+    grid.forEach((row, z) => row.forEach((c, x) => {
+      const X = cellX(x), Z = cellZ(z);
+      if (c === '#') { const m = new THREE.Mesh(wallGeo, wallMat); m.position.set(X, .3, Z); m.castShadow = m.receiveShadow = true; board.add(m); return; }
+      if (c === 'O') {
+        const pit = new THREE.Mesh(new THREE.CylinderGeometry(.42, .3, .25, 20), new THREE.MeshBasicMaterial({ color: 0x050403 })); pit.position.set(X, -.14, Z); board.add(pit);
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(.43, .04, 6, 24), rimMat); ring.rotation.x = Math.PI / 2; ring.position.set(X, -.02, Z); board.add(ring);
+        const t = new THREE.Mesh(tileGeo, floorMat); t.scale.set(1, 1, 1); t.position.set(X, -.12, Z);
+        return;
+      }
+      const t = new THREE.Mesh(tileGeo, floorMat); t.position.set(X, -.12, Z); t.receiveShadow = true; board.add(t);
+      if (c === 'S') start = [X, Z];
+      if (c === 'G') {
+        goal = [X, Z];
+        goalMesh = new THREE.Group();
+        const disc = new THREE.Mesh(new THREE.CylinderGeometry(.42, .42, .05, 24), goalMat); disc.position.y = .01;
+        const rays = new THREE.Mesh(new THREE.TorusGeometry(.32, .03, 6, 24), goalMat); rays.rotation.x = Math.PI / 2; rays.position.y = .06;
+        goalMesh.add(disc, rays); goalMesh.position.set(X, 0, Z); board.add(goalMesh);
+      }
+      if (c === '*') { const g = new THREE.Mesh(new THREE.OctahedronGeometry(.18), jadeMat); g.position.set(X, .3, Z); g.castShadow = true; board.add(g); gems.push({ m: g, x: X, z: Z, got: false }); }
+    }));
+    if (!ballMesh) { ballMesh = new THREE.Mesh(new THREE.SphereGeometry(R, 32, 20), ballMat); ballMesh.castShadow = true; }
+    board.add(ballMesh);
+    torchA.position.set(-W / 2 - 1, 2.5, -H / 2 - 1); torchB.position.set(W / 2 + 1, 2.5, H / 2 + 1);
+    respawn();
+    $('lvlNo').textContent = `Chamber ${['I', 'II', 'III'][i]} of III`;
+    $('lvlName').textContent = level.name;
+    resize(); hud();
+  }
+  function respawn() { ball = { x: start[0], z: start[1], vx: 0, vz: 0, y: 0 }; ballMesh.position.set(ball.x, R - .02, ball.z); ballMesh.quaternion.identity(); fallT = 0; }
+  function hud() {
+    $('time').textContent = time.toFixed(1) + 's';
+    $('gems').textContent = `◆ ${got} / ${gems.length} jade`;
+    $('falls').textContent = `${falls} fall${falls === 1 ? '' : 's'}`;
+  }
+  const isWall = (x, z) => { const gx = Math.floor(x + W / 2), gz = Math.floor(z + H / 2); return gx < 0 || gz < 0 || gx >= W || gz >= H || grid[gz][gx] === '#'; };
+  function collide(axis) {
+    const gx = Math.floor(ball.x + W / 2), gz = Math.floor(ball.z + H / 2);
+    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+      const cx = gx + dx, cz = gz + dz;
+      if (cz < 0 || cx < 0 || cz >= H || cx >= W || grid[cz][cx] !== '#') continue;
+      const minX = cx - W / 2, maxX = minX + 1, minZ = cz - H / 2, maxZ = minZ + 1;
+      const px = Math.max(minX, Math.min(ball.x, maxX)), pz = Math.max(minZ, Math.min(ball.z, maxZ));
+      const ox = ball.x - px, oz = ball.z - pz, d = Math.hypot(ox, oz);
+      if (d < R && d > 1e-6) {
+        const push = R - d, nx = ox / d, nz = oz / d;
+        ball.x += nx * push; ball.z += nz * push;
+        const vn = ball.vx * nx + ball.vz * nz;
+        if (vn < 0) { ball.vx -= 1.45 * vn * nx; ball.vz -= 1.45 * vn * nz; }
+      }
+    }
+  }
+
+  // ── Input: target tilt ──
+  const tilt = { x: 0, z: 0 }, target = { x: 0, z: 0 }, keys = {};
+  const MAX = .22;
+  canvas.addEventListener('pointermove', e => {
+    if (e.pointerType === 'touch' && !dragging) return;
+    const r = canvas.getBoundingClientRect();
+    if (dragging) { target.z = Math.max(-MAX, Math.min(MAX, drag0.z - (e.clientX - dragging[0]) / r.width * 1.2)); target.x = Math.max(-MAX, Math.min(MAX, drag0.x + (e.clientY - dragging[1]) / r.height * 1.2)); return; }
+    const nx = (e.clientX - r.left) / r.width * 2 - 1, ny = (e.clientY - r.top) / r.height * 2 - 1;
+    target.z = -nx * MAX * 1.3; target.x = ny * MAX * 1.3;
+    target.x = Math.max(-MAX, Math.min(MAX, target.x)); target.z = Math.max(-MAX, Math.min(MAX, target.z));
+  });
+  let dragging = null, drag0 = null;
+  canvas.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') { dragging = [e.clientX, e.clientY]; drag0 = { ...target }; canvas.setPointerCapture(e.pointerId); } });
+  canvas.addEventListener('pointerup', () => { dragging = null; });
+  addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest?.('button')) { if (state === 'title') begin(); else if (state === 'done') nextLevel(); } });
+  addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+  function begin() { $('start').hidden = true; state = 'play'; buildLevel(0); canvas.focus(); }
+  function nextLevel() {
+    $('done').hidden = true;
+    if (li === LEVELS.length - 1) { state = 'play'; buildLevel(0); }
+    else { state = 'play'; buildLevel(li + 1); }
+    canvas.focus();
+  }
+  $('go').addEventListener('click', begin);
+  $('next').addEventListener('click', nextLevel);
+  function complete() {
+    state = 'done';
+    const last = li === LEVELS.length - 1;
+    $('doneEyebrow').textContent = last ? 'The sun altar is lit' : 'Chamber cleared';
+    $('doneTitle').textContent = last ? 'Temple conquered' : level.name;
+    $('dTime').textContent = time.toFixed(1) + 's'; $('dGems').textContent = `${got}/${gems.length}`; $('dFalls').textContent = falls;
+    $('next').textContent = last ? 'Play again' : 'Next chamber';
+    $('done').hidden = false; $('next').focus();
+  }
+
+  function resize() {
+    const w = game.clientWidth, h = game.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h;
+    const size = (H || 11) + 1.5, fit = size / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+    const d = fit * Math.max(1, 1.05 / camera.aspect) * 1.12;
+    camera.position.set(0, d * .92, d * .48); camera.lookAt(0, -.5, .3);
+    camera.updateProjectionMatrix();
+  }
+  addEventListener('resize', resize);
+
+  const axis = new THREE.Vector3(), q = new THREE.Quaternion();
+  let last = performance.now(), t = 0;
+  buildLevel(0);
+  function loop(now) {
+    const dt = Math.min(1 / 30, (now - last) / 1000); last = now; t += dt;
+    if (state === 'play') {
+      const kx = (keys.arrowdown || keys.s ? 1 : 0) - (keys.arrowup || keys.w ? 1 : 0), kz = (keys.arrowleft || keys.a ? 1 : 0) - (keys.arrowright || keys.d ? 1 : 0);
+      if (kx || kz) { target.x = kx * MAX; target.z = kz * MAX; }
+    } else if (state === 'title') { target.x = Math.sin(t * .6) * .08; target.z = Math.cos(t * .45) * .08; }
+    tilt.x += (target.x - tilt.x) * Math.min(1, dt * 7); tilt.z += (target.z - tilt.z) * Math.min(1, dt * 7);
+    pivot.rotation.set(tilt.x, 0, tilt.z);
+
+    if (state === 'play') {
+      time += dt;
+      if (fallT > 0) {
+        fallT += dt; ball.y -= dt * (3 + fallT * 10); ballMesh.position.y = R + ball.y; ballMesh.scale.setScalar(Math.max(.2, 1 - fallT * 1.2));
+        if (fallT > .7) { ballMesh.scale.setScalar(1); respawn(); gems.forEach(g => { g.got = false; g.m.visible = true; }); got = 0; }
+      } else {
+        const G = 16, steps = 4, sdt = dt / steps;
+        for (let s = 0; s < steps; s++) {
+          ball.vx += -Math.sin(tilt.z) * G * sdt; ball.vz += Math.sin(tilt.x) * G * sdt;
+          ball.vx *= 1 - .6 * sdt; ball.vz *= 1 - .6 * sdt;
+          ball.x += ball.vx * sdt; collide(); ball.z += ball.vz * sdt; collide();
+        }
+        const gx = Math.floor(ball.x + W / 2), gz = Math.floor(ball.z + H / 2), cell = grid[gz]?.[gx];
+        if (cell === 'O' && Math.hypot(ball.x - cellX(gx), ball.z - cellZ(gz)) < .32) { fallT = .001; falls++; }
+        const dist = Math.hypot(ball.vx, ball.vz) * dt;
+        if (dist > 1e-5) { axis.set(ball.vz, 0, -ball.vx).normalize(); q.setFromAxisAngle(axis, dist / R); ballMesh.quaternion.premultiply(q); }
+        ballMesh.position.set(ball.x, R - .02, ball.z);
+        for (const g of gems) if (!g.got && Math.hypot(g.x - ball.x, g.z - ball.z) < .45) { g.got = true; g.m.visible = false; got++; }
+        if (Math.hypot(goal[0] - ball.x, goal[1] - ball.z) < .35) complete();
+      }
+      hud();
+    }
+    gems.forEach((g, i) => { g.m.rotation.y = t * 1.5 + i; g.m.position.y = .32 + Math.sin(t * 2 + i) * .05; });
+    if (goalMesh) goalMesh.children[1].scale.setScalar(1 + Math.sin(t * 3) * .12);
+    torchA.intensity = 1.1 + Math.sin(t * 11) * .15 + Math.sin(t * 7) * .1; torchB.intensity = 1.1 + Math.sin(t * 9 + 1) * .15;
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>

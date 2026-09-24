@@ -1,0 +1,293 @@
+<title>Brick Orbit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --space: #070612;
+    --ink: #EEEAFD;
+    --dim: #8C86B0;
+    --cyan: #3FE3FF;
+    --magenta: #FF4FD8;
+    --lime: #B6FF4F;
+    --sans: "Chakra Petch", "Eurostile", system-ui, sans-serif;
+  }
+  html, body { height: 100%; }
+  html { background: var(--space); }
+  body { background: var(--space); color: var(--ink); font-family: var(--sans); overflow: hidden; }
+  .game { position: relative; height: 100%; min-height: 520px; background: radial-gradient(ellipse 70% 50% at 50% 30%, #1B1440 0%, var(--space) 70%); }
+  #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: none; }
+  .hud { position: absolute; left: 0; right: 0; top: 0; display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 12px; padding: calc(env(safe-area-inset-top, 0px) + 14px) clamp(16px, 3vw, 32px) 0; pointer-events: none; text-transform: uppercase; }
+  .hud small { display: block; font-size: 11px; letter-spacing: .24em; color: var(--dim); }
+  .hud b { font-weight: 700; font-size: clamp(22px, 3vw, 32px); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+  .hud .mid { text-align: center; }
+  .hud .mid b { color: var(--cyan); text-shadow: 0 0 16px rgba(63, 227, 255, .6); }
+  .hud .right { text-align: right; }
+  .lives { display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px; }
+  .lives i { width: 22px; height: 6px; border-radius: 3px; background: var(--magenta); box-shadow: 0 0 10px var(--magenta); }
+  .lives i.off { background: #2a2346; box-shadow: none; }
+  .power { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); transform: translateX(-50%); font-weight: 600; font-size: 13px; letter-spacing: .2em; text-transform: uppercase; color: var(--lime); text-shadow: 0 0 12px rgba(182, 255, 79, .6); pointer-events: none; opacity: 0; transition: opacity .3s; white-space: nowrap; }
+  .power.show { opacity: 1; }
+  .overlay { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 20px 16px; background: radial-gradient(ellipse at center, rgba(7, 6, 18, .4), rgba(7, 6, 18, .88)); }
+  .overlay[hidden] { display: none !important; }
+  .overlay .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .3em; text-transform: uppercase; color: var(--magenta); }
+  .overlay h1 { font-weight: 700; font-size: clamp(54px, 11vw, 132px); line-height: .85; margin: 12px 0 16px; text-transform: uppercase; letter-spacing: -.01em; background: linear-gradient(180deg, #fff 20%, var(--cyan) 60%, var(--magenta)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .overlay h2 { font-weight: 700; font-size: clamp(40px, 7vw, 72px); margin: 8px 0; text-transform: uppercase; }
+  .overlay p { max-width: 42ch; margin: 0 auto 22px; color: #C9C3E6; line-height: 1.55; font-size: 15px; }
+  .keys { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin-bottom: 24px; font-size: 13px; color: var(--dim); letter-spacing: .06em; }
+  kbd { font: 600 12px var(--sans); border: 1px solid rgba(238, 234, 253, .3); border-radius: 4px; padding: 1px 6px; color: var(--ink); margin-right: 3px; }
+  .btn { font: 700 15px var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--space); background: var(--cyan); border: 0; padding: 14px 30px; cursor: pointer; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); box-shadow: 0 0 30px rgba(63, 227, 255, .5); }
+  .btn:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
+  .fallback { position: absolute; inset: 0; display: grid; place-items: center; }
+</style>
+
+<div class="game" id="game">
+  <canvas id="gl" aria-label="Brick Orbit playfield"></canvas>
+  <div class="hud">
+    <div><small>Score</small><b id="score">000000</b></div>
+    <div class="mid"><small>Sector</small><b id="sector">01</b></div>
+    <div class="right"><small>Shields</small><div class="lives" id="lives"><i></i><i></i><i></i></div></div>
+  </div>
+  <div class="power" id="power">Wide paddle</div>
+  <div class="overlay" id="title">
+    <div>
+      <div class="eyebrow">Arcade · sector defence</div>
+      <h1>Brick<br>Orbit</h1>
+      <p>A lattice of crystal bricks is drifting into orbit. Bounce the plasma ball to shatter every one. Catch the green capsules for a wider paddle or extra balls.</p>
+      <div class="keys"><span>Mouse or finger to move</span><span><kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd></span><span><kbd>Space</kbd> / click to launch</span></div>
+      <button class="btn" id="play">Launch</button>
+    </div>
+  </div>
+  <div class="overlay" id="over" hidden>
+    <div>
+      <div class="eyebrow" id="overEyebrow">Shields down</div>
+      <h2 id="overScore">000000</h2>
+      <p id="overText">Sector 1 · best 0</p>
+      <button class="btn" id="again">Play again</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  const canvas = document.getElementById('gl'), game = document.getElementById('game');
+  if (!window.THREE) { canvas.insertAdjacentHTML('afterend', '<div class="fallback">Brick Orbit needs WebGL and three.js.</div>'); return; }
+  const $ = id => document.getElementById(id);
+  const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : +v; } catch (_) { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} } };
+  let best = store.get('orbit-best', 0);
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x070612, 30, 70);
+  const camera = new THREE.PerspectiveCamera(52, 1, .1, 200);
+  scene.add(new THREE.AmbientLight(0x6a5cff, .5));
+  const key = new THREE.DirectionalLight(0xffffff, .7); key.position.set(4, 12, 8); scene.add(key);
+
+  const FW = 14, FD = 22, ZP = 9, ZTOP = -12; // field width, paddle z, back wall z
+  // Arena: neon grid floor + rails
+  const grid = new THREE.GridHelper(60, 60, 0x3fe3ff, 0x2a1f66); grid.position.y = -.6; grid.material.transparent = true; grid.material.opacity = .35; scene.add(grid);
+  const railMat = new THREE.MeshBasicMaterial({ color: 0xff4fd8 });
+  [-1, 1].forEach(s => { const r = new THREE.Mesh(new THREE.BoxGeometry(.2, .3, FD + 2), railMat); r.position.set(s * (FW / 2 + .1), 0, (ZP + ZTOP) / 2); scene.add(r); });
+  const back = new THREE.Mesh(new THREE.BoxGeometry(FW + .4, .3, .2), railMat); back.position.set(0, 0, ZTOP - .1); scene.add(back);
+  // starfield
+  const sg = new THREE.BufferGeometry(), sp = [];
+  for (let i = 0; i < 700; i++) sp.push((Math.random() - .5) * 160, Math.random() * 60 - 5, -30 - Math.random() * 60);
+  sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
+  scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xc9c3ff, size: .25, fog: false })));
+  // planet on the horizon
+  const planet = new THREE.Mesh(new THREE.SphereGeometry(8, 48, 32), new THREE.MeshStandardMaterial({ color: 0x4b2aa8, emissive: 0x1a0c46, roughness: .8, fog: false }));
+  planet.position.set(9, 3, -62); scene.add(planet);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(10.5, 14, 64), new THREE.MeshBasicMaterial({ color: 0xff4fd8, side: THREE.DoubleSide, transparent: true, opacity: .25, fog: false }));
+  ring.position.copy(planet.position); ring.rotation.set(1.2, .2, .3); scene.add(ring);
+
+  const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(.3, 'rgba(255,255,255,.5)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+
+  // Paddle
+  const paddle = new THREE.Group();
+  const padMesh = new THREE.Mesh(new THREE.BoxGeometry(1, .35, .5), new THREE.MeshStandardMaterial({ color: 0x3fe3ff, emissive: 0x1aa0c0, emissiveIntensity: 1, metalness: .3, roughness: .3 }));
+  const padGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0x3fe3ff, transparent: true, opacity: .5, blending: THREE.AdditiveBlending, depthWrite: false }));
+  padGlow.scale.set(4, 1.6, 1);
+  paddle.add(padMesh, padGlow); paddle.position.set(0, 0, ZP); scene.add(paddle);
+  let padW = 2.6, padTarget = 0, wideT = 0;
+
+  // Balls
+  const ballGeo = new THREE.SphereGeometry(.26, 20, 14), ballMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  let balls = [];
+  function addBall(x, z, vx, vz, stuck) {
+    const m = new THREE.Mesh(ballGeo, ballMat);
+    const g = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xff4fd8, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+    g.scale.set(1.8, 1.8, 1); m.add(g); scene.add(m);
+    const b = { m, x, z, vx, vz, stuck, trail: [] }; balls.push(b); return b;
+  }
+
+  // Bricks
+  const brickGeo = new THREE.BoxGeometry(1, .6, .6);
+  const ROWCOL = [0xff4fd8, 0xc55bff, 0x7b6bff, 0x3fa8ff, 0x3fe3ff, 0x6fffc8, 0xb6ff4f];
+  let bricks = [], shards = [], caps = [];
+  const BW = 1.18, BD = .72;
+  const PATTERNS = [
+    (r, c) => true,
+    (r, c) => (r + c) % 2 === 0 || r === 0,
+    (r, c) => Math.abs(c - 5.5) <= r + 1,
+    (r, c) => !(r > 1 && r < 5 && c > 2 && c < 9) || r === 3,
+    (r, c) => (c % 3 !== 1) || r % 2 === 0,
+  ];
+  function buildSector(n) {
+    bricks.forEach(b => scene.remove(b.m)); bricks = [];
+    const rows = Math.min(7, 4 + Math.floor(n / 2)), pat = PATTERNS[(n - 1) % PATTERNS.length];
+    for (let r = 0; r < rows; r++) for (let c = 0; c < 11; c++) {
+      if (!pat(r, c)) continue;
+      const tough = n >= 3 && r === 0 ? 2 : 1;
+      const col = ROWCOL[r % ROWCOL.length];
+      const mat = new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: tough > 1 ? .25 : .55, metalness: .2, roughness: .35, transparent: true, opacity: .92 });
+      const m = new THREE.Mesh(brickGeo, mat);
+      const x = (c - 5) * BW, z = ZTOP + 1.4 + r * BD;
+      m.position.set(x, 0, z); m.scale.set(BW * .92, 1, BD * .8 / .6); scene.add(m);
+      bricks.push({ m, x, z, hp: tough, col, pts: (rows - r) * 10 });
+    }
+  }
+  function shatter(b) {
+    for (let i = 0; i < 10; i++) {
+      const s = new THREE.Mesh(new THREE.BoxGeometry(.16, .16, .16), new THREE.MeshBasicMaterial({ color: b.col, transparent: true }));
+      s.position.set(b.x + (Math.random() - .5), 0, b.z + (Math.random() - .5) * .5); scene.add(s);
+      shards.push({ m: s, vx: (Math.random() - .5) * 8, vy: Math.random() * 6 + 2, vz: (Math.random() - .5) * 8, life: .8 });
+    }
+    if (Math.random() < .14) {
+      const kind = Math.random() < .5 ? 'wide' : 'multi';
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, .7, 12), new THREE.MeshBasicMaterial({ color: 0xb6ff4f }));
+      m.rotation.z = Math.PI / 2; m.position.set(b.x, 0, b.z); scene.add(m);
+      caps.push({ m, kind });
+    }
+  }
+
+  // ── State ──
+  let state = 'title', score = 0, lives = 3, sector = 1, shake = 0, keys = {};
+  function hud() {
+    $('score').textContent = String(score).padStart(6, '0');
+    $('sector').textContent = String(sector).padStart(2, '0');
+    [...$('lives').children].forEach((el, i) => el.classList.toggle('off', i >= lives));
+  }
+  function serve() { balls.forEach(b => scene.remove(b.m)); balls = []; addBall(paddle.position.x, ZP - .6, 0, 0, true); }
+  function start() {
+    score = 0; lives = 3; sector = 1; padW = 2.6; wideT = 0;
+    caps.forEach(c => scene.remove(c.m)); caps = [];
+    buildSector(sector); serve(); hud();
+    state = 'play'; $('title').hidden = true; $('over').hidden = true;
+  }
+  function launch() { balls.forEach(b => { if (b.stuck) { b.stuck = false; const a = (Math.random() - .5) * .6; b.vx = Math.sin(a) * speed(); b.vz = -Math.cos(a) * speed(); } }); }
+  const speed = () => Math.min(17, 10.5 + sector * .8);
+  function power(text) { const p = $('power'); p.textContent = text; p.classList.add('show'); clearTimeout(power.id); power.id = setTimeout(() => p.classList.remove('show'), 1600); }
+  function gameOver(won) {
+    state = 'over';
+    if (score > best) { best = score; store.set('orbit-best', best); }
+    $('overEyebrow').textContent = won ? 'Orbit secured' : 'Shields down';
+    $('overScore').textContent = String(score).padStart(6, '0');
+    $('overText').textContent = `Reached sector ${sector} · best ${String(best).padStart(6, '0')}`;
+    $('over').hidden = false; $('again').focus();
+  }
+  $('play').addEventListener('click', start); $('again').addEventListener('click', start);
+
+  // input
+  const toFieldX = clientX => { const r = canvas.getBoundingClientRect(); return ((clientX - r.left) / r.width - .5) * FW * 1.25; };
+  canvas.addEventListener('pointermove', e => { padTarget = toFieldX(e.clientX); });
+  canvas.addEventListener('pointerdown', e => { padTarget = toFieldX(e.clientX); if (state === 'play') launch(); });
+  addEventListener('keydown', e => {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key === ' ' || e.key === 'Enter') { if (e.target.closest?.('button')) return; e.preventDefault(); if (state === 'play') launch(); else start(); }
+    if (e.key.startsWith('Arrow')) e.preventDefault();
+  });
+  addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+  function resize() {
+    const w = game.clientWidth, h = game.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h;
+    const portrait = w < h;
+    camera.fov = portrait ? 70 : 52; camera.position.set(0, portrait ? 21 : 15, portrait ? 19 : 17); camera.lookAt(0, 0, -1.5);
+    camera.updateProjectionMatrix();
+  }
+  addEventListener('resize', resize); resize();
+
+  // attract mode layout
+  buildSector(1);
+  serve();
+
+  let last = performance.now(), t = 0;
+  function loop(now) {
+    const dt = Math.min(1 / 30, (now - last) / 1000); last = now; t += dt;
+    const playing = state === 'play';
+    const kd = (keys.arrowright || keys.d ? 1 : 0) - (keys.arrowleft || keys.a ? 1 : 0);
+    if (kd) padTarget += kd * dt * 16;
+    if (!playing) padTarget = Math.sin(t * 1.2) * 4;
+    wideT = Math.max(0, wideT - dt); const wantW = wideT > 0 ? 4.2 : 2.6; padW += (wantW - padW) * Math.min(1, dt * 6);
+    const lim = FW / 2 - padW / 2;
+    padTarget = Math.max(-lim, Math.min(lim, padTarget));
+    paddle.position.x += (padTarget - paddle.position.x) * Math.min(1, dt * 18);
+    padMesh.scale.x = padW; padGlow.scale.x = padW * 1.6;
+
+    if (playing) {
+      const SUB = 3, sdt = dt / SUB;
+      for (let s = 0; s < SUB; s++) for (const b of balls) {
+        if (b.stuck) { b.x = paddle.position.x; b.z = ZP - .6; continue; }
+        b.x += b.vx * sdt; b.z += b.vz * sdt;
+        if (b.x < -FW / 2 + .26) { b.x = -FW / 2 + .26; b.vx = Math.abs(b.vx); }
+        if (b.x > FW / 2 - .26) { b.x = FW / 2 - .26; b.vx = -Math.abs(b.vx); }
+        if (b.z < ZTOP + .26) { b.z = ZTOP + .26; b.vz = Math.abs(b.vz); }
+        // paddle
+        if (b.vz > 0 && b.z > ZP - .5 && b.z < ZP + .3 && Math.abs(b.x - paddle.position.x) < padW / 2 + .26) {
+          const off = (b.x - paddle.position.x) / (padW / 2), a = off * 1.05, v = speed();
+          b.vx = Math.sin(a) * v; b.vz = -Math.cos(a) * v; b.z = ZP - .5; shake = Math.max(shake, .05);
+        }
+        // bricks
+        for (const br of bricks) {
+          if (br.hp <= 0) continue;
+          const hx = BW * .46 + .26, hz = BD * .4 + .26, dx = b.x - br.x, dz = b.z - br.z;
+          if (Math.abs(dx) < hx && Math.abs(dz) < hz) {
+            const px = hx - Math.abs(dx), pz = hz - Math.abs(dz);
+            if (px < pz) { b.vx = Math.sign(dx) * Math.abs(b.vx); b.x = br.x + Math.sign(dx) * hx; }
+            else { b.vz = Math.sign(dz) * Math.abs(b.vz); b.z = br.z + Math.sign(dz) * hz; }
+            br.hp--;
+            if (br.hp <= 0) { scene.remove(br.m); shatter(br); score += br.pts; shake = .18; }
+            else { br.m.material.emissiveIntensity = .55; score += 5; }
+            hud(); break;
+          }
+        }
+      }
+      // lost balls
+      for (const b of balls) if (b.z > ZP + 3) { scene.remove(b.m); b.dead = true; }
+      balls = balls.filter(b => !b.dead);
+      if (!balls.length) { lives--; hud(); shake = .4; if (lives <= 0) gameOver(false); else serve(); }
+      bricks = bricks.filter(b => b.hp > 0);
+      if (!bricks.length && state === 'play') { sector++; score += 500; buildSector(sector); serve(); hud(); power(`Sector ${sector}`); }
+      // capsules
+      caps = caps.filter(c => {
+        c.m.position.z += dt * 5; c.m.rotation.x += dt * 4;
+        if (c.m.position.z > ZP - .4 && c.m.position.z < ZP + .5 && Math.abs(c.m.position.x - paddle.position.x) < padW / 2 + .3) {
+          scene.remove(c.m);
+          if (c.kind === 'wide') { wideT = 12; power('Wide paddle'); }
+          else { const src = balls.find(b => !b.stuck) || balls[0]; if (src) { const v = speed(); [-.5, .5].forEach(a => addBall(src.x, src.z, Math.sin(a) * v, -Math.cos(a) * v, false)); } power('Multi-ball'); }
+          score += 50; hud(); return false;
+        }
+        if (c.m.position.z > ZP + 3) { scene.remove(c.m); return false; }
+        return true;
+      });
+    } else {
+      // attract: ball orbits above the paddle
+      for (const b of balls) { b.x = paddle.position.x; b.z = ZP - .6; }
+    }
+    for (const b of balls) { b.m.position.set(b.x, 0, b.z); }
+    bricks.forEach((br, i) => { br.m.position.y = Math.sin(t * 1.5 + br.x * .5 + br.z) * .06; });
+    shards = shards.filter(s => { s.life -= dt; s.vy -= 18 * dt; s.m.position.x += s.vx * dt; s.m.position.y += s.vy * dt; s.m.position.z += s.vz * dt; s.m.material.opacity = Math.max(0, s.life / .8); s.m.rotation.x += dt * 8; if (s.life <= 0) { scene.remove(s.m); return false; } return true; });
+    planet.rotation.y += dt * .05;
+    shake = Math.max(0, shake - dt);
+    const base = camera.position.clone();
+    camera.position.x += (Math.random() - .5) * shake; camera.position.y += (Math.random() - .5) * shake;
+    renderer.render(scene, camera);
+    camera.position.copy(base);
+    requestAnimationFrame(loop);
+  }
+  hud();
+  requestAnimationFrame(loop);
+})();
+</script>

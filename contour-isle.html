@@ -1,0 +1,298 @@
+<title>Contour Isle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400;1,6..72,500&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --ground: #EDEFEA;
+    --sheet: #F7F7F2;
+    --ink: #23303A;
+    --muted: #66727A;
+    --contour: #7A5A3A;
+    --sea: #9EC3D0;
+    --route: #C4432B;
+    --rule: rgba(35, 48, 58, .18);
+    --serif: "Newsreader", "Iowan Old Style", Georgia, serif;
+    --cond: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  }
+  html { background: var(--ground); }
+  body { background: var(--ground); color: var(--ink); font-family: var(--cond); font-size: 15px; line-height: 1.5; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 40px); padding-block: 24px 64px; }
+
+  .sheet { background: var(--sheet); border: 1px solid var(--rule); box-shadow: 0 30px 50px -40px rgba(35, 48, 58, .6); display: grid; grid-template-columns: minmax(0, 1fr) 300px; }
+  .map { position: relative; min-height: clamp(460px, 72vh, 760px); border-right: 1px solid var(--rule); overflow: hidden; }
+  #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+  #gl:active { cursor: grabbing; }
+  #gl:focus-visible { outline: 2px solid var(--route); outline-offset: -2px; }
+  .pin { position: absolute; left: 0; top: 0; pointer-events: none; transform: translate(-50%, -100%); display: grid; justify-items: center; will-change: transform; }
+  .pin b { font: italic 500 15px var(--serif); background: var(--sheet); padding: 1px 7px; border: 1px solid var(--ink); white-space: nowrap; }
+  .pin small { font: 600 11px var(--cond); letter-spacing: .06em; color: var(--muted); background: var(--sheet); padding: 0 5px; }
+  .pin i { width: 1px; height: 26px; background: var(--ink); }
+  .pin i::after { content: ""; display: block; width: 7px; height: 7px; margin: 24px 0 0 -3px; background: var(--route); transform: rotate(45deg); }
+  .compass { position: absolute; left: 16px; bottom: 14px; font: 600 11px var(--cond); letter-spacing: .12em; color: var(--muted); display: flex; align-items: center; gap: 8px; pointer-events: none; }
+  .compass svg { width: 34px; height: 34px; }
+  .hint { position: absolute; right: 16px; top: 14px; font: 500 11px var(--cond); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); pointer-events: none; }
+
+  .side { padding: 22px 22px 20px; display: grid; gap: 20px; align-content: start; }
+  .label { font: 600 11px var(--cond); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  .side h1 { font-family: var(--serif); font-weight: 400; font-style: italic; font-size: 44px; line-height: .95; margin: 6px 0 4px; letter-spacing: -.01em; text-wrap: balance; }
+  .side .coords { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--rule); border-left: 1px solid var(--rule); }
+  .stats div { border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 8px 10px; }
+  .stats b { display: block; font: 400 24px/1.1 var(--serif); font-variant-numeric: tabular-nums; }
+  .legend .bar { height: 12px; margin-top: 8px; border: 1px solid var(--ink); }
+  .legend .ticks { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .ctl { display: grid; gap: 14px; }
+  .ctl label { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .ctl output { font: 600 12px var(--cond); color: var(--ink); letter-spacing: .04em; }
+  input[type=range] { width: 100%; accent-color: var(--route); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chips button, .btn { font: 600 12.5px var(--cond); letter-spacing: .08em; text-transform: uppercase; background: transparent; color: var(--ink); border: 1px solid var(--ink); padding: 6px 11px; cursor: pointer; }
+  .chips button[aria-pressed=true] { background: var(--ink); color: var(--sheet); }
+  .btn.primary { background: var(--route); border-color: var(--route); color: #fff; padding: 10px 14px; }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--route); outline-offset: 2px; }
+  .foot { display: flex; justify-content: space-between; gap: 8px 20px; flex-wrap: wrap; margin-top: 14px; font-size: 12.5px; color: var(--muted); }
+  .fallback { position: absolute; inset: 0; display: grid; place-items: center; font: italic 18px var(--serif); color: var(--muted); }
+  @media (max-width: 880px) { .sheet { grid-template-columns: minmax(0, 1fr); } .map { border-right: 0; border-bottom: 1px solid var(--rule); min-height: 440px; } .hint { display: none; } }
+</style>
+
+<div class="wrap">
+  <div class="sheet">
+    <div class="map">
+      <canvas id="gl" tabindex="0" aria-label="3D relief model of the island. Drag to orbit, scroll to zoom, arrow keys also orbit."></canvas>
+      <div class="pin" id="pin"><b id="pinName">Mt. Arvel</b><small id="pinH">812 m</small><i></i></div>
+      <div class="hint">Drag to orbit · scroll to zoom</div>
+      <div class="compass" aria-hidden="true"><svg viewBox="0 0 34 34" id="needle"><circle cx="17" cy="17" r="15.5" fill="none" stroke="currentColor"/><path d="M17 4 L21 17 L17 15 L13 17 Z" fill="#C4432B"/><path d="M17 30 L21 17 L17 19 L13 17 Z" fill="currentColor"/></svg>N</div>
+    </div>
+
+    <aside class="side">
+      <div>
+        <div class="label">Relief model · Sheet <span id="sheetNo">12</span></div>
+        <h1 id="name">Isle of Vorrin</h1>
+        <div class="coords" id="coords">58°12′N · 6°44′W</div>
+      </div>
+      <div class="stats">
+        <div><span class="label">Summit</span><b id="sSum">—</b></div>
+        <div><span class="label">Land area</span><b id="sArea">—</b></div>
+        <div><span class="label">Deepest</span><b id="sDeep">—</b></div>
+        <div><span class="label">Scale</span><b>1 : 60k</b></div>
+      </div>
+      <div class="legend">
+        <span class="label">Height above sea level</span>
+        <div class="bar" id="bar"></div>
+        <div class="ticks"><span>0</span><span>250</span><span>500</span><span>750</span><span>1000 m</span></div>
+      </div>
+      <div class="ctl">
+        <div><label for="sea"><span class="label">Sea level</span><output id="seaO">0 m</output></label><input type="range" id="sea" min="-150" max="400" value="0" step="5"></div>
+        <div><span class="label">Contour interval</span><div class="chips" id="interval" style="margin-top:6px">
+          <button data-v="20" aria-pressed="false">20 m</button><button data-v="50" aria-pressed="true">50 m</button><button data-v="100" aria-pressed="false">100 m</button>
+        </div></div>
+      </div>
+      <div class="btns">
+        <button class="btn primary" id="new">Survey a new island</button>
+        <button class="btn" id="top" aria-pressed="false">Plan view</button>
+      </div>
+    </aside>
+  </div>
+  <div class="foot"><span>Procedurally generated terrain · heights in metres above the chosen sea level</span><span>Brown contours on land, blue on the seabed · index contour every fifth line</span></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const canvas = $('gl');
+  // legend bar mirrors the shader ramp
+  $('bar').style.background = 'linear-gradient(90deg,#b7c9a0 0%,#d6d8a4 22%,#e6cf98 45%,#cfa274 70%,#a98062 88%,#f3f0e8 100%)';
+  if (!window.THREE) { canvas.insertAdjacentHTML('afterend', '<div class="fallback">The relief model needs WebGL and three.js.</div>'); return; }
+
+  // ── Simplex noise (2D) ──
+  function makeNoise(seed) {
+    const p = new Uint8Array(512), perm = [...Array(256).keys()];
+    let s = seed; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    for (let i = 255; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [perm[i], perm[j]] = [perm[j], perm[i]]; }
+    for (let i = 0; i < 512; i++) p[i] = perm[i & 255];
+    const G = [[1, 1], [-1, 1], [1, -1], [-1, -1], [1, 0], [-1, 0], [0, 1], [0, -1]];
+    const F = .5 * (Math.sqrt(3) - 1), Gk = (3 - Math.sqrt(3)) / 6;
+    return (x, y) => {
+      const s2 = (x + y) * F, i = Math.floor(x + s2), j = Math.floor(y + s2), t = (i + j) * Gk;
+      const x0 = x - (i - t), y0 = y - (j - t), i1 = x0 > y0 ? 1 : 0, j1 = 1 - i1;
+      const x1 = x0 - i1 + Gk, y1 = y0 - j1 + Gk, x2 = x0 - 1 + 2 * Gk, y2 = y0 - 1 + 2 * Gk;
+      const ii = i & 255, jj = j & 255;
+      const c = (gx, gy, g) => { let tt = .5 - gx * gx - gy * gy; if (tt < 0) return 0; tt *= tt; const gg = G[g % 8]; return tt * tt * (gg[0] * gx + gg[1] * gy); };
+      return 70 * (c(x0, y0, p[ii + p[jj]]) + c(x1, y1, p[ii + i1 + p[jj + j1]]) + c(x2, y2, p[ii + 1 + p[jj + 1]]));
+    };
+  }
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(34, 1, .1, 1000);
+
+  const SIZE = 100, SEG = 220, UNIT_M = 60, BASE = -9;
+  const uniforms = { uSea: { value: 0 }, uInterval: { value: 50 }, uLight: { value: new THREE.Vector3(-.5, .8, .35).normalize() } };
+  const terrainMat = new THREE.ShaderMaterial({
+    uniforms,
+    extensions: { derivatives: true },
+    vertexShader: `
+      varying float vH; varying vec3 vN;
+      void main(){ vH = position.y; vN = normal; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    fragmentShader: `
+      uniform float uSea; uniform float uInterval; uniform vec3 uLight;
+      varying float vH; varying vec3 vN;
+      vec3 ramp(float t){
+        vec3 c = mix(vec3(.718,.788,.627), vec3(.839,.847,.643), smoothstep(0.,.22,t));
+        c = mix(c, vec3(.902,.812,.596), smoothstep(.22,.45,t));
+        c = mix(c, vec3(.812,.635,.455), smoothstep(.45,.70,t));
+        c = mix(c, vec3(.663,.502,.384), smoothstep(.70,.88,t));
+        c = mix(c, vec3(.953,.941,.910), smoothstep(.88,1.,t));
+        return c;
+      }
+      void main(){
+        float rel = vH * ${UNIT_M.toFixed(1)} - uSea;
+        vec3 n = normalize(vN);
+        float diff = clamp(dot(n, uLight), 0., 1.);
+        vec3 col;
+        if (rel < 0.) {
+          float d = clamp(-rel / 700., 0., 1.);
+          col = mix(vec3(.80,.89,.91), vec3(.42,.60,.71), d);
+          col *= .88 + .16 * diff;
+        } else {
+          col = ramp(clamp(rel / 1000., 0., 1.));
+          col *= .66 + .44 * diff;
+        }
+        float c = rel / uInterval, fc = fwidth(c);
+        float line = 1. - smoothstep(0., 1., abs(fract(c - .5) - .5) / max(fc, 1e-4));
+        float ci = rel / (uInterval * 5.), fi = fwidth(ci);
+        float idx = 1. - smoothstep(0., 1.8, abs(fract(ci - .5) - .5) / max(fi, 1e-4));
+        vec3 ink = rel < 0. ? vec3(.31,.50,.62) : vec3(.48,.35,.23);
+        col = mix(col, ink, max(line * .5, idx * .85));
+        float coast = 1. - smoothstep(0., 2.2, abs(rel) / max(fwidth(rel), 1e-4));
+        col = mix(col, vec3(.14,.19,.23), coast);
+        gl_FragColor = vec4(col, 1.);
+      }`,
+  });
+  const skirtMat = new THREE.MeshBasicMaterial({ vertexColors: true });
+  const waterMat = new THREE.MeshBasicMaterial({ color: 0x8fb9c9, transparent: true, opacity: .22, depthWrite: false });
+  const baseMat = new THREE.MeshBasicMaterial({ color: 0x5c4a3b });
+
+  const world = new THREE.Group(); scene.add(world);
+  let terrain, skirts, water, heights, summit = new THREE.Vector3(), minH = 0;
+  const water3 = new THREE.Mesh(new THREE.BoxGeometry(SIZE, 1, SIZE), waterMat);
+  water3.renderOrder = 2; world.add(water3);
+
+  const SYL = ['vor', 'rin', 'ska', 'lan', 'mor', 'eil', 'tor', 'bra', 'ness', 'hal', 'dun', 'ard', 'ey', 'quin', 'sol', 'ber'];
+  const cap = s => s[0].toUpperCase() + s.slice(1);
+  let sheet = 12, seed = 4127;
+
+  function generate() {
+    const noise = makeNoise(seed), ridge = makeNoise(seed + 99);
+    let s = seed; const r = () => (s = (s * 48271) % 2147483647) / 2147483647;
+    const ox = r() * .3 - .15, oz = r() * .3 - .15, stretch = .75 + r() * .5;
+    const geo = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG); geo.rotateX(-Math.PI / 2);
+    const p = geo.attributes.position; heights = new Float32Array(p.count);
+    let maxH = -1e9; minH = 1e9;
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), z = p.getZ(i);
+      const nx = x / SIZE, nz = z / SIZE;
+      let e = 0, amp = 1, f = 1.6;
+      for (let o = 0; o < 6; o++) { e += amp * noise(nx * f + 11, nz * f - 7); amp *= .5; f *= 2.05; }
+      const rg = 1 - Math.abs(ridge(nx * 2.4, nz * 2.4));
+      const dx = (nx - ox) * stretch, dz = (nz - oz) / stretch;
+      const d = Math.sqrt(dx * dx + dz * dz) * 2.1;
+      const mask = 1 - Math.min(1, Math.max(0, (d - .25) / .75)) ** 1.4;
+      let h = (e * .55 + .45) * mask;
+      h = h + rg * rg * .35 * mask * mask;
+      h = h * 1.25 - .32;
+      const y = h * 17;
+      p.setY(i, y); heights[i] = y;
+      if (y > maxH) { maxH = y; summit.set(x, y, z); }
+      if (y < minH) minH = y;
+    }
+    geo.computeVertexNormals();
+    if (terrain) { world.remove(terrain); terrain.geometry.dispose(); }
+    terrain = new THREE.Mesh(geo, terrainMat); world.add(terrain);
+
+    // skirts: earth strata from the edge heights down to the base
+    const verts = [], cols = [], n = SEG + 1, half = SIZE / 2;
+    const top = new THREE.Color(0x8c7258), mid = new THREE.Color(0x6e5845), bot = new THREE.Color(0x4a3a2e);
+    const edge = (k, side) => {
+      if (side === 0) return [-half + k * SIZE / SEG, heights[k], -half];
+      if (side === 1) return [half, heights[k * n + SEG], -half + k * SIZE / SEG];
+      if (side === 2) return [half - k * SIZE / SEG, heights[SEG * n + (SEG - k)], half];
+      return [-half, heights[(SEG - k) * n], half - k * SIZE / SEG];
+    };
+    for (let side = 0; side < 4; side++) for (let k = 0; k < SEG; k++) {
+      const a = edge(k, side), b = edge(k + 1, side);
+      const strata = y => (Math.floor((y - BASE) / 1.6) % 2 ? mid : top);
+      verts.push(a[0], a[1], a[2], a[0], BASE, a[2], b[0], b[1], b[2], b[0], b[1], b[2], a[0], BASE, a[2], b[0], BASE, b[2]);
+      [a[1], BASE, b[1], b[1], BASE, BASE].forEach(y => { const c = y === BASE ? bot : strata(y); cols.push(c.r, c.g, c.b); });
+    }
+    const sg = new THREE.BufferGeometry();
+    sg.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+    sg.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+    if (skirts) { world.remove(skirts); skirts.geometry.dispose(); }
+    skirts = new THREE.Mesh(sg, skirtMat); skirts.material.side = THREE.DoubleSide; world.add(skirts);
+
+    const name = cap(SYL[Math.floor(r() * SYL.length)] + SYL[Math.floor(r() * SYL.length)]);
+    const peak = cap(SYL[Math.floor(r() * SYL.length)] + SYL[Math.floor(r() * SYL.length)]);
+    $('name').textContent = (r() < .5 ? 'Isle of ' : '') + name + (r() < .3 ? ' Ey' : '');
+    $('pinName').textContent = (r() < .5 ? 'Ben ' : 'Mt. ') + peak;
+    $('sheetNo').textContent = sheet;
+    $('coords').textContent = `${56 + Math.floor(r() * 5)}°${String(Math.floor(r() * 60)).padStart(2, '0')}′N · ${5 + Math.floor(r() * 4)}°${String(Math.floor(r() * 60)).padStart(2, '0')}′W`;
+    stats();
+  }
+
+  function stats() {
+    const sea = uniforms.uSea.value;
+    let land = 0; for (let i = 0; i < heights.length; i++) if (heights[i] * UNIT_M > sea) land++;
+    const km2 = land / heights.length * 900;
+    $('sSum').textContent = Math.round(summit.y * UNIT_M - sea) + ' m';
+    $('sArea').textContent = km2.toFixed(0) + ' km²';
+    $('sDeep').textContent = '−' + Math.round(sea - minH * UNIT_M) + ' m';
+    $('pinH').textContent = Math.round(summit.y * UNIT_M - sea) + ' m';
+    const wl = sea / UNIT_M;
+    water3.scale.y = Math.max(.01, wl - BASE); water3.position.y = (wl + BASE) / 2;
+  }
+
+  // ── Controls ──
+  const seaIn = $('sea');
+  seaIn.addEventListener('input', () => { uniforms.uSea.value = +seaIn.value; $('seaO').textContent = `${+seaIn.value > 0 ? '+' : ''}${seaIn.value} m`; stats(); });
+  const chips = [...document.querySelectorAll('#interval button')];
+  chips.forEach(b => b.addEventListener('click', () => { uniforms.uInterval.value = +b.dataset.v; chips.forEach(x => x.setAttribute('aria-pressed', String(x === b))); }));
+  $('new').addEventListener('click', () => { sheet++; seed = Math.floor(Math.random() * 1e6) + 1; generate(); });
+
+  // ── Orbit camera ──
+  let theta = -.7, phi = .95, dist = 190, tTheta = theta, tPhi = phi, tDist = dist, drag = false, lx = 0, ly = 0, plan = false;
+  canvas.addEventListener('pointerdown', e => { drag = true; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointermove', e => { if (!drag) return; tTheta -= (e.clientX - lx) * .006; tPhi = Math.min(1.35, Math.max(.05, tPhi - (e.clientY - ly) * .005)); lx = e.clientX; ly = e.clientY; });
+  canvas.addEventListener('pointerup', () => drag = false);
+  canvas.addEventListener('wheel', e => { e.preventDefault(); tDist = Math.min(320, Math.max(90, tDist * (1 + e.deltaY * .001))); }, { passive: false });
+  canvas.addEventListener('keydown', e => { const m = { ArrowLeft: [.12, 0], ArrowRight: [-.12, 0], ArrowUp: [0, -.08], ArrowDown: [0, .08] }[e.key]; if (!m) return; e.preventDefault(); tTheta += m[0]; tPhi = Math.min(1.35, Math.max(.05, tPhi + m[1])); });
+  const topBtn = $('top');
+  topBtn.addEventListener('click', () => { plan = !plan; topBtn.setAttribute('aria-pressed', plan); tPhi = plan ? .02 : .95; if (plan) tTheta = 0; });
+
+  const map = canvas.parentElement, pin = $('pin'), needle = $('needle');
+  function resize() { const w = map.clientWidth, h = map.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); if (w < 600) tDist = Math.max(tDist, 250); }
+  addEventListener('resize', resize); resize();
+
+  const v = new THREE.Vector3();
+  function loop() {
+    theta += (tTheta - theta) * .1; phi += (tPhi - phi) * .1; dist += (tDist - dist) * .1;
+    camera.position.set(Math.sin(theta) * Math.sin(phi) * dist, Math.cos(phi) * dist, Math.cos(theta) * Math.sin(phi) * dist);
+    camera.lookAt(0, -2, 0);
+    renderer.render(scene, camera);
+    v.copy(summit).project(camera);
+    const x = (v.x * .5 + .5) * map.clientWidth, y = (-v.y * .5 + .5) * map.clientHeight;
+    const above = summit.y * UNIT_M > uniforms.uSea.value;
+    pin.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
+    pin.style.opacity = above ? 1 : 0;
+    needle.style.transform = `rotate(${theta * 180 / Math.PI}deg)`;
+    requestAnimationFrame(loop);
+  }
+  generate();
+  requestAnimationFrame(loop);
+})();
+</script>

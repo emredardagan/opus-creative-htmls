@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creative — browser games and small toys</title>
+<meta name="description" content="A collection of small browser games and interactive pieces. Each one is a single HTML file.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --night: #181A3A;
+    --night-deep: #10122B;
+    --ink: #F1EEFF;
+    --dim: #A3A1C8;
+    --sodium: #FFC94A;
+    --glacier: #7FDCEB;
+    --font: "Bricolage Grotesque", system-ui, sans-serif;
+    --gutter: clamp(20px, 4vw, 56px);
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--night-deep); }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    font-optical-sizing: auto;
+    color: var(--ink);
+    background:
+      radial-gradient(80% 60% at 85% -10%, #2E2A6B 0%, transparent 60%),
+      linear-gradient(180deg, var(--night) 0%, var(--night-deep) 100%);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 0 var(--gutter); }
+
+  header { padding: clamp(48px, 9vw, 120px) 0 clamp(40px, 6vw, 72px); }
+  header h1 {
+    margin: 0;
+    font-size: clamp(56px, 11vw, 168px);
+    font-weight: 800;
+    font-stretch: 75%;
+    line-height: .86;
+    letter-spacing: -.02em;
+    max-width: 10ch;
+  }
+  header h1 .count {
+    display: inline-block;
+    color: var(--night-deep);
+    background: var(--sodium);
+    padding: 0 .12em;
+    border-radius: .08em;
+    transform: rotate(-3deg);
+  }
+  .intro {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px 40px;
+    align-items: end;
+    justify-content: space-between;
+    margin-top: 32px;
+  }
+  .intro p { margin: 0; max-width: 46ch; font-size: clamp(17px, 1.6vw, 20px); color: var(--dim); }
+  .random {
+    font: 700 17px var(--font);
+    color: var(--night-deep);
+    background: var(--sodium);
+    border: 0;
+    border-radius: 999px;
+    padding: 14px 26px;
+    cursor: pointer;
+    transition: transform .15s ease;
+  }
+  .random:hover { transform: rotate(-2deg) scale(1.04); }
+  .random:focus-visible, .tile a:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
+
+  section { padding-bottom: clamp(56px, 8vw, 104px); }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-top: 20px;
+    border-top: 2px solid rgba(241, 238, 255, .14);
+  }
+  .section-head h2 { margin: 0; font-size: clamp(28px, 3.4vw, 44px); font-weight: 700; font-stretch: 85%; letter-spacing: -.01em; }
+  .section-head span { color: var(--dim); font-size: 16px; }
+
+  .grid { display: grid; gap: clamp(28px, 3vw, 44px) clamp(20px, 2.4vw, 32px); grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+  .games .grid { grid-template-columns: repeat(6, 1fr); }
+  .games .tile { grid-column: span 2; }
+  .games .tile.featured { grid-column: span 3; }
+  .toys .grid { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+
+  .tile a { display: block; text-decoration: none; border-radius: 10px; }
+  .thumb {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #22244A;
+    outline: 2px solid rgba(241, 238, 255, .08);
+    outline-offset: -2px;
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s ease; }
+  .tile a:hover .thumb img { transform: scale(1.04); }
+  .games .tile a:hover .thumb { outline: 3px solid var(--sodium); outline-offset: 3px; }
+  .toys .tile a:hover .thumb { outline: 3px solid var(--glacier); outline-offset: 3px; }
+
+  .meta { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 14px; }
+  .tile h3 { margin: 0; font-size: 23px; font-weight: 700; font-stretch: 90%; line-height: 1.15; }
+  .tile.featured h3 { font-size: clamp(26px, 2.6vw, 34px); }
+  .kind { flex: none; font-size: 14px; font-weight: 600; color: var(--sodium); }
+  .toys .kind { color: var(--glacier); }
+  .tile p { margin: 6px 0 0; color: var(--dim); font-size: 16px; max-width: 52ch; }
+  .toys .tile h3 { font-size: 20px; }
+  .toys .tile p { font-size: 15px; }
+
+  footer { padding: 0 0 48px; color: var(--dim); font-size: 14px; }
+
+  @media (max-width: 980px) {
+    .games .grid { grid-template-columns: repeat(2, 1fr); }
+    .games .tile, .games .tile.featured { grid-column: span 1; }
+  }
+  @media (max-width: 620px) {
+    .games .grid { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .thumb img, .random { transition: none; }
+    .tile a:hover .thumb img, .random:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1><span class="count" id="game-count">14</span> small games to play</h1>
+    <div class="intro">
+      <p>Browser games and a few interactive toys. Each one is a single HTML file that runs right here, with no install and no sign-up.</p>
+      <button class="random" id="random" type="button">Play a random game</button>
+    </div>
+  </header>
+
+  <section class="games" aria-labelledby="games-title">
+    <div class="section-head"><h2 id="games-title">Games</h2><span id="games-total"></span></div>
+    <div class="grid" id="games-grid"></div>
+  </section>
+
+  <section class="toys" aria-labelledby="toys-title">
+    <div class="section-head"><h2 id="toys-title">Toys and experiments</h2><span id="toys-total"></span></div>
+    <div class="grid" id="toys-grid"></div>
+  </section>
+
+  <footer>Best on a desktop with a keyboard. Most games also work with touch.</footer>
+</div>
+
+<script>
+  const games = [
+    { file: "sunchaser", title: "Sunchaser", kind: "Racing", featured: true,
+      text: "Drive west toward the last sunset. Rebuild your scrap car, drift for nitro, and ram a boss at the end of every tenth road." },
+    { file: "mixtape-commando", title: "Mixtape Commando", kind: "Run and gun", featured: true,
+      text: "A pixel run-and-gun set to a synth mixtape. Fire on the beat to turn your shots gold." },
+    { file: "nordlys-line", title: "Nordlys Line", kind: "Train sim",
+      text: "Drive a little steam train around a winter fjord through fog, snow and the northern lights. Stop cleanly to earn postcards." },
+    { file: "shellburg", title: "Shellburg", kind: "Town builder",
+      text: "Build a town on the back of a giant sea turtle and keep her happy on the long swim to the Great Reef." },
+    { file: "little-orbit-post", title: "Little Orbit Post", kind: "3D adventure",
+      text: "Walk around a tiny planet delivering twelve parcels, with Biscuit the dog tagging along." },
+    { file: "afterimage", title: "Afterimage", kind: "Puzzle",
+      text: "Every room gives you ten seconds. Each past loop comes back as an echo that can hold doors open for you." },
+    { file: "umbra", title: "Umbra", kind: "Puzzle",
+      text: "Turn a scattered cloud of wooden blocks until its shadow on the wall becomes something you recognise." },
+    { file: "echo", title: "Echo", kind: "Action",
+      text: "Fly a bat through a pitch-black cave. Your sonar lights up the rock for only a heartbeat." },
+    { file: "tiny-crypt", title: "Tiny Crypt", kind: "Roguelike",
+      text: "A turn-based dungeon crawl. Find the key, unseal the stairs and go deeper." },
+    { file: "tilt-temple", title: "Tilt Temple", kind: "Physics",
+      text: "Tilt the floor to roll a golden sphere through three carved chambers without falling into a pit." },
+    { file: "periapsis", title: "Periapsis", kind: "Gravity golf",
+      text: "Slingshot a probe around planets and land it in the capture ring in as few shots as you can." },
+    { file: "brick-orbit", title: "Brick Orbit", kind: "Arcade",
+      text: "A neon brick breaker. Catch capsules for a wider paddle or extra balls." },
+    { file: "lantern-drift", title: "Lantern Drift", kind: "Arcade",
+      text: "Steer a floating flame down a night river, dodging rocks and gathering lotus lanterns." },
+    { file: "skyline-stack", title: "Skyline Stack", kind: "Arcade",
+      text: "Drop each floor on the one below. Anything hanging over the edge gets sliced off." },
+  ];
+
+  const toys = [
+    { file: "split-flap", title: "Halvøy Departures", kind: "Display",
+      text: "A clacking split-flap departures board. Type a passenger notice and watch it flip into place." },
+    { file: "murmuration", title: "Murmuration", kind: "Simulation",
+      text: "Thousands of starlings flocking at dusk. Move your pointer through them to play the falcon." },
+    { file: "rhythm-unit", title: "RU-16 Rhythm Unit", kind: "Music",
+      text: "A 16-step drum machine with five voices built from oscillators and noise." },
+    { file: "mineral-drawer", title: "The Mineral Drawer", kind: "3D",
+      text: "Turn crystal specimens in your hand, then switch on the UV lamp to see them glow." },
+    { file: "contour-isle", title: "Contour Isle", kind: "Map",
+      text: "A generated island as a relief model. Raise the sea level and change the contour lines." },
+    { file: "cyanotype-bench", title: "Cyanotype Bench", kind: "Craft",
+      text: "Lay plants on paper, expose it to sunlight and rinse it into a Prussian blue print." },
+    { file: "riso-specimen", title: "Two Drums Specimen", kind: "Type",
+      text: "A variable font printed twice as a two-colour risograph. Drag the faders to change it." },
+    { file: "seventy-two-seasons", title: "Seventy-Two Seasons", kind: "Calendar",
+      text: "Japan's old calendar of 72 five-day seasons, showing which one today falls in." },
+    { file: "tide-almanac", title: "Ebb & Flood Almanac", kind: "Data",
+      text: "This week's tides for Brest, with water heights and the Breton tide coefficient." },
+  ];
+
+  function tile(item) {
+    const el = document.createElement("article");
+    el.className = "tile" + (item.featured ? " featured" : "");
+    const a = document.createElement("a");
+    a.href = `${item.file}.html`;
+
+    const thumb = document.createElement("div");
+    thumb.className = "thumb";
+    const img = document.createElement("img");
+    img.src = `thumbs/${item.file}.jpg`;
+    img.alt = "";
+    img.loading = "lazy";
+    img.width = 800;
+    img.height = 500;
+    thumb.append(img);
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const h3 = document.createElement("h3");
+    h3.textContent = item.title;
+    const kind = document.createElement("span");
+    kind.className = "kind";
+    kind.textContent = item.kind;
+    meta.append(h3, kind);
+
+    const p = document.createElement("p");
+    p.textContent = item.text;
+
+    a.append(thumb, meta, p);
+    el.append(a);
+    return el;
+  }
+
+  document.getElementById("games-grid").append(...games.map(tile));
+  document.getElementById("toys-grid").append(...toys.map(tile));
+  document.getElementById("game-count").textContent = games.length;
+  document.getElementById("games-total").textContent = `${games.length} to play`;
+  document.getElementById("toys-total").textContent = `${toys.length} to poke at`;
+
+  document.getElementById("random").addEventListener("click", () => {
+    const pick = games[Math.floor(Math.random() * games.length)];
+    location.href = `${pick.file}.html`;
+  });
+</script>
+</body>
+</html>

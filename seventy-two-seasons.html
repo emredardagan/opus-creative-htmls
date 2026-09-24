@@ -1,0 +1,284 @@
+<title>Seventy-Two Seasons</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --ground: #F4F4F0;
+    --paper: #FBFBF8;
+    --ink: #1F1E1C;
+    --muted: #6E6A62;
+    --rule: rgba(31, 30, 28, .14);
+    --spring: #C2456A;
+    --summer: #00805F;
+    --autumn: #BF5423;
+    --winter: #1A5E86;
+    --acc: var(--autumn);
+    --mincho: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+    --gothic: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground: #141311; --paper: #1C1B18; --ink: #ECE8E0; --muted: #9D978C; --rule: rgba(236, 232, 224, .14);
+      --spring: #EC8CA6; --summer: #45C39E; --autumn: #EE8D57; --winter: #74AEDA;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #141311; --paper: #1C1B18; --ink: #ECE8E0; --muted: #9D978C; --rule: rgba(236, 232, 224, .14);
+    --spring: #EC8CA6; --summer: #45C39E; --autumn: #EE8D57; --winter: #74AEDA;
+  }
+  .page[data-season="spring"] { --acc: var(--spring); }
+  .page[data-season="summer"] { --acc: var(--summer); }
+  .page[data-season="autumn"] { --acc: var(--autumn); }
+  .page[data-season="winter"] { --acc: var(--winter); }
+
+  html { background: var(--ground); }
+  body { background: var(--ground); color: var(--ink); font-family: var(--gothic); font-size: 15px; line-height: 1.7; }
+  .page { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 48px); padding-block: 28px 80px; transition: color .4s; }
+  .label { font-size: 11px; font-weight: 500; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+
+  .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 20px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px solid var(--rule); }
+  .top .mark { font-family: var(--mincho); font-size: 20px; font-weight: 700; letter-spacing: .12em; }
+  .top .mark span { font-family: var(--gothic); font-weight: 400; font-size: 13px; letter-spacing: .04em; color: var(--muted); margin-left: 10px; }
+
+  .hero { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 440px); gap: 32px clamp(24px, 4vw, 56px); align-items: center; padding-block: clamp(32px, 5vw, 64px); }
+  .tate { writing-mode: vertical-rl; font-family: var(--mincho); font-weight: 800; font-size: clamp(64px, 10vw, 138px); line-height: 1.05; letter-spacing: .06em; color: var(--ink); position: relative; padding-right: .1em; }
+  .tate .seal { position: absolute; left: -.55em; bottom: 0; writing-mode: horizontal-tb; width: 1.9em; height: 1.9em; font-size: 18px; display: grid; place-items: center; border-radius: 4px; background: var(--acc); color: var(--paper); font-weight: 700; letter-spacing: 0; line-height: 1.05; text-align: center; transform: rotate(-3deg); }
+  .info .no { font-family: var(--mincho); font-size: 15px; color: var(--acc); font-weight: 700; letter-spacing: .08em; }
+  .info h1 { font-family: var(--mincho); font-weight: 500; font-size: clamp(34px, 4.6vw, 58px); line-height: 1.12; margin: 8px 0 10px; text-wrap: balance; }
+  .info .romaji { font-size: 16px; color: var(--muted); letter-spacing: .02em; }
+  .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 24px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--rule); }
+  .facts b { display: block; font-family: var(--mincho); font-size: 20px; font-weight: 500; line-height: 1.35; margin-top: 2px; }
+  .dayline { display: flex; gap: 4px; margin-top: 8px; }
+  .dayline i { flex: 1; height: 4px; border-radius: 2px; background: var(--rule); }
+  .dayline i.on { background: var(--acc); }
+  .nav { display: flex; gap: 8px; margin-top: 26px; flex-wrap: wrap; }
+  .nav button { font: 500 13px var(--gothic); letter-spacing: .06em; color: var(--ink); background: transparent; border: 1px solid var(--rule); border-radius: 99px; padding: 8px 16px; cursor: pointer; transition: border-color .2s, color .2s; }
+  .nav button:hover { border-color: var(--acc); color: var(--acc); }
+  button:focus-visible, .k:focus-visible, .seg:focus-visible { outline: 2px solid var(--acc); outline-offset: 3px; }
+
+  .wheel { width: 100%; max-width: 440px; aspect-ratio: 1; justify-self: end; }
+  .wheel svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .seg { cursor: pointer; transition: opacity .2s; }
+  .seg:hover { opacity: .7; }
+  .wheel text { font-family: var(--mincho); fill: var(--ink); }
+
+  h2 { font-family: var(--mincho); font-weight: 500; font-size: clamp(26px, 3vw, 36px); margin: 0 0 22px; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .almanac { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 36px 32px; }
+  .season h3 { display: flex; align-items: baseline; gap: 10px; margin: 0 0 10px; padding-bottom: 8px; border-bottom: 2px solid var(--c); font-family: var(--mincho); font-size: 28px; font-weight: 700; color: var(--c); }
+  .season h3 small { font: 500 11px var(--gothic); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+  .sekki { margin-top: 14px; }
+  .sekki .sk { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+  .sekki .sk b { font-family: var(--mincho); font-size: 15px; color: var(--ink); font-weight: 700; letter-spacing: .1em; }
+  .k { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 2.2em auto minmax(0, 1fr); gap: 10px; align-items: baseline; width: 100%; padding: 5px 8px; margin-inline: -8px; border-radius: 4px; cursor: pointer; font-size: 13px; line-height: 1.45; }
+  .k:hover { background: var(--paper); }
+  .k .n { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 11px; }
+  .k .j { font-family: var(--mincho); font-size: 15px; letter-spacing: .06em; white-space: nowrap; }
+  .k .e { color: var(--muted); }
+  .k.on { background: var(--paper); box-shadow: inset 2px 0 0 var(--c); }
+  .k.on .e, .k.on .n { color: var(--ink); }
+  .k.today .n::after { content: "●"; color: var(--c); margin-left: 3px; font-size: 8px; vertical-align: 2px; }
+  section.all { margin-top: 20px; padding-top: 36px; border-top: 1px solid var(--rule); }
+  footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--rule); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+  @media (max-width: 960px) {
+    .hero { grid-template-columns: auto minmax(0, 1fr); }
+    .wheel { grid-column: 1 / -1; justify-self: center; }
+  }
+  @media (max-width: 520px) {
+    .tate { font-size: 58px; }
+    .facts { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+
+<div class="page" id="page" data-season="autumn">
+  <header class="top">
+    <div class="mark">七十二候<span>Seventy-Two Seasons</span></div>
+    <div class="label" id="today">—</div>
+  </header>
+
+  <section class="hero">
+    <div class="tate" id="kanji" lang="ja">雷乃収声<span class="seal" id="seal">秋</span></div>
+    <div class="info">
+      <div class="no" id="no">—</div>
+      <h1 id="en">—</h1>
+      <div class="romaji" id="ro" lang="ja-Latn">—</div>
+      <div class="facts">
+        <div><span class="label">Dates</span><b id="dates">—</b></div>
+        <div><span class="label">Solar term</span><b id="sekki">—</b></div>
+        <div style="grid-column:1/-1"><span class="label" id="daylabel">Day</span><div class="dayline" id="dayline"></div></div>
+      </div>
+      <div class="nav">
+        <button id="prev" aria-label="Previous season">← Previous</button>
+        <button id="now">Today</button>
+        <button id="next" aria-label="Next season">Next →</button>
+      </div>
+    </div>
+    <div class="wheel" aria-label="Wheel of the 72 seasons"><svg id="wheel" viewBox="-230 -230 460 460" role="group"></svg></div>
+  </section>
+
+  <section class="all">
+    <h2>The whole year <span class="label">24 solar terms · 72 kō · about five days each</span></h2>
+    <div class="almanac" id="almanac"></div>
+  </section>
+
+  <footer>
+    <span class="label">Kō names follow the 1874 Ryakuhon-reki almanac</span>
+    <span class="label">Dates approximate · they shift by a day from year to year</span>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const KO = [
+    ['東風解凍','Harukaze kōri o toku','East wind melts the ice',2,4],['黄鶯睍睆','Kōō kenkan su','Bush warblers start singing in the mountains',2,9],['魚上氷','Uo kōri o izuru','Fish emerge from the ice',2,14],
+    ['土脉潤起','Tsuchi no shō uruoi okoru','Rain moistens the soil',2,19],['霞始靆','Kasumi hajimete tanabiku','Mist starts to linger',2,24],['草木萌動','Sōmoku mebae izuru','Grass sprouts, trees bud',3,1],
+    ['蟄虫啓戸','Sugomori mushito o hiraku','Hibernating insects surface',3,6],['桃始笑','Momo hajimete saku','First peach blossoms',3,11],['菜虫化蝶','Namushi chō to naru','Caterpillars become butterflies',3,16],
+    ['雀始巣','Suzume hajimete sukū','Sparrows start to nest',3,21],['櫻始開','Sakura hajimete saku','First cherry blossoms',3,26],['雷乃発声','Kaminari sunawachi koe o hassu','Distant thunder',3,31],
+    ['玄鳥至','Tsubame kitaru','Swallows return',4,5],['鴻雁北','Kōgan kaeru','Wild geese fly north',4,10],['虹始見','Niji hajimete arawaru','First rainbows',4,15],
+    ['葭始生','Ashi hajimete shōzu','First reeds sprout',4,20],['霜止出苗','Shimo yamite nae izuru','Last frost, rice seedlings grow',4,25],['牡丹華','Botan hana saku','Peonies bloom',4,30],
+    ['蛙始鳴','Kawazu hajimete naku','Frogs start singing',5,5],['蚯蚓出','Mimizu izuru','Worms surface',5,10],['竹笋生','Takenoko shōzu','Bamboo shoots sprout',5,15],
+    ['蚕起食桑','Kaiko okite kuwa o hamu','Silkworms start feasting on mulberry leaves',5,21],['紅花栄','Benibana sakau','Safflowers bloom',5,26],['麦秋至','Mugi no toki itaru','Wheat ripens and is harvested',5,31],
+    ['蟷螂生','Kamakiri shōzu','Praying mantises hatch',6,6],['腐草為螢','Kusaretaru kusa hotaru to naru','Rotten grass becomes fireflies',6,11],['梅子黄','Ume no mi kibamu','Plums turn yellow',6,16],
+    ['乃東枯','Natsukarekusa karuru','Self-heal withers',6,21],['菖蒲華','Ayame hana saku','Irises bloom',6,27],['半夏生','Hange shōzu','Crow-dipper sprouts',7,2],
+    ['温風至','Atsukaze itaru','Warm winds blow',7,7],['蓮始開','Hasu hajimete hiraku','First lotus blossoms',7,12],['鷹乃学習','Taka sunawachi waza o narau','Hawks learn to fly',7,17],
+    ['桐始結花','Kiri hajimete hana o musubu','Paulownia trees produce seeds',7,23],['土潤溽暑','Tsuchi uruōte mushi atsushi','Earth is damp, air is humid',7,29],['大雨時行','Taiu tokidoki furu','Great rains sometimes fall',8,3],
+    ['涼風至','Suzukaze itaru','Cool winds blow',8,8],['寒蝉鳴','Higurashi naku','Evening cicadas sing',8,13],['蒙霧升降','Fukaki kiri matō','Thick fog descends',8,18],
+    ['綿柎開','Wata no hana shibe hiraku','Cotton flowers bloom',8,23],['天地始粛','Tenchi hajimete samushi','Heat starts to die down',8,28],['禾乃登','Kokumono sunawachi minoru','Rice ripens',9,2],
+    ['草露白','Kusa no tsuyu shiroshi','Dew glistens white on grass',9,8],['鶺鴒鳴','Sekirei naku','Wagtails sing',9,13],['玄鳥去','Tsubame saru','Swallows leave',9,18],
+    ['雷乃収声','Kaminari sunawachi koe o osamu','Thunder ceases',9,23],['蟄虫坏戸','Mushi kakurete to o fusagu','Insects hole up underground',9,28],['水始涸','Mizu hajimete karuru','Farmers drain the fields',10,3],
+    ['鴻雁来','Kōgan kitaru','Wild geese return',10,8],['菊花開','Kiku no hana hiraku','Chrysanthemums bloom',10,13],['蟋蟀在戸','Kirigirisu to ni ari','Crickets chirp around the door',10,18],
+    ['霜始降','Shimo hajimete furu','First frost',10,23],['霎時施','Kosame tokidoki furu','Light rains sometimes fall',10,28],['楓蔦黄','Momiji tsuta kibamu','Maple leaves and ivy turn yellow',11,2],
+    ['山茶始開','Tsubaki hajimete hiraku','Camellias bloom',11,7],['地始凍','Chi hajimete kōru','Land starts to freeze',11,12],['金盞香','Kinsenka saku','Daffodils bloom',11,17],
+    ['虹蔵不見','Niji kakurete miezu','Rainbows hide',11,22],['朔風払葉','Kitakaze konoha o harau','North wind blows the leaves from the trees',11,27],['橘始黄','Tachibana hajimete kibamu','Tachibana citrus leaves turn yellow',12,2],
+    ['閉塞成冬','Sora samuku fuyu to naru','Cold sets in, winter begins',12,7],['熊蟄穴','Kuma ana ni komoru','Bears start hibernating',12,12],['鱖魚群','Sake no uo muragaru','Salmon gather and swim upstream',12,17],
+    ['乃東生','Natsukarekusa shōzu','Self-heal sprouts',12,22],['麋角解','Sawashika no tsuno otsuru','Deer shed their antlers',12,27],['雪下出麦','Yuki watarite mugi nobiru','Wheat sprouts under snow',1,1],
+    ['芹乃栄','Seri sunawachi sakau','Parsley flourishes',1,5],['水泉動','Shimizu atataka o fukumu','Springs thaw',1,10],['雉始雊','Kiji hajimete naku','Pheasants start to call',1,15],
+    ['款冬華','Fuki no hana saku','Butterburs bud',1,20],['水沢腹堅','Sawamizu kōri tsumeru','Ice thickens on streams',1,25],['鶏始乳','Niwatori hajimete toya ni tsuku','Hens start laying eggs',1,30],
+  ];
+  const SEKKI = [
+    ['立春','Risshun','Beginning of spring'],['雨水','Usui','Rainwater'],['啓蟄','Keichitsu','Insects awaken'],['春分','Shunbun','Spring equinox'],['清明','Seimei','Pure and clear'],['穀雨','Kokuu','Grain rain'],
+    ['立夏','Rikka','Beginning of summer'],['小満','Shōman','Lesser ripening'],['芒種','Bōshu','Grain beards and seeds'],['夏至','Geshi','Summer solstice'],['小暑','Shōsho','Lesser heat'],['大暑','Taisho','Greater heat'],
+    ['立秋','Risshū','Beginning of autumn'],['処暑','Shosho','Manageable heat'],['白露','Hakuro','White dew'],['秋分','Shūbun','Autumn equinox'],['寒露','Kanro','Cold dew'],['霜降','Sōkō','Frost falls'],
+    ['立冬','Rittō','Beginning of winter'],['小雪','Shōsetsu','Lesser snow'],['大雪','Taisetsu','Greater snow'],['冬至','Tōji','Winter solstice'],['小寒','Shōkan','Lesser cold'],['大寒','Daikan','Greater cold'],
+  ];
+  const SEASONS = [['spring','春','Spring'],['summer','夏','Summer'],['autumn','秋','Autumn'],['winter','冬','Winter']];
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const CUM = [0,31,59,90,120,151,181,212,243,273,304,334];
+  const ord = (m, d) => CUM[m - 1] + d;
+  const fmt = (m, d) => `${MON[m - 1]} ${d}`;
+  const $ = s => document.getElementById(s);
+
+  const now = new Date();
+  const todayOrd = ord(now.getMonth() + 1, Math.min(now.getDate(), now.getMonth() === 1 ? 28 : 31));
+  function koFor(o) {
+    let best = -1, bestO = -1;
+    KO.forEach((k, i) => { const ko = ord(k[3], k[4]); if (ko <= o && ko > bestO) { bestO = ko; best = i; } });
+    return best;
+  }
+  const TODAY = koFor(todayOrd);
+  function span(i) {
+    const k = KO[i], n = KO[(i + 1) % 72];
+    const s = ord(k[3], k[4]); let e = ord(n[3], n[4]) - 1; if (e < s) e += 365;
+    const endOrd = ((e - 1) % 365) + 1;
+    const m = CUM.findLastIndex(c => c < endOrd);
+    return { start: s, len: e - s + 1, end: [m + 1, endOrd - CUM[m]] };
+  }
+
+  const page = $('page');
+  let sel = TODAY;
+  $('today').textContent = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  // ── Wheel ──
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = $('wheel');
+  const el = (tag, attrs, parent = svg) => { const e = document.createElementNS(NS, tag); for (const a in attrs) { const v = String(attrs[a]); (a === 'fill' || a === 'stroke') && v.startsWith('var(') ? e.style[a] = v : e.setAttribute(a, v); } parent.appendChild(e); return e; };
+  const pol = (r, a) => [r * Math.cos(a), r * Math.sin(a)];
+  function arc(r1, r2, a1, a2) {
+    const [x1, y1] = pol(r2, a1), [x2, y2] = pol(r2, a2), [x3, y3] = pol(r1, a2), [x4, y4] = pol(r1, a1);
+    const big = a2 - a1 > Math.PI ? 1 : 0;
+    return `M${x1} ${y1}A${r2} ${r2} 0 ${big} 1 ${x2} ${y2}L${x3} ${y3}A${r1} ${r1} 0 ${big} 0 ${x4} ${y4}Z`;
+  }
+  const A0 = -Math.PI / 2, STEP = Math.PI * 2 / 72;
+  const colorVar = i => `var(--${SEASONS[Math.floor(i / 18)][0]})`;
+  const segs = KO.map((k, i) => {
+    const p = el('path', { d: arc(168, 212, A0 + i * STEP + .004, A0 + (i + 1) * STEP - .004), class: 'seg', fill: colorVar(i), tabindex: '-1', role: 'button', 'aria-label': `${i + 1}. ${k[2]}` });
+    p.addEventListener('click', () => select(i));
+    return p;
+  });
+  SEKKI.forEach((s, j) => {
+    const a1 = A0 + j * STEP * 3, a2 = a1 + STEP * 3;
+    el('path', { d: arc(118, 162, a1 + .006, a2 - .006), fill: colorVar(j * 3), opacity: .14 });
+    const [x, y] = pol(140, (a1 + a2) / 2);
+    const t = el('text', { x, y: y + 4.5, 'text-anchor': 'middle', 'font-size': 12.5, 'font-weight': 700 }); t.textContent = s[0];
+  });
+  SEASONS.forEach((s, q) => {
+    const a1 = A0 + q * Math.PI / 2, a2 = a1 + Math.PI / 2;
+    el('path', { d: arc(70, 112, a1 + .01, a2 - .01), fill: `var(--${s[0]})`, opacity: .9 });
+    const [x, y] = pol(91, (a1 + a2) / 2);
+    const t = el('text', { x, y: y + 7, 'text-anchor': 'middle', 'font-size': 20, 'font-weight': 800 }); t.textContent = s[1]; t.style.fill = 'var(--paper)';
+  });
+  const hand = el('g', {});
+  el('line', { x1: 0, y1: 0, x2: 0, y2: -224, stroke: 'var(--ink)', 'stroke-width': 1.2 }, hand);
+  el('circle', { cx: 0, cy: -224, r: 4, fill: 'var(--ink)' }, hand);
+  el('circle', { cx: 0, cy: 0, r: 5, fill: 'var(--ink)' });
+  const centre = el('text', { x: 0, y: 44, 'text-anchor': 'middle', 'font-size': 11 }); centre.style.fill = 'var(--muted)';
+  // today's exact position, measured in days since Risshun
+  const rissOrd = ord(2, 4);
+  const yearFrac = (((todayOrd - rissOrd) % 365) + 365) % 365 / 365;
+  hand.setAttribute('transform', `rotate(${yearFrac * 360})`);
+  el('text', { x: 0, y: -18, 'text-anchor': 'middle', 'font-size': 10, 'letter-spacing': 2 }).textContent = 'TODAY';
+
+  // ── Almanac list ──
+  const alm = $('almanac');
+  const rows = [];
+  SEASONS.forEach((s, q) => {
+    const col = document.createElement('div'); col.className = 'season'; col.style.setProperty('--c', `var(--${s[0]})`);
+    col.innerHTML = `<h3 lang="ja">${s[1]}<small>${s[2]}</small></h3>`;
+    for (let j = q * 6; j < q * 6 + 6; j++) {
+      const sk = document.createElement('div'); sk.className = 'sekki';
+      sk.innerHTML = `<div class="sk"><b lang="ja">${SEKKI[j][0]}</b><span>${SEKKI[j][1]} · ${SEKKI[j][2]}</span></div>`;
+      for (let i = j * 3; i < j * 3 + 3; i++) {
+        const b = document.createElement('button'); b.className = 'k' + (i === TODAY ? ' today' : '');
+        b.innerHTML = `<span class="n">${String(i + 1).padStart(2, '0')}</span><span class="j" lang="ja">${KO[i][0]}</span><span class="e">${KO[i][2]}</span>`;
+        b.addEventListener('click', () => { select(i); scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); });
+        sk.appendChild(b); rows.push(b);
+      }
+      col.appendChild(sk);
+    }
+    alm.appendChild(col);
+  });
+
+  function select(i) {
+    sel = (i + 72) % 72;
+    const k = KO[sel], s = SEKKI[Math.floor(sel / 3)], season = SEASONS[Math.floor(sel / 18)], sp = span(sel);
+    page.dataset.season = season[0];
+    $('kanji').firstChild.nodeValue = k[0];
+    $('seal').textContent = season[1];
+    $('no').textContent = `第${sel + 1}候 · Kō ${sel + 1} of 72`;
+    $('en').textContent = k[2];
+    $('ro').textContent = k[1];
+    $('dates').textContent = `${fmt(k[3], k[4])} – ${fmt(sp.end[0], sp.end[1])}`;
+    $('sekki').innerHTML = `<span lang="ja">${s[0]}</span> ${s[1]} · ${s[2]}`;
+    let dayIn = -1;
+    if (sel === TODAY) dayIn = ((todayOrd - sp.start) % 365 + 365) % 365;
+    $('daylabel').textContent = dayIn >= 0 ? `Today is day ${dayIn + 1} of ${sp.len}` : `${sp.len} days`;
+    $('dayline').innerHTML = Array.from({ length: sp.len }, (_, d) => `<i class="${d <= dayIn ? 'on' : ''}"></i>`).join('');
+    segs.forEach((p, j) => { p.setAttribute('opacity', j === sel ? 1 : .32); p.style.stroke = j === sel ? 'var(--ink)' : 'none'; });
+    centre.textContent = `${sel + 1} / 72`;
+    rows.forEach((r, j) => r.classList.toggle('on', j === sel));
+    document.title = 'Seventy-Two Seasons';
+  }
+  $('prev').addEventListener('click', () => select(sel - 1));
+  $('next').addEventListener('click', () => select(sel + 1));
+  $('now').addEventListener('click', () => select(TODAY));
+  addEventListener('keydown', e => {
+    if (e.target.closest('input, textarea')) return;
+    if (e.key === 'ArrowLeft') select(sel - 1);
+    if (e.key === 'ArrowRight') select(sel + 1);
+  });
+  select(TODAY);
+})();
+</script>

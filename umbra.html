@@ -1,0 +1,340 @@
+<title>Umbra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Karla:wght@400;500;600&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --room: #120E0B;
+    --plaster: #D9C9AE;
+    --lamp: #FFD9A0;
+    --ink: #F3E7D3;
+    --dim: #A38F76;
+    --brass: #C79A55;
+    --display: "DM Serif Display", "Bodoni 72", Georgia, serif;
+    --sans: "Karla", system-ui, sans-serif;
+  }
+  html, body { height: 100%; }
+  html, body { background: var(--room); }
+  body { color: var(--ink); font-family: var(--sans); font-size: 15px; overflow: hidden; }
+  .game { position: relative; height: 100%; min-height: 520px; }
+  #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+  #gl:active { cursor: grabbing; }
+  .hud { position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; padding: calc(env(safe-area-inset-top, 0px) + 18px) clamp(16px, 3vw, 34px) 0; pointer-events: none; }
+  .riddle small { display: block; font-size: 11px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: var(--brass); margin-bottom: 6px; }
+  .riddle q { display: block; font: italic 400 clamp(22px, 3.2vw, 34px)/1.15 var(--display); max-width: 20ch; quotes: "“" "”"; }
+  .meter { text-align: right; }
+  .meter small { font-size: 11px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: var(--dim); }
+  .meter b { display: block; font: 400 clamp(34px, 5vw, 54px)/1 var(--display); font-variant-numeric: tabular-nums; }
+  .bar { width: 160px; max-width: 40vw; height: 3px; background: rgba(243, 231, 211, .15); margin: 8px 0 0 auto; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--lamp); box-shadow: 0 0 12px var(--lamp); transition: width .15s; }
+  .tools { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; padding-inline: 16px; }
+  .tools button { font: 600 13px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--ink); background: rgba(18, 14, 11, .6); border: 1px solid rgba(243, 231, 211, .25); padding: 10px 16px; border-radius: 99px; cursor: pointer; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  .tools button:hover { border-color: var(--lamp); }
+  .tools button:focus-visible, .btn:focus-visible { outline: 2px solid var(--lamp); outline-offset: 3px; }
+  .sketch { position: absolute; right: clamp(16px, 3vw, 34px); top: 130px; width: 120px; padding: 10px; background: #EFE3CB; color: #3A2C1E; transform: rotate(3deg); box-shadow: 0 14px 30px -12px #000; transition: opacity .3s; font-size: 11px; text-align: center; letter-spacing: .1em; text-transform: uppercase; pointer-events: none; }
+  .sketch[hidden] { display: none !important; }
+  .sketch canvas { width: 100%; height: auto; display: block; image-rendering: pixelated; margin-bottom: 6px; }
+  .level { position: absolute; left: clamp(16px, 3vw, 34px); bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); pointer-events: none; }
+  .overlay { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 20px 16px; background: radial-gradient(ellipse at center, rgba(18, 14, 11, .35), rgba(18, 14, 11, .9)); }
+  .overlay[hidden] { display: none !important; }
+  .overlay { grid-template-columns: minmax(0, 1fr); }
+  .overlay > div { width: min(100%, 680px); justify-self: center; }
+  .overlay .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .26em; text-transform: uppercase; color: var(--brass); }
+  .overlay h1 { font: 400 clamp(72px, 14vw, 170px)/.85 var(--display); margin: 14px 0 18px; letter-spacing: -.02em; }
+  .overlay h1 em { color: var(--lamp); }
+  .overlay h2 { font: italic 400 clamp(44px, 8vw, 88px)/.95 var(--display); margin: 10px 0 12px; color: var(--lamp); text-shadow: 0 0 40px rgba(255, 217, 160, .35); }
+  .overlay p { max-width: 44ch; margin: 0 auto 24px; color: #D9CBB3; line-height: 1.6; }
+  .btn { font: 600 14px var(--sans); letter-spacing: .16em; text-transform: uppercase; color: #22170C; background: var(--lamp); border: 0; padding: 14px 30px; border-radius: 99px; cursor: pointer; box-shadow: 0 0 40px rgba(255, 217, 160, .35); }
+  .fallback { position: absolute; inset: 0; display: grid; place-items: center; }
+  @media (max-width: 600px) { .sketch { top: auto; bottom: 90px; width: 96px; } .level { display: none; } }
+</style>
+
+<div class="game" id="game">
+  <canvas id="gl" aria-label="Umbra. Drag to turn the sculpture; its shadow falls on the wall."></canvas>
+  <div class="hud">
+    <div class="riddle"><small id="lvl">Plate I</small><q id="riddle">It opens what is locked.</q></div>
+    <div class="meter" aria-live="polite"><small>Likeness</small><b id="pct">0%</b><div class="bar"><i id="barFill"></i></div></div>
+  </div>
+  <div class="sketch" id="sketch" hidden><canvas id="sketchCv" width="72" height="72"></canvas>The lampmaker’s sketch</div>
+  <div class="level" id="hintCount">Drag to turn · Q / E to roll</div>
+  <div class="tools">
+    <button id="rollL" aria-label="Roll left">⟲ Roll</button>
+    <button id="hint">Show sketch</button>
+    <button id="rollR" aria-label="Roll right">Roll ⟳</button>
+  </div>
+
+  <div class="overlay" id="title">
+    <div>
+      <div class="eyebrow">A puzzle of light and shadow</div>
+      <h1>Umbra</h1>
+      <p>Each sculpture looks like a scattered cloud of wooden blocks. But the lamp knows a secret angle. Turn the piece in your hands until its shadow on the wall becomes something you recognise.</p>
+      <button class="btn" id="play">Light the lamp</button>
+    </div>
+  </div>
+  <div class="overlay" id="solved" hidden>
+    <div>
+      <div class="eyebrow" id="solvedEyebrow">Plate I · solved</div>
+      <h2 id="solvedName">The Key</h2>
+      <p id="solvedText">Found in 0 s.</p>
+      <button class="btn" id="next">Next plate</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  const canvas = document.getElementById('gl'), game = document.getElementById('game');
+  if (!window.THREE) { canvas.insertAdjacentHTML('afterend', '<div class="fallback">Umbra needs WebGL and three.js.</div>'); return; }
+  const $ = id => document.getElementById(id);
+
+  const PLATES = [
+    { name: 'The Key', riddle: 'It opens what is locked.', axes: 'y', art: [
+      '..###.........',
+      '.#####........',
+      '##...##.......',
+      '##...#########',
+      '##...##..##.##',
+      '.#####...##.##',
+      '..###.........'] },
+    { name: 'The Swallow', riddle: 'Comes back every spring, leaves every autumn.', axes: 'xy', art: [
+      '##.........##',
+      '.##.......##.',
+      '..###...###..',
+      '...#######...',
+      '....#####....',
+      '.....###.....',
+      '....##.##....',
+      '...##...##...',
+      '..##.....##..'] },
+    { name: 'The Anchor', riddle: 'It keeps a ship from wandering.', axes: 'xy', art: [
+      '....###....',
+      '....#.#....',
+      '....###....',
+      '.....#.....',
+      '..#######..',
+      '.....#.....',
+      '.....#.....',
+      '#....#....#',
+      '##...#...##',
+      '.##..#..##.',
+      '..#######..',
+      '....###....'] },
+    { name: 'The Cat', riddle: 'Nine lives, and only one shadow.', axes: 'xyz', art: [
+      '#.....#.....',
+      '##...##.....',
+      '#######.....',
+      '#.#.#.#.....',
+      '#######.....',
+      '.#####......',
+      '..###.......',
+      '.#####....#.',
+      '#######...#.',
+      '#######..#..',
+      '.######.#...',
+      '..#######...'] },
+    { name: 'The Teapot', riddle: 'Something warm is brewing.', axes: 'xyz', art: [
+      '.....##......',
+      '....####.....',
+      '..########...',
+      '.##########.#',
+      '###########.#',
+      '#.#########.#',
+      '#.##########.',
+      '.###########.',
+      '..#########..',
+      '...#######...'] },
+  ];
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.setClearColor(0x120e0b);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(42, 1, .1, 100);
+
+  const CENTER = new THREE.Vector3(0, 1.9, 0), LAMP = new THREE.Vector3(0, 1.9, 6);
+
+  // room
+  const plasterTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); g.fillStyle = '#d9c9ae'; g.fillRect(0, 0, 256, 256); for (let i = 0; i < 5000; i++) { g.fillStyle = Math.random() < .5 ? 'rgba(120,95,65,.07)' : 'rgba(255,245,225,.08)'; g.fillRect(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 3, 1 + Math.random() * 3); } const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 2); t.encoding = THREE.sRGBEncoding; return t; })();
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(22, 12), new THREE.MeshStandardMaterial({ map: plasterTex, roughness: .95 }));
+  wall.position.set(0, 3, -3.2); wall.receiveShadow = true; scene.add(wall);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(22, 16), new THREE.MeshStandardMaterial({ color: 0x3a2a1c, roughness: .9 }));
+  floor.rotation.x = -Math.PI / 2; floor.position.set(0, -.2, 3); floor.receiveShadow = true; scene.add(floor);
+  // plinth
+  const plinth = new THREE.Mesh(new THREE.CylinderGeometry(.35, .45, 1.1, 24), new THREE.MeshStandardMaterial({ color: 0x2a1f16, roughness: .6, metalness: .2 }));
+  plinth.position.set(0, .35, 0); plinth.castShadow = plinth.receiveShadow = true; scene.add(plinth);
+  const rod = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, .6, 8), new THREE.MeshStandardMaterial({ color: 0xc79a55, metalness: .9, roughness: .3 }));
+  rod.position.set(0, 1.1, 0); scene.add(rod);
+
+  scene.add(new THREE.AmbientLight(0x3a2c20, .55));
+  const spot = new THREE.SpotLight(0xffd9a0, 3.2, 30, .42, .35, 1.2);
+  spot.position.copy(LAMP); spot.target.position.set(0, 1.9, -3.2); spot.castShadow = true;
+  spot.shadow.mapSize.set(2048, 2048); spot.shadow.camera.near = 1; spot.shadow.camera.far = 20; spot.shadow.bias = -.0004;
+  scene.add(spot, spot.target);
+  // lamp body
+  const lamp = new THREE.Group();
+  const shade = new THREE.Mesh(new THREE.CylinderGeometry(.18, .42, .5, 24, 1, true), new THREE.MeshStandardMaterial({ color: 0xc79a55, metalness: .85, roughness: .35, side: THREE.DoubleSide }));
+  shade.rotation.x = Math.PI / 2; lamp.add(shade);
+  const bulb = new THREE.Mesh(new THREE.SphereGeometry(.13, 16, 12), new THREE.MeshBasicMaterial({ color: 0xfff1d2 })); bulb.position.z = -.05; lamp.add(bulb);
+  const stand = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, 2.1, 8), new THREE.MeshStandardMaterial({ color: 0x5a4632, metalness: .6 })); stand.position.set(0, -1.05, .2); lamp.add(stand);
+  lamp.position.copy(LAMP).add(new THREE.Vector3(0, 0, .35)); scene.add(lamp);
+  // light beam
+  const beam = new THREE.Mesh(new THREE.ConeGeometry(2.6, 9.2, 40, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: .045, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+  beam.rotation.x = -Math.PI / 2; beam.position.set(0, 1.9, 6 - 4.6); scene.add(beam);
+  // dust motes
+  const DUST = 260, dg = new THREE.BufferGeometry(), dp = new Float32Array(DUST * 3);
+  for (let i = 0; i < DUST; i++) { dp[i * 3] = (Math.random() - .5) * 3; dp[i * 3 + 1] = 1.9 + (Math.random() - .5) * 2.4; dp[i * 3 + 2] = -2.5 + Math.random() * 8; }
+  dg.setAttribute('position', new THREE.BufferAttribute(dp, 3));
+  const dust = new THREE.Points(dg, new THREE.PointsMaterial({ color: 0xffe6bf, size: .025, transparent: true, opacity: .6, depthWrite: false, blending: THREE.AdditiveBlending }));
+  scene.add(dust);
+
+  // ── The sculpture ──
+  const piece = new THREE.Group(); piece.position.copy(CENTER); scene.add(piece);
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0xd9b88c, roughness: .55, metalness: .05 });
+  const cubeGeo = new THREE.BoxGeometry(1, 1, 1);
+  const PITCH = .16;
+  function buildPiece(art) {
+    while (piece.children.length) piece.remove(piece.children[0]);
+    const rows = art.length, cols = Math.max(...art.map(r => r.length));
+    art.forEach((row, r) => [...row].forEach((ch, c) => {
+      if (ch !== '#') return;
+      const m = new THREE.Mesh(cubeGeo, woodMat);
+      const depth = (Math.random() - .5) * 1.5;
+      // scale so every cube casts the same size shadow, whatever its depth
+      const k = (LAMP.z - depth) / LAMP.z;
+      m.position.set((c - (cols - 1) / 2) * PITCH * k, ((rows - 1) / 2 - r) * PITCH * k, depth);
+      m.scale.setScalar(PITCH * 1.12 * k);
+      m.castShadow = true; m.layers.enable(1);
+      piece.add(m);
+    }));
+  }
+
+  // ── Silhouette masks rendered from the lamp's eye ──
+  const MS = 72;
+  const rt = new THREE.WebGLRenderTarget(MS, MS);
+  const maskCam = new THREE.PerspectiveCamera(30, 1, .5, 20); maskCam.position.copy(LAMP); maskCam.lookAt(CENTER); maskCam.layers.set(1);
+  const white = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const buf = new Uint8Array(MS * MS * 4);
+  function mask() {
+    const bg = scene.background; scene.overrideMaterial = white; renderer.setClearColor(0x000000);
+    renderer.setRenderTarget(rt); renderer.clear(); renderer.render(scene, maskCam); renderer.readRenderTargetPixels(rt, 0, 0, MS, MS, buf);
+    renderer.setRenderTarget(null); scene.overrideMaterial = null; renderer.setClearColor(0x120e0b);
+    const m = new Uint8Array(MS * MS); for (let i = 0; i < MS * MS; i++) m[i] = buf[i * 4] > 100 ? 1 : 0; return m;
+  }
+  let targetMask = null;
+  function iou(a, b) { let i = 0, u = 0; for (let k = 0; k < a.length; k++) { i += a[k] & b[k]; u += a[k] | b[k]; } return u ? i / u : 0; }
+  function drawSketch() {
+    const g = $('sketchCv').getContext('2d'), img = g.createImageData(MS, MS);
+    for (let y = 0; y < MS; y++) for (let x = 0; x < MS; x++) { const v = targetMask[(MS - 1 - y) * MS + x], j = (y * MS + x) * 4; img.data[j] = v ? 58 : 239; img.data[j + 1] = v ? 44 : 227; img.data[j + 2] = v ? 30 : 203; img.data[j + 3] = 255; }
+    g.putImageData(img, 0, 0);
+  }
+
+  // ── Game state ──
+  let li = 0, state = 'title', score = 0, time = 0, hints = 0, snap = false;
+  const q = new THREE.Quaternion(), qI = new THREE.Quaternion();
+  const AX = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
+  function randomStart(axes) {
+    q.identity();
+    const pick = () => (Math.random() < .5 ? -1 : 1) * (.9 + Math.random() * 1.4);
+    if (axes.includes('y')) q.premultiply(new THREE.Quaternion().setFromAxisAngle(AX.y, pick()));
+    if (axes.includes('x')) q.premultiply(new THREE.Quaternion().setFromAxisAngle(AX.x, pick() * .8));
+    if (axes.includes('z')) q.premultiply(new THREE.Quaternion().setFromAxisAngle(AX.z, pick()));
+  }
+  function loadPlate(i) {
+    li = i; const P = PLATES[i];
+    buildPiece(P.art);
+    piece.quaternion.identity(); piece.updateMatrixWorld(true);
+    targetMask = mask(); drawSketch();
+    randomStart(P.axes); piece.quaternion.copy(q);
+    $('lvl').textContent = `Plate ${['I', 'II', 'III', 'IV', 'V'][i]} of V`;
+    $('riddle').textContent = P.riddle;
+    time = 0; hints = 0; snap = false; score = 0; $('sketch').hidden = true;
+    $('hintCount').textContent = P.axes === 'y' ? 'Drag sideways to turn' : P.axes === 'xy' ? 'Drag to turn and tip' : 'Drag to turn · Q / E or the roll buttons';
+  }
+  function begin() { $('title').hidden = true; state = 'play'; loadPlate(0); }
+  function solved() {
+    state = 'solved';
+    const P = PLATES[li];
+    $('solvedEyebrow').textContent = `Plate ${['I', 'II', 'III', 'IV', 'V'][li]} · solved`;
+    $('solvedName').textContent = P.name;
+    $('solvedText').textContent = `Found in ${time.toFixed(1)} s${hints ? ` with ${hints} peek${hints > 1 ? 's' : ''} at the sketch` : ', no sketch needed'}.`;
+    $('next').textContent = li === PLATES.length - 1 ? 'Begin again' : 'Next plate';
+    setTimeout(() => { $('solved').hidden = false; $('next').focus(); }, 1400);
+  }
+  $('play').addEventListener('click', begin);
+  $('next').addEventListener('click', () => { $('solved').hidden = true; state = 'play'; loadPlate((li + 1) % PLATES.length); });
+  $('hint').addEventListener('click', () => { if (state !== 'play') return; hints++; $('sketch').hidden = false; clearTimeout(drawSketch.t); drawSketch.t = setTimeout(() => $('sketch').hidden = true, 2600); });
+
+  // ── Turning the piece ──
+  const rot = (axis, a) => { if (state !== 'play' || snap) return; piece.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(AX[axis], a)); };
+  let drag = null, vel = { x: 0, y: 0 };
+  canvas.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const dx = e.clientX - drag[0], dy = e.clientY - drag[1]; drag = [e.clientX, e.clientY];
+    const axes = PLATES[li].axes;
+    vel.y = dx * .008; vel.x = axes.includes('x') ? dy * .008 : 0;
+    rot('y', vel.y); if (vel.x) rot('x', vel.x);
+  });
+  canvas.addEventListener('pointerup', () => { drag = null; });
+  canvas.addEventListener('wheel', e => { e.preventDefault(); if (PLATES[li].axes.includes('z')) rot('z', e.deltaY * .002); }, { passive: false });
+  const hold = { l: 0, r: 0 };
+  const rollBtn = (id, s) => { const b = $(id); const on = () => hold[s > 0 ? 'r' : 'l'] = 1, off = () => hold[s > 0 ? 'r' : 'l'] = 0; b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointerleave', off); b.addEventListener('click', () => rot('z', s * .08)); };
+  rollBtn('rollL', 1); rollBtn('rollR', -1);
+  const keys = {};
+  addEventListener('keydown', e => {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key.startsWith('Arrow')) e.preventDefault();
+    if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest?.('button')) { if (state === 'title') begin(); else if (state === 'solved') $('next').click(); }
+    if (e.key.toLowerCase() === 'h') $('hint').click();
+  });
+  addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+  function resize() {
+    const w = game.clientWidth, h = game.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h;
+    const portrait = w < h;
+    camera.fov = portrait ? 60 : 42;
+    camera.position.set(portrait ? 3.2 : 5.2, 2.7, portrait ? 9.5 : 7.6);
+    camera.lookAt(-.6, 1.9, -1.2);
+    camera.updateProjectionMatrix();
+  }
+  addEventListener('resize', resize); resize();
+
+  // title: a slowly turning piece
+  buildPiece(PLATES[0].art); piece.quaternion.setFromAxisAngle(AX.y, 1.2);
+  let last = performance.now(), t = 0, frame = 0, like = 0;
+  function loop(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt; frame++;
+    if (state === 'title') piece.rotateY(dt * .35);
+    if (state === 'play') {
+      time += dt;
+      const axes = PLATES[li].axes;
+      if (keys.arrowleft || keys.a) rot('y', -dt * 1.4); if (keys.arrowright || keys.d) rot('y', dt * 1.4);
+      if (axes.includes('x')) { if (keys.arrowup || keys.w) rot('x', -dt * 1.4); if (keys.arrowdown || keys.s) rot('x', dt * 1.4); }
+      if (axes.includes('z')) { if (keys.q || hold.l) rot('z', dt * 1.4); if (keys.e || hold.r) rot('z', -dt * 1.4); }
+      if (!drag && !snap) { if (Math.abs(vel.y) > 1e-4) { rot('y', vel.y); vel.y *= .9; } if (Math.abs(vel.x) > 1e-4) { rot('x', vel.x); vel.x *= .9; } }
+      if (frame % 3 === 0) {
+        piece.updateMatrixWorld(true);
+        like = iou(mask(), targetMask);
+        const shown = Math.min(100, Math.round(like / .9 * 100));
+        $('pct').textContent = shown + '%'; $('barFill').style.width = shown + '%';
+      }
+      // a gentle pull once the shadow is close
+      if (like > .74 && !drag) { piece.quaternion.slerp(qI, Math.min(1, dt * (snap ? 5 : 1.6))); }
+      if (like > .88 && !snap) { snap = true; }
+      if (snap && piece.quaternion.angleTo(qI) < .01) { piece.quaternion.identity(); $('pct').textContent = '100%'; $('barFill').style.width = '100%'; solved(); }
+    }
+    // lamp flare on solve
+    const target = state === 'solved' ? 5.2 : 3.2 + Math.sin(t * 13) * .05;
+    spot.intensity += (target - spot.intensity) * Math.min(1, dt * 4);
+    for (let i = 0; i < DUST; i++) { dp[i * 3 + 1] += Math.sin(t * .5 + i) * .0006; dp[i * 3] += Math.cos(t * .3 + i * 1.7) * .0005; }
+    dg.attributes.position.needsUpdate = true;
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>

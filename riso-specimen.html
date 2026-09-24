@@ -1,0 +1,256 @@
+<title>Two Drums Specimen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Recursive:slnt,wght,CASL,CRSV,MONO@-15..0,300..1000,0..1,0..1,0..1&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ECEEE7;
+    --pink: #FF48B0;
+    --blue: #0078BF;
+    --ink: #1C1D24;
+    --fade: #6D7280;
+    --rec: "Recursive", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  }
+  html { background: var(--paper); }
+  body { background: var(--paper); color: var(--ink); font-family: var(--rec); font-size: 16px; line-height: 1.55; font-variation-settings: "wght" 420, "CASL" 0, "MONO" 0, "slnt" 0; overflow-x: hidden; }
+  body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50; mix-blend-mode: multiply; opacity: .5;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .1  0 0 0 0 .1  0 0 0 0 .12  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 56px); padding-block: 20px 80px; }
+  .mono { font-variation-settings: "wght" 460, "MONO" 1, "CASL" 0, "slnt" 0; }
+  .label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-variation-settings: "wght" 600, "MONO" 1, "CASL" 0, "slnt" 0; }
+
+  .slug { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 24px; padding-bottom: 10px; border-bottom: 2px solid var(--ink); }
+  .slug .dots { display: inline-flex; gap: 6px; align-items: center; }
+  .slug .dots i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; mix-blend-mode: multiply; }
+
+  /* ── Hero: two drums, two axis settings ── */
+  .hero { position: relative; padding-block: clamp(40px, 7vw, 90px) clamp(24px, 4vw, 48px); --dx: 6px; --dy: -4px; }
+  .halftone { position: absolute; right: -6%; top: 6%; width: min(52vw, 560px); aspect-ratio: 1; max-width: 100%; border-radius: 50%; mix-blend-mode: multiply;
+    background: radial-gradient(circle, var(--pink) 34%, transparent 36%) 0 0 / 14px 14px;
+    -webkit-mask: radial-gradient(circle, #000 20%, transparent 70%); mask: radial-gradient(circle, #000 20%, transparent 70%); opacity: .75; }
+  .word { position: relative; display: grid; font-size: clamp(88px, 21vw, 300px); line-height: .82; letter-spacing: -.035em; user-select: none; }
+  .word span { grid-area: 1 / 1; mix-blend-mode: multiply; transition: transform .25s cubic-bezier(.2, .8, .2, 1); }
+  .word .b { color: var(--blue); font-variation-settings: "wght" 1000, "CASL" 0, "MONO" 0, "slnt" 0; }
+  .word .p { color: var(--pink); font-variation-settings: "wght" var(--pw, 900), "CASL" 1, "MONO" 0, "slnt" -15, "CRSV" 1; transform: translate(var(--dx), var(--dy)); }
+  .hero-meta { position: relative; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 24px 48px; margin-top: clamp(24px, 4vw, 44px); align-items: end; }
+  .hero-meta p { margin: 0; font-size: clamp(18px, 2vw, 22px); line-height: 1.4; max-width: 34ch; font-variation-settings: "wght" 450, "CASL" .6, "MONO" 0, "slnt" 0; }
+  .hero-meta p em { font-style: normal; color: var(--pink); font-variation-settings: "wght" 700, "CASL" 1, "slnt" -15, "CRSV" 1; }
+  .hero-meta p strong { color: var(--blue); font-variation-settings: "wght" 800, "CASL" 0; }
+  .sticker { justify-self: end; transform: rotate(-4deg); background: var(--blue); color: var(--paper); padding: 14px 18px; max-width: 260px; font-size: 12.5px; line-height: 1.45; mix-blend-mode: multiply; }
+  .sticker b { display: block; font-size: 30px; line-height: 1; margin-bottom: 6px; font-variation-settings: "wght" 900, "CASL" 1, "slnt" -8; }
+
+  h2 { font-size: clamp(38px, 6vw, 76px); line-height: .95; letter-spacing: -.02em; margin: 0; text-wrap: balance; font-variation-settings: "wght" 850, "CASL" .4, "MONO" 0, "slnt" 0; }
+  h2 .p { color: var(--pink); font-variation-settings: "wght" 850, "CASL" 1, "slnt" -15, "CRSV" 1; }
+  section { margin-top: clamp(64px, 9vw, 120px); }
+  .head { display: flex; justify-content: space-between; align-items: end; flex-wrap: wrap; gap: 12px 24px; margin-bottom: 26px; border-bottom: 2px solid var(--ink); padding-bottom: 14px; }
+
+  /* ── Mixing desk ── */
+  .desk { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 28px 44px; }
+  .knobs { display: grid; gap: 20px; align-content: start; }
+  .knob label { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .knob output { color: var(--blue); }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; cursor: pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height: 6px; background: repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 8px), var(--paper); border: 1.5px solid var(--ink); }
+  input[type=range]::-moz-range-track { height: 6px; background: var(--paper); border: 1.5px solid var(--ink); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -8.5px; background: var(--pink); border: 1.5px solid var(--ink); border-radius: 50%; mix-blend-mode: multiply; }
+  input[type=range]::-moz-range-thumb { width: 18px; height: 18px; background: var(--pink); border: 1.5px solid var(--ink); border-radius: 50%; }
+  input:focus-visible, button:focus-visible, [contenteditable]:focus-visible { outline: 2px dashed var(--blue); outline-offset: 4px; }
+  .toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+  .toggles button { font: inherit; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-variation-settings: "wght" 650, "MONO" 1; background: transparent; color: var(--ink); border: 1.5px solid var(--ink); padding: 7px 11px; cursor: pointer; }
+  .toggles button[aria-pressed=true] { background: var(--ink); color: var(--paper); }
+  .sample { position: relative; min-height: 300px; border: 2px solid var(--ink); padding: clamp(18px, 3vw, 32px); display: flex; flex-direction: column; justify-content: space-between; gap: 20px;
+    background: radial-gradient(circle, rgba(0, 120, 191, .22) 1.2px, transparent 1.6px) 0 0 / 9px 9px; }
+  .sample [contenteditable] { font-size: clamp(40px, 6.5vw, 92px); line-height: 1; letter-spacing: -.02em; outline: none; overflow-wrap: anywhere; color: var(--ink); caret-color: var(--pink); }
+  .code { font-size: 12.5px; color: var(--fade); overflow-x: auto; white-space: nowrap; }
+  .code b { color: var(--pink); font-weight: inherit; }
+
+  /* ── Glyph set ── */
+  .glyphs-wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 330px); gap: 28px; }
+  .glyphs { display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); border-top: 1.5px solid var(--ink); border-left: 1.5px solid var(--ink); }
+  .g { all: unset; box-sizing: border-box; position: relative; aspect-ratio: 1; display: grid; place-items: center; font-size: 30px; cursor: pointer; border-right: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); font-variation-settings: "wght" 500, "CASL" 0; transition: background .15s; }
+  .g::after { content: attr(data-c); position: absolute; inset: 0; display: grid; place-items: center; color: var(--pink); mix-blend-mode: multiply; opacity: 0; transform: translate(2px, -2px); font-variation-settings: "wght" 800, "CASL" 1, "slnt" -15, "CRSV" 1; transition: opacity .15s, transform .2s; }
+  .g:hover::after, .g.on::after, .g:focus-visible::after { opacity: 1; transform: translate(4px, -3px); }
+  .g.on { background: rgba(0, 120, 191, .14); }
+  .loupe { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); align-self: start; border: 2px solid var(--ink); background: var(--paper); }
+  .loupe .big { display: grid; place-items: center; aspect-ratio: 1; font-size: clamp(140px, 20vw, 240px); line-height: 1; position: relative; overflow: hidden; max-width: 100%; }
+  .loupe .big span { grid-area: 1 / 1; mix-blend-mode: multiply; }
+  .loupe .big .b { color: var(--blue); font-variation-settings: "wght" 900, "CASL" 0; }
+  .loupe .big .p { color: var(--pink); font-variation-settings: "wght" 900, "CASL" 1, "slnt" -15, "CRSV" 1; transform: translate(8px, -6px); }
+  .loupe .info { display: flex; justify-content: space-between; border-top: 2px solid var(--ink); padding: 10px 14px; }
+
+  /* ── Waterfall ── */
+  .fall { display: grid; gap: 4px; }
+  .row { display: grid; grid-template-columns: 5ch minmax(0, 1fr); gap: 18px; align-items: baseline; padding-block: 6px; border-bottom: 1px dashed rgba(28, 29, 36, .35); }
+  .row .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row:nth-child(odd) .t { color: var(--blue); }
+  .row:nth-child(3n) .t { color: var(--pink); font-variation-settings: "wght" 700, "CASL" 1, "slnt" -10, "CRSV" 1; }
+
+  .colophon { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px 40px; font-size: 13.5px; }
+  .colophon h4 { margin: 0 0 6px; }
+  .colophon p { margin: 0; max-width: 42ch; }
+  .stamp { width: 132px; height: 132px; border-radius: 50%; border: 2.5px solid var(--pink); color: var(--pink); display: grid; place-items: center; text-align: center; transform: rotate(12deg); mix-blend-mode: multiply; font-size: 11px; line-height: 1.3; justify-self: start; }
+  .stamp b { display: block; font-size: 28px; font-variation-settings: "wght" 900, "CASL" 1, "slnt" -12; }
+
+  @media (max-width: 820px) {
+    .desk, .glyphs-wrap, .hero-meta { grid-template-columns: minmax(0, 1fr); }
+    .sticker { justify-self: start; }
+    .loupe { position: static; }
+  }
+  @media (prefers-reduced-motion: reduce) { .word span, .g::after { transition: none; } }
+</style>
+
+<div class="wrap">
+  <div class="slug label">
+    <span>Specimen Nº 07 · Recursive Variable</span>
+    <span class="dots"><i style="background:var(--pink)"></i><i style="background:var(--blue)"></i><i style="background:var(--ink)"></i> 3 drums · 71 lpi · 90 gsm natural</span>
+  </div>
+
+  <header class="hero" id="hero">
+    <div class="halftone" aria-hidden="true"></div>
+    <h1 class="word" aria-label="Wobble">
+      <span class="b" aria-hidden="true">Wobble</span>
+      <span class="p" aria-hidden="true">Wobble</span>
+    </h1>
+    <div class="hero-meta">
+      <p>One typeface, printed twice. The <strong>blue drum</strong> carries Recursive at its most linear. The <em>pink drum</em> carries the same word with the Casual axis turned all the way up. Where they overprint, you see the space between them.</p>
+      <div class="sticker label"><b>5 axes</b>Weight 300–1000 · Casual · Mono · Slant −15° · Cursive. All in one font file.</div>
+    </div>
+  </header>
+
+  <section aria-labelledby="desk-h">
+    <div class="head">
+      <h2 id="desk-h">The mixing <span class="p">desk</span></h2>
+      <span class="label">Drag the faders · type in the box</span>
+    </div>
+    <div class="desk">
+      <div class="knobs">
+        <div class="knob"><label class="label" for="wght">Weight <output id="o-wght">640</output></label><input type="range" id="wght" min="300" max="1000" value="640"></div>
+        <div class="knob"><label class="label" for="CASL">Casual <output id="o-CASL">0.70</output></label><input type="range" id="CASL" min="0" max="1" step=".01" value=".7"></div>
+        <div class="knob"><label class="label" for="MONO">Mono <output id="o-MONO">0.00</output></label><input type="range" id="MONO" min="0" max="1" step=".01" value="0"></div>
+        <div class="knob"><label class="label" for="slnt">Slant <output id="o-slnt">-6</output></label><input type="range" id="slnt" min="-15" max="0" step="1" value="-6"></div>
+        <div class="toggles" role="group" aria-label="Presets">
+          <button data-p="640,.7,0,-6" aria-pressed="true">Zine</button>
+          <button data-p="420,0,1,0" aria-pressed="false">Terminal</button>
+          <button data-p="1000,1,0,-15" aria-pressed="false">Poster</button>
+          <button data-p="320,0,0,0" aria-pressed="false">Hairline</button>
+        </div>
+      </div>
+      <div class="sample">
+        <div id="ed" contenteditable="true" spellcheck="false" aria-label="Editable type sample">Ink sits on top of ink, and the misprint is the point.</div>
+        <div class="code mono" id="code"></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="gly-h">
+    <div class="head">
+      <h2 id="gly-h">Every <span class="p">glyph</span>, two ways</h2>
+      <span class="label">Hover to overprint · click to inspect</span>
+    </div>
+    <div class="glyphs-wrap">
+      <div class="glyphs" id="glyphs"></div>
+      <aside class="loupe" aria-live="polite">
+        <div class="big"><span class="b" id="lb">g</span><span class="p" id="lp">g</span></div>
+        <div class="info label"><span id="lname">g · Latin small letter</span><span id="lcode">U+0067</span></div>
+      </aside>
+    </div>
+  </section>
+
+  <section aria-labelledby="fall-h">
+    <div class="head">
+      <h2 id="fall-h">Waterfall</h2>
+      <span class="label">12 → 96 px</span>
+    </div>
+    <div class="fall" id="fall"></div>
+  </section>
+
+  <section>
+    <div class="head"><h2>Colophon</h2><span class="label">Printed on a two-drum duplicator, one pass per colour</span></div>
+    <div class="colophon">
+      <div><h4 class="label">Typeface</h4><p>Recursive by Arrow Type, released under the SIL Open Font License. Served from Google Fonts as a single variable file.</p></div>
+      <div><h4 class="label">Inks</h4><p>Fluorescent Pink and Medium Blue, both soy-based. They overprint by multiply, so pink over blue gives a bruised violet that neither drum carries alone.</p></div>
+      <div><h4 class="label">Registration</h4><p>±1.5 mm between drums, left uncorrected on purpose. Move the cursor across the headline to push it further.</p></div>
+      <div class="stamp label"><span><b>07</b>Proof<br>not for sale</span></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Misregistration follows the pointer
+  const hero = document.getElementById('hero');
+  if (!reduce) {
+    hero.addEventListener('pointermove', e => {
+      const r = hero.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+      hero.style.setProperty('--dx', (x * 34).toFixed(1) + 'px');
+      hero.style.setProperty('--dy', (y * 22).toFixed(1) + 'px');
+    });
+    hero.addEventListener('pointerleave', () => { hero.style.setProperty('--dx', '6px'); hero.style.setProperty('--dy', '-4px'); });
+    let t0 = performance.now();
+    (function breathe(t) { hero.style.setProperty('--pw', (650 + 350 * (.5 + .5 * Math.sin((t - t0) / 1400))).toFixed(0)); requestAnimationFrame(breathe); })(t0);
+  }
+
+  // Mixing desk
+  const axes = ['wght', 'CASL', 'MONO', 'slnt'];
+  const ed = document.getElementById('ed'), code = document.getElementById('code');
+  const presets = [...document.querySelectorAll('.toggles button')];
+  function apply() {
+    const v = Object.fromEntries(axes.map(a => [a, +document.getElementById(a).value]));
+    axes.forEach(a => document.getElementById('o-' + a).textContent = a === 'CASL' || a === 'MONO' ? v[a].toFixed(2) : v[a]);
+    const fvs = `"wght" ${v.wght}, "CASL" ${v.CASL}, "MONO" ${v.MONO}, "slnt" ${v.slnt}, "CRSV" ${v.slnt < -10 ? 1 : .5}`;
+    ed.style.fontVariationSettings = fvs;
+    code.innerHTML = 'font-variation-settings: ' + fvs.replace(/"(\w+)"/g, '<b>"$1"</b>') + ';';
+  }
+  axes.forEach(a => document.getElementById(a).addEventListener('input', () => { presets.forEach(b => b.setAttribute('aria-pressed', 'false')); apply(); }));
+  presets.forEach(b => b.addEventListener('click', () => {
+    b.dataset.p.split(',').forEach((val, i) => document.getElementById(axes[i]).value = val);
+    presets.forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    apply();
+  }));
+  apply();
+
+  // Glyph grid
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789&?!@#%*(){}';
+  const grid = document.getElementById('glyphs');
+  const lb = document.getElementById('lb'), lp = document.getElementById('lp');
+  const describe = c => /[A-Z]/.test(c) ? 'Latin capital letter' : /[a-z]/.test(c) ? 'Latin small letter' : /\d/.test(c) ? 'Digit' : 'Punctuation';
+  function inspect(btn) {
+    const c = btn.dataset.c;
+    grid.querySelectorAll('.on').forEach(g => g.classList.remove('on'));
+    btn.classList.add('on');
+    lb.textContent = lp.textContent = c;
+    document.getElementById('lname').textContent = `${c} · ${describe(c)}`;
+    document.getElementById('lcode').textContent = 'U+' + c.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
+  }
+  [...chars].forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'g' + (c === 'g' ? ' on' : ''); b.dataset.c = c; b.textContent = c;
+    b.setAttribute('aria-label', `Inspect ${c}`);
+    b.addEventListener('click', () => inspect(b));
+    b.addEventListener('mouseenter', () => { lb.textContent = lp.textContent = c; });
+    grid.appendChild(b);
+  });
+  grid.addEventListener('mouseleave', () => { const on = grid.querySelector('.on'); if (on) lb.textContent = lp.textContent = on.dataset.c; });
+
+  // Waterfall
+  const lines = [
+    'Sphinx of black quartz, judge my vow.',
+    'The quick brown fox jumps over the lazy dog.',
+    'Pack my box with five dozen liquor jugs.',
+    'How vexingly quick daft zebras jump!',
+    'Jackdaws love my big sphinx of quartz.',
+    'Two drums, one pass each, no second chances.',
+    'Grumpy wizards make toxic brew.',
+    'Fluoro pink over blue.',
+  ];
+  const sizes = [12, 16, 21, 28, 36, 48, 64, 96];
+  document.getElementById('fall').innerHTML = sizes.map((s, i) =>
+    `<div class="row"><span class="label">${s}px</span><span class="t" style="font-size:${s}px">${lines[i]}</span></div>`).join('');
+})();
+</script>

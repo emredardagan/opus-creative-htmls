@@ -1,0 +1,279 @@
+<title>Lantern Drift</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Outfit:wght@400;500;600&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --night: #06121A;
+    --river: #0B2A33;
+    --flame: #FFB547;
+    --ember: #FF8A3D;
+    --lotus: #F58FB0;
+    --cream: #FBE9D0;
+    --mist: #8FB3B8;
+    --display: "Young Serif", Georgia, serif;
+    --sans: "Outfit", system-ui, sans-serif;
+  }
+  html, body { height: 100%; }
+  html { background: var(--night); }
+  body { background: var(--night); color: var(--cream); font-family: var(--sans); font-size: 15px; overflow: hidden; }
+  .game { position: relative; height: 100%; min-height: 480px; overflow: hidden; }
+  #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .hud { position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: calc(env(safe-area-inset-top, 0px) + 16px) clamp(16px, 3vw, 32px) 0; pointer-events: none; }
+  .score b { display: block; font-family: var(--display); font-size: clamp(34px, 5vw, 52px); line-height: 1; font-weight: 400; font-variant-numeric: tabular-nums; text-shadow: 0 0 24px rgba(255, 181, 71, .5); }
+  .score span, .lives span { font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--mist); }
+  .lives { text-align: right; }
+  .flames { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+  .flames i { width: 14px; height: 20px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: radial-gradient(circle at 50% 70%, #FFF1C9, var(--flame) 45%, var(--ember)); box-shadow: 0 0 14px var(--ember); transition: opacity .3s, transform .3s; }
+  .flames i.out { opacity: .15; transform: scale(.7); box-shadow: none; }
+  .combo { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); font-family: var(--display); font-size: 28px; color: var(--lotus); text-shadow: 0 0 18px rgba(245, 143, 176, .8); opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap; }
+  .combo.show { opacity: 1; }
+
+  .overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px 16px; background: radial-gradient(ellipse at center, rgba(6, 18, 26, .35), rgba(6, 18, 26, .85)); text-align: center; }
+  .overlay[hidden] { display: none !important; }
+  .overlay .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: var(--flame); }
+  .overlay h1 { font-family: var(--display); font-weight: 400; font-size: clamp(52px, 10vw, 120px); line-height: .9; margin: 12px 0 14px; text-shadow: 0 0 40px rgba(255, 138, 61, .45); }
+  .overlay p { max-width: 42ch; margin: 0 auto 22px; color: #D5E3E1; font-size: 16px; line-height: 1.55; }
+  .overlay .keys { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; margin-bottom: 26px; font-size: 13px; color: var(--mist); }
+  kbd { font: 600 12px var(--sans); border: 1px solid rgba(251, 233, 208, .35); border-radius: 5px; padding: 2px 7px; color: var(--cream); margin-right: 4px; }
+  .go { font: 600 15px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: #2A1406; background: linear-gradient(180deg, #FFD08A, var(--flame)); border: 0; padding: 14px 30px; border-radius: 99px; cursor: pointer; box-shadow: 0 0 30px rgba(255, 181, 71, .45); }
+  .go:focus-visible { outline: 2px solid var(--cream); outline-offset: 4px; }
+  .final { font-family: var(--display); font-size: 64px; line-height: 1; color: var(--flame); }
+  .bestline { margin-top: 6px; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--mist); }
+  .touch { position: absolute; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); left: 0; right: 0; text-align: center; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: rgba(143, 179, 184, .7); pointer-events: none; }
+  .fallback { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); color: var(--mist); }
+</style>
+
+<div class="game" id="game">
+  <canvas id="gl" aria-label="Lantern Drift game view"></canvas>
+  <div class="hud">
+    <div class="score"><span>Distance</span><b id="score">0</b><span id="lotusCt">0 lotus lanterns</span></div>
+    <div class="lives"><span>Flame</span><div class="flames" id="flames"><i></i><i></i><i></i></div></div>
+  </div>
+  <div class="combo" id="combo">×2 lotus chain</div>
+  <div class="touch" id="touchHint">Drag left or right to steer</div>
+
+  <div class="overlay" id="start">
+    <div>
+      <div class="eyebrow">Night of the floating lanterns</div>
+      <h1>Lantern Drift</h1>
+      <p>Carry one small flame down the river. Weave between the rocks and gather the pink lotus lanterns. Three knocks and your light goes out.</p>
+      <div class="keys"><span><kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd> steer</span><span>Touch: drag</span><span><kbd>Space</kbd> start</span></div>
+      <button class="go" id="play">Set sail</button>
+    </div>
+  </div>
+  <div class="overlay" id="over" hidden>
+    <div>
+      <div class="eyebrow">The flame went out</div>
+      <div class="final" id="final">0 m</div>
+      <div class="bestline" id="bestline">Best 0 m</div>
+      <p style="margin-top:18px" id="overText">You drifted a while.</p>
+      <button class="go" id="again">Sail again</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  const canvas = document.getElementById('gl'), game = document.getElementById('game');
+  if (!window.THREE) { canvas.insertAdjacentHTML('afterend', '<div class="fallback">Lantern Drift needs WebGL and three.js.</div>'); return; }
+  const $ = id => document.getElementById(id);
+  const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : +v; } catch (_) { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} } };
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x06121a);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x081a22, .045);
+  const camera = new THREE.PerspectiveCamera(58, 1, .1, 200);
+
+  scene.add(new THREE.HemisphereLight(0x3a6a80, 0x05090c, .55));
+  const moonLight = new THREE.DirectionalLight(0x9ec9e0, .35); moonLight.position.set(-6, 10, -8); scene.add(moonLight);
+
+  // Sky: moon + stars
+  const moon = new THREE.Mesh(new THREE.CircleGeometry(5, 48), new THREE.MeshBasicMaterial({ color: 0xf6e6c8, fog: false }));
+  moon.position.set(-18, 16, -110); scene.add(moon);
+  const halo = new THREE.Mesh(new THREE.CircleGeometry(12, 48), new THREE.MeshBasicMaterial({ color: 0xf6e6c8, transparent: true, opacity: .08, fog: false }));
+  halo.position.copy(moon.position).z += .1; scene.add(halo);
+  const starGeo = new THREE.BufferGeometry(), sp = [];
+  for (let i = 0; i < 500; i++) sp.push((Math.random() - .5) * 260, 8 + Math.random() * 60, -80 - Math.random() * 40);
+  starGeo.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
+  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xcfe3ea, size: .35, fog: false })));
+
+  // River surface with moving low-poly waves
+  const RW = 16, RL = 140;
+  const waterGeo = new THREE.PlaneGeometry(RW + 6, RL, 22, 90); waterGeo.rotateX(-Math.PI / 2); waterGeo.translate(0, 0, -RL / 2 + 10);
+  const water = new THREE.Mesh(waterGeo, new THREE.MeshStandardMaterial({ color: 0x0e3440, roughness: .35, metalness: .3, flatShading: true }));
+  scene.add(water);
+  const wp = waterGeo.attributes.position, base = Float32Array.from(wp.array);
+
+  // Banks and trees
+  const bankMat = new THREE.MeshStandardMaterial({ color: 0x0a1a1c, roughness: 1, flatShading: true });
+  [-1, 1].forEach(s => { const b = new THREE.Mesh(new THREE.BoxGeometry(14, 2.2, RL), bankMat); b.position.set(s * (RW / 2 + 7), .2, -RL / 2 + 10); scene.add(b); });
+  const TREES = 70;
+  const trees = new THREE.InstancedMesh(new THREE.ConeGeometry(1, 3.4, 6), new THREE.MeshStandardMaterial({ color: 0x0d2622, flatShading: true }), TREES);
+  const treeData = Array.from({ length: TREES }, (_, i) => ({ x: (i % 2 ? 1 : -1) * (RW / 2 + 1.6 + Math.random() * 8), z: -Math.random() * RL + 10, s: .7 + Math.random() * 1.3 }));
+  scene.add(trees);
+  // stone lanterns on the banks
+  const toroGeo = new THREE.BoxGeometry(.5, .5, .5), toroMat = new THREE.MeshBasicMaterial({ color: 0xffa94d });
+  const toros = Array.from({ length: 10 }, (_, i) => { const m = new THREE.Mesh(toroGeo, toroMat); m.position.set((i % 2 ? 1 : -1) * (RW / 2 + .9), 1.7, -i * 14); scene.add(m); return m; });
+
+  // Player lantern boat
+  const player = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.CylinderGeometry(.55, .75, .28, 6), new THREE.MeshStandardMaterial({ color: 0xe9d3a8, roughness: .8, flatShading: true }));
+  const shade = new THREE.Mesh(new THREE.CylinderGeometry(.36, .42, .75, 6, 1, true), new THREE.MeshBasicMaterial({ color: 0xffc46b, side: THREE.DoubleSide }));
+  shade.position.y = .55;
+  const cap = new THREE.Mesh(new THREE.ConeGeometry(.46, .3, 6), new THREE.MeshStandardMaterial({ color: 0x3b1e10, flatShading: true })); cap.position.y = 1.05;
+  const flameLight = new THREE.PointLight(0xff9a45, 2.4, 14, 1.6); flameLight.position.y = .7;
+  player.add(hull, shade, cap, flameLight); scene.add(player);
+
+  // Obstacles and lotus lanterns
+  const rockGeo = new THREE.DodecahedronGeometry(1, 0), rockMat = new THREE.MeshStandardMaterial({ color: 0x1f3136, roughness: .9, flatShading: true });
+  const lotusGeo = new THREE.ConeGeometry(.35, .45, 8), lotusMat = new THREE.MeshBasicMaterial({ color: 0xf58fb0 });
+  const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,200,220,1)'); r.addColorStop(1, 'rgba(255,120,170,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+  const glowMat = new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: .8 });
+  let things = [];
+  function spawnRock(z) {
+    const m = new THREE.Mesh(rockGeo, rockMat), s = .7 + Math.random() * .9;
+    m.scale.set(s, s * .8, s); m.rotation.set(Math.random() * 3, Math.random() * 3, 0);
+    m.position.set((Math.random() - .5) * (RW - 3), s * .15, z); scene.add(m);
+    things.push({ m, kind: 'rock', r: s * .85 });
+  }
+  function spawnLotus(z, x) {
+    const g = new THREE.Group(), cone = new THREE.Mesh(lotusGeo, lotusMat); cone.rotation.x = Math.PI; cone.position.y = .3;
+    const sp = new THREE.Sprite(glowMat); sp.scale.set(2.2, 2.2, 1); sp.position.y = .4;
+    g.add(cone, sp); g.position.set(x, 0, z); scene.add(g);
+    things.push({ m: g, kind: 'lotus', r: .7, ph: Math.random() * 6 });
+  }
+
+  // Fireflies
+  const FF = 90, ffGeo = new THREE.BufferGeometry(), ffPos = new Float32Array(FF * 3), ffSeed = [];
+  for (let i = 0; i < FF; i++) { ffPos[i * 3] = (Math.random() - .5) * 30; ffPos[i * 3 + 1] = .5 + Math.random() * 4; ffPos[i * 3 + 2] = -Math.random() * 60; ffSeed.push(Math.random() * 6); }
+  ffGeo.setAttribute('position', new THREE.BufferAttribute(ffPos, 3));
+  const fireflies = new THREE.Points(ffGeo, new THREE.PointsMaterial({ color: 0xfff1a8, size: .18, transparent: true, opacity: .9, blending: THREE.AdditiveBlending, depthWrite: false }));
+  scene.add(fireflies);
+
+  // ── State ──
+  let state = 'title', speed = 9, dist = 0, lotus = 0, lives = 3, px = 0, targetX = 0, nextSpawn = 0, invuln = 0, chain = 0, chainT = 0, best = store.get('lantern-best', 0), shake = 0;
+  const keys = {};
+  function reset() {
+    things.forEach(t => scene.remove(t.m)); things = [];
+    speed = 9; dist = 0; lotus = 0; lives = 3; px = targetX = 0; nextSpawn = 14; invuln = 0; chain = 0;
+    for (let z = -14; z > -90; z -= 7) { if (Math.random() < .8) spawnRock(z); if (Math.random() < .5) spawnLotus(z - 3.5, (Math.random() - .5) * (RW - 4)); }
+    flames();
+  }
+  function flames() { [...$('flames').children].forEach((f, i) => f.classList.toggle('out', i >= lives)); }
+  function start() { reset(); state = 'play'; $('start').hidden = true; $('over').hidden = true; canvas.focus?.(); }
+  function over() {
+    state = 'over';
+    const m = Math.floor(dist);
+    if (m > best) { best = m; store.set('lantern-best', best); }
+    $('final').textContent = m + ' m'; $('bestline').textContent = `Best ${best} m`;
+    $('overText').textContent = `You gathered ${lotus} lotus lantern${lotus === 1 ? '' : 's'} along the way.`;
+    $('over').hidden = false; $('again').focus();
+  }
+  $('play').addEventListener('click', start);
+  $('again').addEventListener('click', start);
+
+  addEventListener('keydown', e => {
+    keys[e.key] = true;
+    if ((e.key === ' ' || e.key === 'Enter') && state !== 'play' && !e.target.closest?.('button')) { e.preventDefault(); start(); }
+  });
+  addEventListener('keyup', e => { keys[e.key] = false; });
+  let dragX = null, dragT0 = 0;
+  canvas.addEventListener('pointerdown', e => { dragX = e.clientX; dragT0 = targetX; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointermove', e => { if (dragX === null) return; targetX = Math.max(-RW / 2 + 1.2, Math.min(RW / 2 - 1.2, dragT0 + (e.clientX - dragX) / canvas.clientWidth * RW * 1.4)); });
+  canvas.addEventListener('pointerup', () => { dragX = null; });
+
+  function resize() { const w = game.clientWidth, h = game.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.fov = w < h ? 72 : 58; camera.updateProjectionMatrix(); }
+  addEventListener('resize', resize); resize();
+
+  const dummy = new THREE.Object3D();
+  let last = performance.now(), t = 0;
+  function loop(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt;
+    const playing = state === 'play';
+    const v = playing ? speed : 4;
+    if (playing) {
+      speed = Math.min(26, 9 + dist / 90);
+      dist += v * dt;
+      const steer = (keys.ArrowLeft || keys.a || keys.A ? -1 : 0) + (keys.ArrowRight || keys.d || keys.D ? 1 : 0);
+      if (steer) targetX = Math.max(-RW / 2 + 1.2, Math.min(RW / 2 - 1.2, targetX + steer * dt * 11));
+      invuln = Math.max(0, invuln - dt);
+      chainT -= dt; if (chainT <= 0) { chain = 0; $('combo').classList.remove('show'); }
+    }
+    px += (targetX - px) * Math.min(1, dt * 8);
+    player.position.set(px, .15 + Math.sin(t * 2.4) * .06, 0);
+    player.rotation.z = (px - targetX) * .12 + Math.sin(t * 1.7) * .04;
+    player.visible = !(invuln > 0 && Math.floor(t * 12) % 2);
+    flameLight.intensity = (lives > 0 ? 2.2 : .3) + Math.sin(t * 13) * .25 + Math.sin(t * 7.3) * .2;
+
+    // waves flow toward the camera
+    const flow = (playing ? dist : t * 4) * .5;
+    for (let i = 0; i < wp.count; i++) {
+      const x = base[i * 3], z = base[i * 3 + 2];
+      wp.setY(i, Math.sin(x * .7 + t * 1.3) * .07 + Math.sin((z + flow) * .45) * .12 + Math.sin((z + flow) * 1.3 + x) * .04);
+    }
+    wp.needsUpdate = true; waterGeo.computeVertexNormals();
+
+    // scenery drift
+    treeData.forEach((d, i) => {
+      d.z += v * dt; if (d.z > 12) { d.z -= RL; }
+      dummy.position.set(d.x, 1.3 + d.s * .9, d.z); dummy.scale.set(d.s, d.s, d.s); dummy.rotation.set(0, 0, 0); dummy.updateMatrix(); trees.setMatrixAt(i, dummy.matrix);
+    });
+    trees.instanceMatrix.needsUpdate = true;
+    toros.forEach(m => { m.position.z += v * dt; if (m.position.z > 12) m.position.z -= 140; });
+    for (let i = 0; i < FF; i++) {
+      ffPos[i * 3 + 2] += v * dt * .6; if (ffPos[i * 3 + 2] > 10) ffPos[i * 3 + 2] -= 70;
+      ffPos[i * 3 + 1] += Math.sin(t * 2 + ffSeed[i]) * dt * .3;
+    }
+    ffGeo.attributes.position.needsUpdate = true;
+    fireflies.material.opacity = .6 + .3 * Math.sin(t * 5);
+
+    // obstacles
+    if (state !== 'over') {
+      nextSpawn -= v * dt;
+      if (nextSpawn <= 0) {
+        const z = -90, hard = Math.min(1, dist / 1500);
+        spawnRock(z); if (Math.random() < .25 + hard * .5) spawnRock(z - 2);
+        if (Math.random() < .55) spawnLotus(z - 4, (Math.random() - .5) * (RW - 4));
+        nextSpawn = 7 - hard * 3.2;
+      }
+    }
+    things = things.filter(th => {
+      th.m.position.z += v * dt;
+      if (th.kind === 'lotus') { th.m.position.y = Math.sin(t * 2 + th.ph) * .08; th.m.rotation.y += dt; }
+      else th.m.rotation.y += dt * .1;
+      if (playing) {
+        const dx = th.m.position.x - px, dz = th.m.position.z;
+        if (Math.abs(dz) < th.r + .6 && Math.abs(dx) < th.r + .5) {
+          if (th.kind === 'lotus') {
+            lotus++; chain++; chainT = 2.5; dist += 10 * chain;
+            if (chain > 1) { $('combo').textContent = `×${chain} lotus chain · +${10 * chain} m`; $('combo').classList.add('show'); }
+            scene.remove(th.m); return false;
+          } else if (invuln <= 0) {
+            lives--; flames(); invuln = 1.4; shake = .35; chain = 0;
+            if (lives <= 0) over();
+          }
+        }
+      }
+      if (th.m.position.z > 12) { scene.remove(th.m); return false; }
+      return true;
+    });
+
+    shake = Math.max(0, shake - dt);
+    const sx = (Math.random() - .5) * shake * .8, sy = (Math.random() - .5) * shake * .8;
+    camera.position.set(px * .55 + sx, 3.4 + sy, 7.2);
+    camera.lookAt(px * .7, .4, -7);
+    $('score').textContent = Math.floor(dist);
+    $('lotusCt').textContent = `${lotus} lotus lantern${lotus === 1 ? '' : 's'}`;
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  reset();
+  requestAnimationFrame(loop);
+})();
+</script>

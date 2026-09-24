@@ -1,0 +1,330 @@
+<title>Tiny Crypt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Pixelify+Sans:wght@400;500&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --abyss: #0D0A16;
+    --stone: #1E1830;
+    --wall: #5B4C7A;
+    --hi: #8471A8;
+    --bone: #E9E4F2;
+    --teal: #58D6C9;
+    --gold: #F5D76E;
+    --blood: #E0525E;
+    --torch: #F29E4C;
+    --pix: "Silkscreen", "Courier New", monospace;
+    --body: "Pixelify Sans", "Courier New", monospace;
+  }
+  html { background: var(--abyss); }
+  body { background: var(--abyss); background-image: radial-gradient(rgba(132, 113, 168, .12) 1px, transparent 1px); background-size: 12px 12px; color: var(--bone); font-family: var(--body); font-size: 16px; line-height: 1.45; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 36px); padding-block: 22px 56px; display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 28px; align-items: start; }
+  header { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: end; gap: 8px 20px; flex-wrap: wrap; }
+  h1 { margin: 0; font-family: var(--pix); font-weight: 700; font-size: clamp(34px, 6vw, 64px); line-height: .9; color: var(--gold); text-shadow: 4px 4px 0 #7A3E2A, 8px 8px 0 rgba(0,0,0,.4); letter-spacing: .02em; }
+  header p { margin: 0; color: #A99BC6; max-width: 44ch; }
+
+  .frame { background: var(--stone); padding: 10px; box-shadow: 0 0 0 4px var(--wall), 0 0 0 8px var(--abyss), 0 0 0 12px var(--hi), 12px 16px 0 12px rgba(0,0,0,.5); image-rendering: pixelated; }
+  .hud { display: flex; justify-content: space-between; align-items: center; gap: 8px 16px; flex-wrap: wrap; font-family: var(--pix); font-size: 14px; padding: 2px 4px 10px; }
+  .hearts { display: flex; gap: 3px; }
+  .hearts canvas { width: 20px; height: 20px; image-rendering: pixelated; }
+  .gold { color: var(--gold); } .key { color: var(--teal); }
+  .screen { position: relative; }
+  #c { display: block; width: 100%; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; aspect-ratio: 4 / 3; max-width: 100%; background: #000; outline: none; }
+  #c:focus-visible { box-shadow: 0 0 0 3px var(--gold); }
+  .log { font-family: var(--body); font-size: 15px; min-height: 2.9em; padding: 10px 4px 0; color: #CFC5E4; }
+  .log b { color: var(--gold); font-weight: 500; }
+  .over { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(13, 10, 22, .82); text-align: center; padding: 16px; }
+  .over[hidden] { display: none !important; }
+  .over h2 { font-family: var(--pix); font-size: clamp(28px, 5vw, 44px); margin: 0 0 8px; color: var(--blood); text-shadow: 3px 3px 0 #000; }
+  .over p { margin: 0 0 16px; }
+  .btn { font: 700 14px var(--pix); color: var(--abyss); background: var(--gold); border: 0; padding: 10px 16px; cursor: pointer; box-shadow: 4px 4px 0 #7A3E2A; }
+  .btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #7A3E2A; }
+  .btn:focus-visible, .pad button:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+
+  aside { display: grid; gap: 22px; }
+  aside h3 { font-family: var(--pix); font-size: 14px; margin: 0 0 10px; color: var(--hi); letter-spacing: .06em; }
+  .beast { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 4px 12px; align-items: center; margin-bottom: 10px; }
+  .beast canvas { width: 40px; height: 40px; image-rendering: pixelated; background: var(--stone); box-shadow: 0 0 0 2px var(--wall); }
+  .beast b { font-family: var(--pix); font-size: 13px; font-weight: 400; display: block; }
+  .beast span { font-size: 14px; color: #A99BC6; }
+  .keys { font-size: 14px; color: #A99BC6; }
+  .keys kbd { font: 400 12px var(--pix); color: var(--bone); background: var(--stone); box-shadow: 0 0 0 2px var(--wall); padding: 1px 6px; margin: 0 2px; }
+  .pad { display: grid; grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(3, 52px); gap: 6px; justify-content: center; }
+  .pad button { font: 700 18px var(--pix); background: var(--stone); color: var(--bone); border: 0; box-shadow: 0 0 0 3px var(--wall), 3px 4px 0 3px #000; cursor: pointer; touch-action: manipulation; }
+  .pad button:active { background: var(--wall); }
+  .pad .u { grid-area: 1 / 2; } .pad .l { grid-area: 2 / 1; } .pad .w { grid-area: 2 / 2; font-size: 11px; } .pad .r { grid-area: 2 / 3; } .pad .d { grid-area: 3 / 2; }
+  @media (max-width: 860px) { .wrap { grid-template-columns: minmax(0, 1fr); } aside { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); } .pad-wrap { order: -1; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Tiny Crypt</h1>
+    <p>A turn-based crawl. Every step you take, the crypt takes one too. Find the key, unseal the stairs, go deeper.</p>
+  </header>
+
+  <main>
+    <div class="frame">
+      <div class="hud">
+        <div class="hearts" id="hearts" aria-label="Health"></div>
+        <span>Floor <span id="floor">1</span></span>
+        <span class="key" id="keyState">No key</span>
+        <span class="gold" id="gold">0 gold</span>
+      </div>
+      <div class="screen">
+        <canvas id="c" width="128" height="96" tabindex="0" aria-label="Dungeon map. Arrow keys or WASD to move, space to wait."></canvas>
+        <div class="over" id="over" hidden>
+          <div><h2>You perished</h2><p id="overText">Floor 1 · 0 gold</p><button class="btn" id="again">Descend again</button></div>
+        </div>
+      </div>
+      <div class="log" id="log" aria-live="polite">You wake in the crypt. Somewhere below, the stairs are sealed.</div>
+    </div>
+  </main>
+
+  <aside>
+    <div class="pad-wrap">
+      <h3>Controls</h3>
+      <div class="pad" role="group" aria-label="Move">
+        <button class="u" data-d="0,-1" aria-label="Up">▲</button>
+        <button class="l" data-d="-1,0" aria-label="Left">◀</button>
+        <button class="w" data-d="0,0" aria-label="Wait">WAIT</button>
+        <button class="r" data-d="1,0" aria-label="Right">▶</button>
+        <button class="d" data-d="0,1" aria-label="Down">▼</button>
+      </div>
+      <p class="keys"><kbd>WASD</kbd> or arrows to move, walk into a monster to strike, <kbd>Space</kbd> to wait, <kbd>R</kbd> to restart.</p>
+    </div>
+    <div>
+      <h3>Bestiary</h3>
+      <div class="beast"><canvas width="8" height="8" data-s="slime"></canvas><div><b>Slime</b><span>Slow. Moves every other turn. 2 HP.</span></div></div>
+      <div class="beast"><canvas width="8" height="8" data-s="bat"></canvas><div><b>Bat</b><span>Erratic flier. Fast but frail. 1 HP.</span></div></div>
+      <div class="beast"><canvas width="8" height="8" data-s="skel"></canvas><div><b>Skeleton</b><span>Floor 3 and below. Relentless. 3 HP.</span></div></div>
+      <div class="beast"><canvas width="8" height="8" data-s="potion"></canvas><div><b>Tonic</b><span>Restores two hearts.</span></div></div>
+    </div>
+    <div><h3>Deepest</h3><p class="keys" id="bestTxt">Floor 1</p></div>
+  </aside>
+</div>
+
+<script>
+(() => {
+  const PAL = { k: '#14101E', f: '#3D3259', d: '#2B2140', w: '#5B4C7A', W: '#8471A8', s: '#E9E4F2', g: '#6FD08C', G: '#3E9E62', y: '#F5D76E', o: '#F29E4C', r: '#E0525E', b: '#5AB4E6', p: '#58D6C9', P: '#2E8C84', m: '#9C8BC4' };
+  const SPR = {
+    hero: ['..kkkk..', '.kssssk.', '.kskksk.', '..kssk..', '.kppppky', 'kpPppPky', '.kppppk.', '.kk..kk.'],
+    slime: ['........', '..kkkk..', '.kggggk.', 'kgkggkgk', 'kggggggk', 'kgGggGgk', '.kkkkkk.', '........'],
+    bat: ['........', 'm.mmmm.m', 'mmrmmrmm', 'mmmmmmmm', '.mm..mm.', 'm......m', '........', '........'],
+    skel: ['..ssss..', '.skssks.', '.ssssss.', '..s..s..', '.ssssss.', '...ss...', '..s..s..', '.ss..ss.'],
+    key: ['........', '.yyy....', 'y...y...', 'y...yyyy', 'y...y.yy', '.yyy....', '........', '........'],
+    coin: ['........', '...yy...', '..yooy..', '..yooy..', '..yooy..', '...yy...', '........', '........'],
+    potion: ['...kk...', '...ss...', '..kssk..', '.kbbbbk.', '.kbsbbk.', '.kbbbbk.', '..kkkk..', '........'],
+    heart: ['........', '.rr.rr..', 'rrrrrrr.', 'rrrrrrr.', '.rrrrr..', '..rrr...', '...r....', '........'],
+    stairs: ['kkkkkkkk', 'kddddds.', 'kddddkk.', 'kddsss..', 'kddkkk..', 'ksss....', 'kkkk....', '........'],
+  };
+  const sprites = {};
+  for (const n in SPR) {
+    const c = document.createElement('canvas'); c.width = c.height = 8; const g = c.getContext('2d');
+    SPR[n].forEach((row, y) => [...row].forEach((ch, x) => { if (PAL[ch]) { g.fillStyle = PAL[ch]; g.fillRect(x, y, 1, 1); } }));
+    sprites[n] = c;
+  }
+  const white = {};
+  for (const n of ['hero', 'slime', 'bat', 'skel']) {
+    const c = document.createElement('canvas'); c.width = c.height = 8; const g = c.getContext('2d');
+    g.drawImage(sprites[n], 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#fff'; g.fillRect(0, 0, 8, 8); white[n] = c;
+  }
+  document.querySelectorAll('.beast canvas').forEach(c => c.getContext('2d').drawImage(sprites[c.dataset.s], 0, 0));
+
+  const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : +v; } catch (_) { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} } };
+  let deepest = store.get('crypt-deepest', 1);
+  const $ = id => document.getElementById(id);
+  $('bestTxt').textContent = `Floor ${deepest}`;
+
+  const MW = 16, MH = 12, T = 8;
+  const cv = $('c'), ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  let map, seen, ents, hero, items, stairs, floor = 1, gold = 0, hasKey = false, turn = 0, dead = false, shake = 0, floaters = [], torches = [];
+  const rnd = n => Math.floor(Math.random() * n);
+
+  function genFloor() {
+    map = Array.from({ length: MH }, () => Array(MW).fill(1));
+    seen = Array.from({ length: MH }, () => Array(MW).fill(false));
+    const rooms = [];
+    for (let tries = 0; tries < 80 && rooms.length < 6; tries++) {
+      const w = 3 + rnd(4), h = 2 + rnd(3), x = 1 + rnd(MW - w - 1), y = 1 + rnd(MH - h - 1);
+      if (rooms.some(r => x <= r.x + r.w && x + w >= r.x && y <= r.y + r.h && y + h >= r.y)) continue;
+      rooms.push({ x, y, w, h, cx: x + (w >> 1), cy: y + (h >> 1) });
+    }
+    rooms.forEach(r => { for (let j = r.y; j < r.y + r.h; j++) for (let i = r.x; i < r.x + r.w; i++) map[j][i] = 0; });
+    for (let i = 1; i < rooms.length; i++) {
+      const a = rooms[i - 1], b = rooms[i];
+      const hFirst = Math.random() < .5;
+      for (let x = Math.min(a.cx, b.cx); x <= Math.max(a.cx, b.cx); x++) map[hFirst ? a.cy : b.cy][x] = 0;
+      for (let y = Math.min(a.cy, b.cy); y <= Math.max(a.cy, b.cy); y++) map[y][hFirst ? b.cx : a.cx] = 0;
+    }
+    const occupied = new Set();
+    const free = room => { for (let k = 0; k < 40; k++) { const x = room.x + rnd(room.w), y = room.y + rnd(room.h); if (!map[y][x] && !occupied.has(x + ',' + y)) { occupied.add(x + ',' + y); return [x, y]; } } return null; };
+    const anyFree = () => { for (let k = 0; k < 200; k++) { const r = rooms[1 + rnd(rooms.length - 1)] || rooms[0]; const p = free(r); if (p) return p; } return null; };
+    const [hx, hy] = free(rooms[0]);
+    hero = hero ? Object.assign(hero, { x: hx, y: hy, dx: hx, dy: hy }) : { kind: 'hero', x: hx, y: hy, dx: hx, dy: hy, hp: 5, max: 5, flash: 0 };
+    const last = rooms[rooms.length - 1];
+    stairs = free(last) || anyFree();
+    items = [];
+    const kp = anyFree(); items.push({ kind: 'key', x: kp[0], y: kp[1] });
+    for (let i = 0; i < 3 + rnd(3); i++) { const p = anyFree(); if (p) items.push({ kind: 'coin', x: p[0], y: p[1] }); }
+    if (Math.random() < .6) { const p = anyFree(); if (p) items.push({ kind: 'potion', x: p[0], y: p[1] }); }
+    ents = [];
+    const n = 2 + Math.min(6, floor);
+    for (let i = 0; i < n; i++) {
+      const p = anyFree(); if (!p) break;
+      const roll = Math.random(), kind = floor >= 3 && roll < .3 ? 'skel' : roll < .6 ? 'slime' : 'bat';
+      ents.push({ kind, x: p[0], y: p[1], dx: p[0], dy: p[1], hp: { slime: 2, bat: 1, skel: 3 }[kind], flash: 0 });
+    }
+    torches = [];
+    for (let y = 1; y < MH; y++) for (let x = 0; x < MW; x++) if (map[y][x] && !map[y - 1]?.[x] === false && y + 1 < MH && !map[y + 1][x] && Math.random() < .12) torches.push([x, y]);
+    hasKey = false; updateHud(); computeFov();
+  }
+
+  function computeFov() {
+    for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
+      const d = Math.hypot(x - hero.x, y - hero.y);
+      if (d > 5.2) continue;
+      if (los(hero.x, hero.y, x, y)) seen[y][x] = true;
+    }
+  }
+  function los(x0, y0, x1, y1) {
+    let dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, err = dx + dy, x = x0, y = y0;
+    while (!(x === x1 && y === y1)) {
+      if ((x !== x0 || y !== y0) && map[y][x]) return false;
+      const e2 = 2 * err; if (e2 >= dy) { err += dy; x += sx; } if (e2 <= dx) { err += dx; y += sy; }
+    }
+    return true;
+  }
+  const visible = (x, y) => Math.hypot(x - hero.x, y - hero.y) <= 5.2 && los(hero.x, hero.y, x, y);
+
+  function log(msg) { $('log').innerHTML = msg; }
+  function updateHud() {
+    $('hearts').innerHTML = '';
+    for (let i = 0; i < hero.max; i++) { const c = document.createElement('canvas'); c.width = c.height = 8; const g = c.getContext('2d'); g.globalAlpha = i < hero.hp ? 1 : .2; g.drawImage(sprites.heart, 0, 0); $('hearts').appendChild(c); }
+    $('floor').textContent = floor; $('gold').textContent = gold + ' gold';
+    $('keyState').textContent = hasKey ? 'Key in hand' : 'No key';
+  }
+  const entAt = (x, y) => ents.find(e => e.x === x && e.y === y);
+  const NAMES = { slime: 'slime', bat: 'bat', skel: 'skeleton' };
+  function floater(x, y, text, col) { floaters.push({ x: x * T + 4, y: y * T, text, col, t: 0 }); }
+
+  function act(mx, my) {
+    if (dead) return;
+    turn++;
+    if (mx || my) {
+      const nx = hero.x + mx, ny = hero.y + my;
+      const foe = entAt(nx, ny);
+      if (foe) {
+        foe.hp--; foe.flash = 6; floater(nx, ny, '1', PAL.s);
+        if (foe.hp <= 0) { ents = ents.filter(e => e !== foe); log(`You slay the <b>${NAMES[foe.kind]}</b>.`); if (Math.random() < .35) items.push({ kind: 'coin', x: nx, y: ny }); }
+        else log(`You strike the ${NAMES[foe.kind]}.`);
+      } else if (!map[ny]?.[nx]) {
+        hero.x = nx; hero.y = ny;
+        const it = items.find(i => i.x === nx && i.y === ny);
+        if (it) {
+          items = items.filter(i => i !== it);
+          if (it.kind === 'coin') { gold++; floater(nx, ny, '+1', PAL.y); log('A coin, cold and old.'); }
+          if (it.kind === 'key') { hasKey = true; log('You find the <b>crypt key</b>. The stairs will open now.'); }
+          if (it.kind === 'potion') { hero.hp = Math.min(hero.max, hero.hp + 2); floater(nx, ny, '+2', PAL.r); log('The tonic burns going down. You feel better.'); }
+        }
+        if (stairs && nx === stairs[0] && ny === stairs[1]) {
+          if (hasKey) { floor++; if (floor > deepest) { deepest = floor; store.set('crypt-deepest', deepest); $('bestTxt').textContent = `Floor ${deepest}`; } genFloor(); log(`You descend to floor <b>${floor}</b>. The air grows colder.`); updateHud(); return; }
+          else log('The stairs are sealed. Find the key.');
+        }
+      } else { turn--; return; }
+    } else log('You wait and listen.');
+    enemies();
+    computeFov(); updateHud();
+  }
+
+  function enemies() {
+    for (const e of ents) {
+      if (e.kind === 'slime' && turn % 2) continue;
+      const dist = Math.abs(e.x - hero.x) + Math.abs(e.y - hero.y);
+      if (dist > 7 && e.kind !== 'bat') continue;
+      let moves = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      let choice;
+      if (e.kind === 'bat' && Math.random() < .5) choice = moves[rnd(4)];
+      else {
+        moves.sort((a, b) => (Math.abs(e.x + a[0] - hero.x) + Math.abs(e.y + a[1] - hero.y)) - (Math.abs(e.x + b[0] - hero.x) + Math.abs(e.y + b[1] - hero.y)));
+        choice = moves.find(([dx, dy]) => { const x = e.x + dx, y = e.y + dy; return (x === hero.x && y === hero.y) || (!map[y]?.[x] && !entAt(x, y)); });
+      }
+      if (!choice) continue;
+      const nx = e.x + choice[0], ny = e.y + choice[1];
+      if (nx === hero.x && ny === hero.y) {
+        hero.hp--; hero.flash = 8; shake = 6; floater(hero.x, hero.y, '-1', PAL.r);
+        log(`The <b>${NAMES[e.kind]}</b> ${e.kind === 'bat' ? 'bites' : e.kind === 'slime' ? 'engulfs' : 'slashes'} you.`);
+        if (hero.hp <= 0) { die(); return; }
+      } else if (!map[ny]?.[nx] && !entAt(nx, ny)) { e.x = nx; e.y = ny; }
+    }
+  }
+  function die() {
+    dead = true; updateHud();
+    $('overText').textContent = `Floor ${floor} · ${gold} gold · deepest ever: floor ${deepest}`;
+    $('over').hidden = false; $('again').focus();
+  }
+  function restart() { floor = 1; gold = 0; turn = 0; dead = false; hero = null; genFloor(); $('over').hidden = true; log('You wake in the crypt again. It remembers you.'); cv.focus(); }
+  $('again').addEventListener('click', restart);
+
+  const DIRS = { ArrowUp: [0, -1], w: [0, -1], W: [0, -1], ArrowDown: [0, 1], s: [0, 1], S: [0, 1], ArrowLeft: [-1, 0], a: [-1, 0], A: [-1, 0], ArrowRight: [1, 0], d: [1, 0], D: [1, 0], ' ': [0, 0], '.': [0, 0] };
+  addEventListener('keydown', e => {
+    if (e.target.closest?.('button') && (e.key === ' ' || e.key === 'Enter')) return;
+    if (e.key === 'r' || e.key === 'R') { restart(); return; }
+    const d = DIRS[e.key]; if (!d) return;
+    e.preventDefault(); act(d[0], d[1]);
+  });
+  document.querySelectorAll('.pad button').forEach(b => b.addEventListener('click', () => { const [x, y] = b.dataset.d.split(',').map(Number); act(x, y); }));
+
+  // ── Render ──
+  let t = 0;
+  function tile(x, y) {
+    const X = x * T, Y = y * T;
+    if (map[y][x]) {
+      ctx.fillStyle = PAL.w; ctx.fillRect(X, Y, T, T);
+      if (y + 1 < MH && !map[y + 1][x]) { ctx.fillStyle = PAL.W; ctx.fillRect(X, Y, T, 2); ctx.fillStyle = PAL.k; ctx.fillRect(X, Y + 4, T, 1); ctx.fillRect(X + ((x + y) % 2 ? 2 : 5), Y + 2, 1, 2); ctx.fillRect(X + ((x + y) % 2 ? 5 : 2), Y + 5, 1, 3); }
+      else { ctx.fillStyle = PAL.d; ctx.fillRect(X, Y, T, T); }
+    } else {
+      ctx.fillStyle = PAL.f; ctx.fillRect(X, Y, T, T);
+      ctx.fillStyle = PAL.d; if ((x * 7 + y * 13) % 5 === 0) ctx.fillRect(X + 2, Y + 3, 1, 1); if ((x * 3 + y * 11) % 7 === 0) ctx.fillRect(X + 5, Y + 6, 2, 1);
+    }
+  }
+  function draw() {
+    t += 1;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 128, 96);
+    if (shake > 0) { ctx.translate(rnd(3) - 1, rnd(3) - 1); shake--; }
+    const flick = Math.sin(t * .21) * .15 + Math.sin(t * .53) * .1;
+    for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
+      if (!seen[y][x]) continue;
+      tile(x, y);
+      if (stairs && x === stairs[0] && y === stairs[1]) { ctx.globalAlpha = hasKey ? 1 : .45; ctx.drawImage(sprites.stairs, x * T, y * T); ctx.globalAlpha = 1; }
+    }
+    for (const [x, y] of torches) if (seen[y][x]) { ctx.fillStyle = PAL.o; ctx.fillRect(x * T + 3, y * T + 3, 2, 3); ctx.fillStyle = PAL.y; ctx.fillRect(x * T + 3, y * T + 2 + (t % 20 < 10 ? 0 : 1), 2, 1); }
+    for (const it of items) if (visible(it.x, it.y)) { const bob = it.kind === 'key' ? Math.round(Math.sin(t * .1)) : 0; ctx.drawImage(sprites[it.kind], it.x * T, it.y * T + bob); }
+    const drawEnt = e => {
+      e.dx += (e.x - e.dx) * .35; e.dy += (e.y - e.dy) * .35;
+      const hop = Math.abs(e.x - e.dx) + Math.abs(e.y - e.dy) > .05 ? -1 : 0;
+      const bob = e.kind === 'bat' ? Math.round(Math.sin(t * .3 + e.x)) : 0;
+      const img = e.flash > 0 && e.flash-- % 2 ? white[e.kind] : sprites[e.kind];
+      ctx.drawImage(img, Math.round(e.dx * T), Math.round(e.dy * T) + hop + bob);
+    };
+    for (const e of ents) if (visible(e.x, e.y)) drawEnt(e);
+    drawEnt(hero);
+    // lighting: torch radius around the hero, memory dimmed
+    for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
+      if (!seen[y][x]) continue;
+      const d = Math.hypot(x - hero.dx, y - hero.dy);
+      const lit = visible(x, y) ? Math.max(0, Math.min(1, 1.25 - d / (4.6 + flick))) : 0;
+      const dark = 1 - Math.max(.18, lit);
+      if (dark > 0) { ctx.fillStyle = `rgba(13,10,22,${dark.toFixed(2)})`; ctx.fillRect(x * T, y * T, T, T); }
+      if (lit > .3) { ctx.fillStyle = `rgba(242,158,76,${(lit * .06).toFixed(3)})`; ctx.fillRect(x * T, y * T, T, T); }
+    }
+    ctx.font = '5px Silkscreen, monospace'; ctx.textAlign = 'center';
+    floaters = floaters.filter(f => { f.t++; ctx.fillStyle = '#000'; ctx.fillText(f.text, f.x + 1, f.y - f.t * .25 + 1); ctx.fillStyle = f.col; ctx.fillText(f.text, f.x, f.y - f.t * .25); return f.t < 36; });
+    requestAnimationFrame(draw);
+  }
+  genFloor();
+  requestAnimationFrame(draw);
+})();
+</script>

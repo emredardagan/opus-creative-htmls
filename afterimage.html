@@ -1,0 +1,366 @@
+<title>Afterimage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Azeret+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --floor: #DCD8EA;
+    --wall: #A9A2C8;
+    --ink: #2A2540;
+    --soft: #6B6588;
+    --amber: #F2A541;
+    --teal: #2EC4B6;
+    --pink: #F25C8A;
+    --sans: "Bricolage Grotesque", system-ui, sans-serif;
+    --mono: "Azeret Mono", ui-monospace, Menlo, monospace;
+  }
+  html, body { height: 100%; }
+  html, body { background: #CFCAE2; }
+  body { color: var(--ink); font-family: var(--sans); overflow: hidden; }
+  .game { position: relative; height: 100%; min-height: 540px; background: radial-gradient(ellipse 80% 70% at 50% 45%, #F1EEF8 0%, #CFCAE2 75%); }
+  #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .hud { position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; padding: calc(env(safe-area-inset-top, 0px) + 16px) clamp(16px, 3vw, 32px) 0; pointer-events: none; }
+  .hud h1 { margin: 0; font-weight: 800; font-size: clamp(26px, 3.4vw, 40px); letter-spacing: -.03em; line-height: 1; }
+  .hud .room { font: 500 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--soft); margin-top: 6px; }
+  .loops { text-align: right; font: 500 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--soft); }
+  .loops b { display: block; font: 800 clamp(28px, 3.6vw, 42px)/1 var(--sans); letter-spacing: -.02em; color: var(--ink); text-transform: none; }
+  .timeline { position: absolute; left: clamp(16px, 3vw, 32px); right: clamp(16px, 3vw, 32px); bottom: calc(env(safe-area-inset-bottom, 0px) + 62px); pointer-events: none; }
+  .track { position: relative; height: 10px; border-radius: 99px; background: rgba(42, 37, 64, .1); overflow: hidden; }
+  .track i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 99px; background: var(--ink); }
+  .track.urgent i { background: var(--pink); }
+  .tl-meta { display: flex; justify-content: space-between; margin-top: 7px; font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--soft); }
+  .ghosts { display: flex; gap: 6px; }
+  .ghosts span { width: 12px; height: 12px; border-radius: 50%; opacity: .75; }
+  .controls { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; padding-inline: 16px; }
+  .controls button { font: 600 13px var(--sans); color: var(--ink); background: rgba(255, 255, 255, .7); border: 1px solid rgba(42, 37, 64, .15); padding: 8px 14px; border-radius: 99px; cursor: pointer; }
+  .controls button:focus-visible, .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .controls kbd { font: 500 10px var(--mono); color: var(--soft); margin-left: 6px; }
+  .toast { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); font-weight: 800; font-size: clamp(20px, 3vw, 30px); letter-spacing: -.02em; color: var(--ink); background: rgba(255, 255, 255, .85); padding: 10px 20px; border-radius: 14px; box-shadow: 0 12px 30px -14px rgba(42, 37, 64, .5); opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+  .overlay { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 20px 16px; background: rgba(220, 216, 234, .82); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  .overlay[hidden] { display: none !important; }
+  .overlay { grid-template-columns: minmax(0, 1fr); }
+  .overlay > div { width: min(100%, 680px); justify-self: center; }
+  .overlay .eyebrow { font: 500 12px var(--mono); letter-spacing: .2em; text-transform: uppercase; color: var(--soft); }
+  .overlay h2 { font-weight: 800; font-size: clamp(56px, 11vw, 132px); line-height: .85; letter-spacing: -.05em; margin: 12px 0 16px; }
+  .overlay h2 span { display: block; color: transparent; -webkit-text-stroke: 2px var(--ink); opacity: .45; margin-top: -.62em; transform: translate(.08em, .08em); pointer-events: none; }
+  .overlay p { max-width: 46ch; margin: 0 auto 14px; line-height: 1.55; color: #4A4466; }
+  .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px 22px; max-width: 640px; margin: 18px auto 26px; text-align: left; font-size: 14px; line-height: 1.45; color: #4A4466; }
+  .rules b { display: block; font: 500 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink); margin-bottom: 3px; }
+  .btn { font: 800 16px var(--sans); color: #fff; background: var(--ink); border: 0; padding: 14px 30px; border-radius: 99px; cursor: pointer; box-shadow: 0 14px 30px -14px rgba(42, 37, 64, .7); }
+  .fallback { position: absolute; inset: 0; display: grid; place-items: center; }
+</style>
+
+<div class="game" id="game">
+  <canvas id="gl" aria-label="Afterimage room, seen from above"></canvas>
+  <div class="hud">
+    <div><h1>Afterimage</h1><div class="room" id="roomName">Room 1 · The Handoff</div></div>
+    <div class="loops">Loop<b id="loopNo">1</b><span id="par">par 2</span></div>
+  </div>
+  <div class="toast" id="toast">Loop recorded</div>
+  <div class="timeline">
+    <div class="track" id="track"><i id="fill"></i></div>
+    <div class="tl-meta"><span id="clock">10.0 s left</span><span class="ghosts" id="ghostDots"></span></div>
+  </div>
+  <div class="controls">
+    <button id="commit">End loop now<kbd>SPACE</kbd></button>
+    <button id="undo">Erase last echo<kbd>Z</kbd></button>
+    <button id="restart">Restart room<kbd>R</kbd></button>
+  </div>
+
+  <div class="overlay" id="title">
+    <div>
+      <div class="eyebrow">A puzzle about working with yourself</div>
+      <h2>Afterimage<span aria-hidden="true">Afterimage</span></h2>
+      <p>Every room gives you ten seconds. When the time runs out, the loop starts again, and the you from before comes back as an echo, repeating every step.</p>
+      <div class="rules">
+        <div><b>Plates</b>Standing on a coloured plate opens the matching door. Echoes can hold plates for you.</div>
+        <div><b>Echoes</b>Each loop you play is recorded, then replayed alongside you in the next one.</div>
+        <div><b>Paradox</b>If a door is shut where an echo walked through before, it gets stuck there and goes red.</div>
+        <div><b>Move</b>Use WASD or the arrow keys, or drag on a phone. Space ends a loop early.</div>
+      </div>
+      <button class="btn" id="play">Enter room 1</button>
+    </div>
+  </div>
+  <div class="overlay" id="clear" hidden>
+    <div>
+      <div class="eyebrow" id="clearEyebrow">Room cleared</div>
+      <h2 id="clearTitle" style="font-size:clamp(44px,8vw,96px)">The Handoff</h2>
+      <p id="clearText">Solved in 2 loops.</p>
+      <button class="btn" id="nextRoom">Next room</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  const canvas = document.getElementById('gl'), game = document.getElementById('game');
+  if (!window.THREE) { canvas.insertAdjacentHTML('afterend', '<div class="fallback">Afterimage needs WebGL and three.js.</div>'); return; }
+  const $ = id => document.getElementById(id);
+
+  // # wall · . floor · S start · E exit · a b c plates · A B C doors
+  const ROOMS = [
+    { name: 'The Handoff', par: 2, map: [
+      '#############',
+      '#S....#.....#',
+      '#.....#..a..#',
+      '#.....#.....#',
+      '#...........#',
+      '#.....#######',
+      '#.....A...E.#',
+      '#############'] },
+    { name: 'Two Keys', par: 3, map: [
+      '###############',
+      '#S...#...#...b#',
+      '#....#.a.#....#',
+      '#....#...#....#',
+      '#.............#',
+      '#######A#######',
+      '#.....#.#.....#',
+      '#.E...B.......#',
+      '###############'] },
+    { name: 'Relay', par: 3, map: [
+      '###############',
+      '#S.....A.....b#',
+      '#......#......#',
+      '#......#......#',
+      '#..a...#......#',
+      '#......###B####',
+      '#......#......#',
+      '#......#....E.#',
+      '###############'] },
+    { name: 'Crossfire', par: 4, map: [
+      '###############',
+      '#.....#S#....b#',
+      '#.....#.#.....#',
+      '#.....B.A.....#',
+      '#.....#a#.....#',
+      '###.###########',
+      '#......C......#',
+      '#..c...#...E..#',
+      '###############'] },
+  ];
+  const LOOP = 10, HZ = 60, TICKS = LOOP * HZ, SPEED = 4.2, R = .3;
+  const COLORS = { a: 0xf2a541, b: 0x2ec4b6, c: 0xf25c8a };
+  const GHOST_HUES = [0x7a6cf0, 0x2ec4b6, 0xf2a541, 0xf25c8a, 0x5aa0f2, 0x9bd16a];
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(36, 1, .1, 200);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x9d94c8, .6));
+  const sun = new THREE.DirectionalLight(0xffffff, .75); sun.position.set(-6, 14, 8); sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -12, right: 12, top: 12, bottom: -12 }); sun.shadow.bias = -.0006;
+  scene.add(sun);
+
+  const world = new THREE.Group(); scene.add(world);
+  let room, ri = 0, grid, W, H, start, exitPos, doors = {}, plates = {}, ghosts = [], rec = [], tick = 0, player, state = 'title', loopNo = 1, winT = 0;
+  const floorMat = new THREE.MeshStandardMaterial({ color: 0xcfc9e6, roughness: .9 });
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0x8a82b6, roughness: .7 });
+  const wallTopMat = new THREE.MeshStandardMaterial({ color: 0x6f6799, roughness: .7 });
+  const toX = x => x - W / 2 + .5, toZ = z => z - H / 2 + .5;
+
+  function makeBody(color, opacity) {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color, roughness: .4, transparent: opacity < 1, opacity, emissive: color, emissiveIntensity: opacity < 1 ? .25 : .08 });
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(.26, .3, .5, 24), mat); body.position.y = .25; body.castShadow = opacity === 1;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.22, 24, 16), mat); head.position.y = .68; head.castShadow = opacity === 1;
+    const eye = new THREE.Mesh(new THREE.BoxGeometry(.2, .05, .05), new THREE.MeshBasicMaterial({ color: opacity < 1 ? 0x2a2540 : 0xffffff, transparent: true, opacity })); eye.position.set(0, .72, .2);
+    g.add(body, head, eye); g.userData.mat = mat; world.add(g); return g;
+  }
+
+  function build(i) {
+    ri = i; room = ROOMS[i];
+    while (world.children.length) world.remove(world.children[0]);
+    grid = room.map.map(r => [...r]); H = grid.length; W = grid[0].length; doors = {}; plates = {};
+    const base = new THREE.Mesh(new THREE.BoxGeometry(W + .4, .5, H + .4), wallMat); base.position.y = -.25; base.receiveShadow = true; world.add(base);
+    const wallGeo = new THREE.BoxGeometry(1, 1, 1), capGeo = new THREE.BoxGeometry(1, .06, 1);
+    grid.forEach((row, z) => row.forEach((c, x) => {
+      const X = toX(x), Z = toZ(z);
+      if (c === '#') {
+        const m = new THREE.Mesh(wallGeo, wallMat); m.position.set(X, .5, Z); m.castShadow = m.receiveShadow = true; world.add(m);
+        const cap = new THREE.Mesh(capGeo, wallTopMat); cap.position.set(X, 1.03, Z); world.add(cap);
+        return;
+      }
+      const tile = new THREE.Mesh(new THREE.BoxGeometry(.96, .06, .96), floorMat); tile.position.set(X, .03, Z); tile.receiveShadow = true; world.add(tile);
+      if (c === 'S') { start = [X, Z]; const ring = new THREE.Mesh(new THREE.RingGeometry(.28, .4, 32), new THREE.MeshBasicMaterial({ color: 0x2a2540, transparent: true, opacity: .25 })); ring.rotation.x = -Math.PI / 2; ring.position.set(X, .07, Z); world.add(ring); }
+      if (c === 'E') {
+        exitPos = [X, Z];
+        const portal = new THREE.Mesh(new THREE.TorusGeometry(.34, .06, 12, 40), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x7a6cf0, emissiveIntensity: .9 }));
+        portal.rotation.x = -Math.PI / 2; portal.position.set(X, .12, Z); world.add(portal); portal.userData.spin = true;
+        const glow = new THREE.PointLight(0x7a6cf0, .8, 3); glow.position.set(X, .6, Z); world.add(glow);
+      }
+      if (/[abc]/.test(c)) {
+        const pl = new THREE.Mesh(new THREE.CylinderGeometry(.38, .4, .08, 32), new THREE.MeshStandardMaterial({ color: COLORS[c], emissive: COLORS[c], emissiveIntensity: .15 }));
+        pl.position.set(X, .08, Z); pl.receiveShadow = true; world.add(pl);
+        (plates[c] = plates[c] || []).push({ x, z, mesh: pl });
+      }
+      if (/[ABC]/.test(c)) {
+        const k = c.toLowerCase();
+        const d = new THREE.Mesh(new THREE.BoxGeometry(.98, .95, .98), new THREE.MeshStandardMaterial({ color: COLORS[k], roughness: .35, transparent: true, opacity: .92 }));
+        d.position.set(X, .5, Z); d.castShadow = true; world.add(d);
+        (doors[k] = doors[k] || []).push({ x, z, mesh: d, open: false, h: 0 });
+      }
+    }));
+    player = makeBody(0x3b2f86, 1);
+    $('roomName').textContent = `Room ${i + 1} · ${room.name}`;
+    $('par').textContent = `par ${room.par}`;
+    ghosts.forEach(g => g.mesh && world.remove(g.mesh)); ghosts = [];
+    loopNo = 1; resize(); beginLoop();
+  }
+
+  function beginLoop() {
+    tick = 0; rec = [];
+    player.position.set(start[0], 0, start[1]); player.userData.p = { x: start[0], z: start[1] };
+    ghosts.forEach((g, i) => {
+      if (!g.mesh) g.mesh = makeBody(GHOST_HUES[i % GHOST_HUES.length], .42);
+      g.p = { x: start[0], z: start[1] }; g.stuck = false; g.mesh.position.set(start[0], 0, start[1]); g.mesh.visible = true;
+      g.mesh.userData.mat.color.setHex(GHOST_HUES[i % GHOST_HUES.length]); g.mesh.userData.mat.emissive.setHex(GHOST_HUES[i % GHOST_HUES.length]);
+    });
+    drawTrails();
+    $('loopNo').textContent = loopNo;
+    $('ghostDots').innerHTML = ghosts.map((_, i) => `<span style="background:#${GHOST_HUES[i % GHOST_HUES.length].toString(16).padStart(6, '0')}"></span>`).join('');
+  }
+  let trails = [];
+  function drawTrails() {
+    trails.forEach(t => world.remove(t)); trails = [];
+    ghosts.forEach((g, i) => {
+      const pts = []; for (let k = 0; k < g.rec.length; k += 6) pts.push(new THREE.Vector3(g.rec[k][0], .1, g.rec[k][1]));
+      if (pts.length < 2) return;
+      const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineDashedMaterial({ color: GHOST_HUES[i % GHOST_HUES.length], dashSize: .12, gapSize: .1, transparent: true, opacity: .7 }));
+      line.computeLineDistances(); world.add(line); trails.push(line);
+    });
+  }
+
+  // collision: circle vs wall/closed-door cells
+  const solid = (cx, cz) => { if (cz < 0 || cx < 0 || cz >= H || cx >= W) return true; const c = grid[cz][cx]; if (c === '#') return true; if (/[ABC]/.test(c)) { const d = doors[c.toLowerCase()].find(d => d.x === cx && d.z === cz); return !d.open || d.h < .8; } return false; };
+  function moveCircle(p, nx, nz) {
+    const tryAxis = (x, z) => {
+      const gx = Math.floor(x + W / 2), gz = Math.floor(z + H / 2);
+      for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+        const cx = gx + dx, cz = gz + dz; if (!solid(cx, cz)) continue;
+        const minX = cx - W / 2, minZ = cz - H / 2;
+        const px = Math.max(minX, Math.min(x, minX + 1)), pz = Math.max(minZ, Math.min(z, minZ + 1));
+        if ((x - px) ** 2 + (z - pz) ** 2 < R * R - 1e-6) return false;
+      }
+      return true;
+    };
+    let moved = false;
+    if (tryAxis(nx, p.z)) { p.x = nx; moved = true; }
+    if (tryAxis(p.x, nz)) { p.z = nz; moved = true; }
+    return moved;
+  }
+  const cellOf = p => [Math.floor(p.x + W / 2), Math.floor(p.z + H / 2)];
+
+  function updatePlates() {
+    const bodies = [player.userData.p, ...ghosts.map(g => g.p)];
+    for (const k in plates) {
+      const pressed = plates[k].some(pl => bodies.some(b => { const [x, z] = cellOf(b); return x === pl.x && z === pl.z; }));
+      plates[k].forEach(pl => { pl.mesh.position.y = pressed ? .03 : .08; pl.mesh.material.emissiveIntensity = pressed ? .7 : .15; });
+      (doors[k] || []).forEach(d => {
+        // a door cannot close on a body standing in it
+        const occupied = bodies.some(b => { const [x, z] = cellOf(b); return x === d.x && z === d.z; });
+        d.open = pressed || (d.open && occupied);
+      });
+    }
+  }
+
+  // ── Input ──
+  const keys = {}; let joy = null;
+  addEventListener('keydown', e => {
+    const k = e.key.toLowerCase(); keys[k] = true;
+    if (e.key.startsWith('Arrow') || e.key === ' ') e.preventDefault();
+    if (e.target.closest?.('button') && (e.key === ' ' || e.key === 'Enter')) return;
+    if (state === 'title' && (e.key === 'Enter' || e.key === ' ')) return begin();
+    if (state === 'clear' && (e.key === 'Enter' || e.key === ' ')) return $('nextRoom').click();
+    if (state !== 'play') return;
+    if (e.key === ' ') commit();
+    if (k === 'r') restart();
+    if (k === 'z') undo();
+  });
+  addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+  canvas.addEventListener('pointerdown', e => { joy = { x0: e.clientX, y0: e.clientY, dx: 0, dy: 0 }; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointermove', e => { if (joy) { joy.dx = e.clientX - joy.x0; joy.dy = e.clientY - joy.y0; } });
+  canvas.addEventListener('pointerup', () => { joy = null; });
+
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 1200); }
+  function commit() {
+    if (state !== 'play') return;
+    while (rec.length < TICKS) rec.push(rec[rec.length - 1] || [start[0], start[1]]);
+    ghosts.push({ rec: rec.slice(), p: null, mesh: null });
+    loopNo++; toast(`Echo ${ghosts.length} recorded`);
+    beginLoop();
+  }
+  function undo() {
+    if (!ghosts.length) return;
+    const g = ghosts.pop(); if (g.mesh) world.remove(g.mesh);
+    loopNo = Math.max(1, loopNo - 1); toast('Echo erased'); beginLoop();
+  }
+  function restart() { ghosts.forEach(g => g.mesh && world.remove(g.mesh)); ghosts = []; loopNo = 1; toast('Room reset'); beginLoop(); }
+  $('commit').addEventListener('click', commit); $('undo').addEventListener('click', undo); $('restart').addEventListener('click', restart);
+  function begin() { $('title').hidden = true; state = 'play'; build(0); }
+  $('play').addEventListener('click', begin);
+  $('nextRoom').addEventListener('click', () => { $('clear').hidden = true; state = 'play'; build((ri + 1) % ROOMS.length); });
+  function win() {
+    state = 'clear';
+    const used = loopNo, par = room.par, last = ri === ROOMS.length - 1;
+    $('clearEyebrow').textContent = last ? 'Every room cleared' : `Room ${ri + 1} cleared`;
+    $('clearTitle').textContent = room.name;
+    $('clearText').textContent = `Solved in ${used} loop${used > 1 ? 's' : ''} · par ${par}${used <= par ? ' · perfect timing' : ''}.`;
+    $('nextRoom').textContent = last ? 'Play from room 1' : 'Next room';
+    setTimeout(() => { $('clear').hidden = false; $('nextRoom').focus(); }, 600);
+  }
+
+  function resize() {
+    const w = game.clientWidth, h = game.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h;
+    const span = Math.max((W || 13) / camera.aspect, (H || 8)) + 3.2;
+    const d = span / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+    camera.position.set(0, d * .9, d * .45); camera.lookAt(0, 0, .35);
+    camera.updateProjectionMatrix();
+  }
+  addEventListener('resize', resize);
+
+  // title backdrop: room 1 with a demo echo
+  build(0); state = 'title';
+
+  let acc = 0, last = performance.now(), t = 0;
+  function step() {
+    // player
+    let mx = (keys.arrowright || keys.d ? 1 : 0) - (keys.arrowleft || keys.a ? 1 : 0), mz = (keys.arrowdown || keys.s ? 1 : 0) - (keys.arrowup || keys.w ? 1 : 0);
+    if (joy && Math.hypot(joy.dx, joy.dy) > 10) { const l = Math.hypot(joy.dx, joy.dy); mx = joy.dx / l; mz = joy.dy / l; }
+    const l = Math.hypot(mx, mz) || 1, p = player.userData.p;
+    if (mx || mz) moveCircle(p, p.x + mx / l * SPEED / HZ, p.z + mz / l * SPEED / HZ);
+    rec.push([p.x, p.z]);
+    // echoes follow their recordings unless a shut door is in the way
+    ghosts.forEach(g => {
+      const target = g.rec[Math.min(tick, g.rec.length - 1)];
+      if (g.stuck) return;
+      const ok = moveCircle(g.p, target[0], target[1]);
+      if (Math.hypot(g.p.x - target[0], g.p.z - target[1]) > .05) { g.stuck = true; g.mesh.userData.mat.color.setHex(0xff3b5c); g.mesh.userData.mat.emissive.setHex(0xff3b5c); toast('Paradox · an echo is stuck'); }
+    });
+    updatePlates();
+    tick++;
+    if (Math.hypot(p.x - exitPos[0], p.z - exitPos[1]) < .4) { win(); return; }
+    if (tick >= TICKS) commit();
+  }
+  function loop(now) {
+    const dt = Math.min(.1, (now - last) / 1000); last = now; t += dt;
+    if (state === 'play') { acc += dt; while (acc >= 1 / HZ && state === 'play') { step(); acc -= 1 / HZ; } } else acc = 0;
+    // render interpolation-free positions
+    const p = player.userData.p; player.position.set(p.x, Math.abs(Math.sin(t * 10)) * (state === 'play' && (keys.w || keys.a || keys.s || keys.d || keys.arrowup || keys.arrowdown || keys.arrowleft || keys.arrowright || joy) ? .06 : 0), p.z);
+    ghosts.forEach(g => { if (g.mesh && g.p) g.mesh.position.set(g.p.x, g.stuck ? Math.abs(Math.sin(t * 20)) * .04 : 0, g.p.z); });
+    for (const k in doors) doors[k].forEach(d => { const target = d.open ? 1 : 0; d.h += (target - d.h) * Math.min(1, dt * 10); d.mesh.position.y = .5 - d.h * .92; d.mesh.material.opacity = .92 - d.h * .5; });
+    world.children.forEach(o => { if (o.userData.spin) o.rotation.z += dt * 1.5; });
+    const left = Math.max(0, LOOP - tick / HZ);
+    $('fill').style.width = (tick / TICKS * 100) + '%';
+    $('track').classList.toggle('urgent', left < 3);
+    $('clock').textContent = `${left.toFixed(1)} s left`;
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>

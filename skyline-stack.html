@@ -1,0 +1,201 @@
+<title>Skyline Stack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --top: #FBD3C4;
+    --bottom: #C8D6F5;
+    --ink: #1D1A2B;
+    --soft: rgba(29, 26, 43, .6);
+    --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+    --mono: "DM Mono", ui-monospace, Menlo, monospace;
+  }
+  html, body { height: 100%; }
+  html { background: var(--bottom); }
+  body { background: var(--bottom); color: var(--ink); font-family: var(--mono); overflow: hidden; user-select: none; -webkit-user-select: none; }
+  .game { position: relative; height: 100%; min-height: 520px; background: linear-gradient(180deg, var(--top), var(--bottom)); transition: background 1s; cursor: pointer; }
+  #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: manipulation; }
+  .score { position: absolute; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 7vh); text-align: center; pointer-events: none; }
+  .score b { display: block; font-family: var(--display); font-weight: 900; font-size: clamp(64px, 14vw, 150px); line-height: .9; letter-spacing: -.04em; color: var(--ink); mix-blend-mode: overlay; opacity: .85; font-variant-numeric: tabular-nums; }
+  .score span { font-size: 12px; letter-spacing: .24em; text-transform: uppercase; color: var(--soft); }
+  .perfect { position: absolute; left: 50%; top: 32%; transform: translate(-50%, 0) scale(.9); font-family: var(--display); font-weight: 700; font-size: clamp(18px, 2.6vw, 26px); letter-spacing: .08em; color: #fff; text-shadow: 0 2px 20px rgba(29, 26, 43, .25); opacity: 0; transition: opacity .2s, transform .3s; pointer-events: none; white-space: nowrap; }
+  .perfect.show { opacity: 1; transform: translate(-50%, -16px) scale(1); }
+  .panel { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 20px 16px; pointer-events: none; }
+  .panel[hidden] { display: none !important; }
+  .panel > div { pointer-events: auto; }
+  .panel h1 { font-family: var(--display); font-weight: 900; font-size: clamp(46px, 9vw, 104px); line-height: .88; letter-spacing: -.04em; margin: 0 0 16px; }
+  .panel h1 span { display: block; -webkit-text-stroke: 2px var(--ink); color: transparent; }
+  .panel p { max-width: 36ch; margin: 0 auto 22px; font-size: 14px; line-height: 1.6; color: var(--soft); }
+  .btn { font: 700 14px var(--display); letter-spacing: .06em; text-transform: uppercase; color: #fff; background: var(--ink); border: 0; padding: 15px 30px; border-radius: 99px; cursor: pointer; box-shadow: 0 16px 30px -14px rgba(29, 26, 43, .6); }
+  .btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  .final { font-family: var(--display); font-weight: 900; font-size: clamp(80px, 16vw, 170px); line-height: .85; letter-spacing: -.05em; }
+  .meta { font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--soft); margin: 10px 0 24px; }
+  .corner { position: absolute; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); left: clamp(16px, 3vw, 28px); right: clamp(16px, 3vw, 28px); display: flex; justify-content: space-between; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--soft); pointer-events: none; }
+  .fallback { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); }
+</style>
+
+<div class="game" id="game">
+  <canvas id="gl" aria-label="Skyline Stack. Tap, click or press Space to drop the block."></canvas>
+  <div class="score" aria-live="polite"><b id="score">0</b><span id="sub">floors</span></div>
+  <div class="perfect" id="perfect">Perfect ×1</div>
+  <div class="panel" id="title">
+    <div>
+      <h1>Skyline<span>Stack</span></h1>
+      <p>Drop each floor on the one below. Whatever hangs over the edge gets sliced off. Land it dead-on to keep your footprint, or grow it back after a streak.</p>
+      <button class="btn" id="play">Start building</button>
+    </div>
+  </div>
+  <div class="panel" id="over" hidden>
+    <div>
+      <div class="final" id="final">0</div>
+      <div class="meta" id="meta">floors · best 0</div>
+      <button class="btn" id="again">Build again</button>
+    </div>
+  </div>
+  <div class="corner"><span>Tap · click · space</span><span id="best">Best 0</span></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  const canvas = document.getElementById('gl'), game = document.getElementById('game');
+  if (!window.THREE) { canvas.insertAdjacentHTML('afterend', '<div class="fallback">Skyline Stack needs WebGL and three.js.</div>'); return; }
+  const $ = id => document.getElementById(id);
+  const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : +v; } catch (_) { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} } };
+  let best = store.get('stack-best', 0);
+  $('best').textContent = `Best ${best}`;
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.shadowMap.enabled = true;
+  const scene = new THREE.Scene();
+  let camera;
+  const light = new THREE.DirectionalLight(0xffffff, .9); light.position.set(6, 12, 4); light.castShadow = true;
+  Object.assign(light.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: .1, far: 60 }); light.shadow.mapSize.set(1024, 1024);
+  scene.add(light, light.target, new THREE.HemisphereLight(0xffffff, 0x8a7fa8, .65));
+
+  const BH = 1, BASE = 3.2;
+  let stack = [], debris = [], moving = null, dir = 'x', level = 0, hue = 0, perfects = 0, state = 'title', camY = 4, speed = 3.2, t = 0;
+
+  const colorFor = i => new THREE.Color().setHSL(((hue + i * 3.5) % 360) / 360, .58, .66);
+  function box(w, d, y, x, z, i) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, BH, d), new THREE.MeshLambertMaterial({ color: colorFor(i) }));
+    m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; scene.add(m); return m;
+  }
+  function setSky() {
+    const a = new THREE.Color().setHSL(((hue + level * 3.5 + 20) % 360) / 360, .75, .86), b = new THREE.Color().setHSL(((hue + level * 3.5 + 200) % 360) / 360, .55, .82);
+    game.style.setProperty('--top', '#' + a.getHexString()); game.style.setProperty('--bottom', '#' + b.getHexString());
+  }
+
+  function reset() {
+    [...stack, ...debris].forEach(b => scene.remove(b.m)); if (moving) scene.remove(moving.m);
+    stack = []; debris = []; level = 0; perfects = 0; hue = Math.random() * 360; speed = 3.2; dir = 'x';
+    // foundation plinth
+    for (let i = -5; i <= 0; i++) stack.push({ m: box(BASE, BASE, i * BH, 0, 0, i), w: BASE, d: BASE, x: 0, z: 0 });
+    camY = 4; setSky(); $('score').textContent = 0;
+  }
+  function spawn() {
+    const top = stack[stack.length - 1];
+    level++;
+    dir = level % 2 ? 'x' : 'z';
+    const y = level * BH, from = -7;
+    const m = box(top.w, top.d, y, dir === 'x' ? from : top.x, dir === 'z' ? from : top.z, level);
+    moving = { m, w: top.w, d: top.d, x: m.position.x, z: m.position.z, t: 0, s: 1 };
+    setSky();
+  }
+  function flash(text) { const p = $('perfect'); p.textContent = text; p.classList.add('show'); clearTimeout(flash.id); flash.id = setTimeout(() => p.classList.remove('show'), 700); }
+
+  function drop() {
+    if (state === 'title' || state === 'over') return;
+    if (!moving) return;
+    const top = stack[stack.length - 1], mv = moving;
+    const axis = dir, size = axis === 'x' ? mv.w : mv.d, prev = axis === 'x' ? top.x : top.z, cur = axis === 'x' ? mv.x : mv.z;
+    let delta = cur - prev;
+    const overlap = size - Math.abs(delta);
+    if (overlap <= 0) {
+      // miss: the whole block tumbles
+      debris.push({ m: mv.m, vy: 0, vx: axis === 'x' ? Math.sign(delta) * 2 : 0, vz: axis === 'z' ? Math.sign(delta) * 2 : 0, rx: Math.random() * 2, rz: Math.random() * 2 });
+      moving = null; gameOver(); return;
+    }
+    let newSize = overlap, center = prev + delta / 2;
+    if (Math.abs(delta) < .12) {
+      perfects++; delta = 0; center = prev; newSize = size;
+      if (perfects >= 3) { newSize = Math.min(BASE, size + .15); }
+      flash(perfects >= 3 ? `Perfect ×${perfects} · +growth` : `Perfect ×${perfects}`);
+    } else {
+      perfects = 0;
+      // sliced overhang falls
+      const cutSize = size - newSize, cutCenter = center + Math.sign(delta) * (newSize / 2 + cutSize / 2);
+      const y = mv.m.position.y;
+      const cut = axis === 'x' ? box(cutSize, mv.d, y, cutCenter, mv.z, level) : box(mv.w, cutSize, y, mv.x, cutCenter, level);
+      debris.push({ m: cut, vy: 0, vx: axis === 'x' ? Math.sign(delta) * 1.2 : 0, vz: axis === 'z' ? Math.sign(delta) * 1.2 : 0, rx: axis === 'z' ? Math.sign(delta) * 1.5 : 0, rz: axis === 'x' ? -Math.sign(delta) * 1.5 : 0 });
+    }
+    scene.remove(mv.m);
+    const w = axis === 'x' ? newSize : mv.w, d = axis === 'z' ? newSize : mv.d, x = axis === 'x' ? center : mv.x, z = axis === 'z' ? center : mv.z;
+    stack.push({ m: box(w, d, level * BH, x, z, level), w, d, x, z });
+    moving = null;
+    $('score').textContent = level;
+    speed = Math.min(7.5, 3.2 + level * .09);
+    spawn();
+  }
+  function gameOver() {
+    state = 'over';
+    const floors = level - 1;
+    if (floors > best) { best = floors; store.set('stack-best', best); }
+    $('final').textContent = floors; $('meta').textContent = `floor${floors === 1 ? '' : 's'} · best ${best}`; $('best').textContent = `Best ${best}`;
+    setTimeout(() => { $('over').hidden = false; $('again').focus(); }, 650);
+  }
+  function begin() { reset(); state = 'play'; $('title').hidden = true; $('over').hidden = true; spawn(); }
+  $('play').addEventListener('click', e => { e.stopPropagation(); begin(); });
+  $('again').addEventListener('click', e => { e.stopPropagation(); begin(); });
+  game.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; drop(); });
+  addEventListener('keydown', e => {
+    if (e.key !== ' ' && e.key !== 'Enter') return;
+    if (e.target.closest?.('button')) return;
+    e.preventDefault();
+    if (state === 'play') drop(); else begin();
+  });
+
+  function resize() {
+    const w = game.clientWidth, h = game.clientHeight, a = w / h, v = a < 1 ? 11 : 8.5;
+    if (!camera) camera = new THREE.OrthographicCamera(-v * a, v * a, v, -v, -100, 200);
+    camera.left = -v * a; camera.right = v * a; camera.top = v; camera.bottom = -v; camera.updateProjectionMatrix();
+    renderer.setSize(w, h, false);
+  }
+  addEventListener('resize', resize); resize();
+
+  // idle tower for the title screen
+  reset();
+  for (let i = 0; i < 8; i++) { level++; const s = BASE - i * .12; stack.push({ m: box(s, s, level * BH, 0, 0, level), w: s, d: s, x: 0, z: 0 }); }
+  setSky();
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt;
+    if (moving && state === 'play') {
+      const p = dir === 'x' ? 'x' : 'z';
+      moving[p] += moving.s * speed * dt;
+      if (moving[p] > 7) { moving[p] = 7; moving.s = -1; } else if (moving[p] < -7) { moving[p] = -7; moving.s = 1; }
+      moving.m.position[p] = moving[p];
+    }
+    debris = debris.filter(d => {
+      d.vy -= 22 * dt; d.m.position.y += d.vy * dt; d.m.position.x += d.vx * dt; d.m.position.z += d.vz * dt;
+      d.m.rotation.x += d.rx * dt; d.m.rotation.z += d.rz * dt;
+      if (d.m.position.y < camY - 30) { scene.remove(d.m); return false; }
+      return true;
+    });
+    const targetY = Math.max(4, level * BH + 1.5);
+    camY += (targetY - camY) * Math.min(1, dt * 3);
+    const orbit = state === 'title' ? t * .25 : 0;
+    camera.position.set(Math.cos(Math.PI / 4 + orbit) * 20, camY + 14, Math.sin(Math.PI / 4 + orbit) * 20);
+    camera.lookAt(0, camY - 2, 0);
+    light.position.set(6, camY + 12, 4); light.target.position.set(0, camY - 2, 0);
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
