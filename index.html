@@ -168,7 +168,12 @@
   /* ---------- game cards ---------- */
   .bento { display: grid; gap: clamp(14px, 1.6vw, 22px); grid-template-columns: repeat(6, 1fr); }
   .card { grid-column: span 2; perspective: 900px; }
-  .card.featured { grid-column: span 3; }
+  .card.featured, .card.half { grid-column: span 3; }
+  .card.wide { grid-column: span 6; }
+  .card.wide a { flex-direction: row; }
+  .card.wide .thumb { width: 50%; flex: none; aspect-ratio: 2 / 1; }
+  .card.wide .body { justify-content: center; padding: 28px 32px; }
+  .card.wide h3 { font-size: clamp(28px, 2.8vw, 40px); }
   .card.hide { display: none; }
   .card a {
     --mx: 50%; --my: 50%; --rx: 0deg; --ry: 0deg;
@@ -295,6 +300,7 @@
   .toy .thumb::after { display: none; }
   .toy h3 { margin: 0 0 2px; font-size: 19px; font-stretch: 88%; line-height: 1.15; }
   .toy .kind { color: var(--cyan); font-size: 11px; }
+  .card .new { font: inherit; margin-right: 8px; padding: 2px 6px; border-radius: 4px; background: var(--coral); color: var(--bg); }
   .toy .new { font: inherit; margin-left: 8px; padding: 2px 6px; border-radius: 4px; background: var(--coral); color: var(--bg); }
   .toy p { margin: 4px 0 0; color: var(--dim); font-size: 14px; line-height: 1.4; }
 
@@ -317,7 +323,9 @@
   /* ---------- responsive ---------- */
   @media (max-width: 1020px) {
     .bento { grid-template-columns: repeat(2, 1fr); }
-    .card, .card.featured { grid-column: span 1; }
+    .card, .card.featured, .card.half, .card.wide { grid-column: span 1; }
+    .card.wide a { flex-direction: column; }
+    .card.wide .thumb { width: auto; }
     .pitch { grid-template-columns: 1fr; }
     .pitch::before, .pitch::after { left: 50%; top: 30%; }
     .pitch::after { display: none; }
@@ -469,6 +477,8 @@
       text: "Build a town on the back of a giant sea turtle and keep her happy on the long swim to the Great Reef." },
     { file: "mixtape-commando", title: "Mixtape Commando", kind: "Run and gun", featured: true,
       text: "A pixel run-and-gun set to a synth mixtape. Fire on the beat to turn your shots gold." },
+    { file: "paw-crossing", title: "Paw Crossing", kind: "Arcade", fresh: true,
+      text: "Hop one of 24 little animals across busy roads and log-strewn rivers. Built with Kenney's 3D models, soft shadows and ambient occlusion." },
     { file: "sunchaser", title: "Sunchaser", kind: "Racing",
       text: "Drive west toward the last sunset. Rebuild your scrap car, drift for nitro, and ram a boss at the end of every tenth road." },
     { file: "nordlys-line", title: "Nordlys Line", kind: "Train sim",
@@ -551,7 +561,9 @@
     thumb.append(img(g.file, 800, 500), el("span", "idx mono", String(i + 1).padStart(2, "0")), el("span", "play", "▶"));
     const body = el("div", "body");
     const row = el("div", "row");
-    row.append(el("h3", null, g.title), el("span", "kind mono", g.kind));
+    const kind = el("span", "kind mono", g.kind);
+    if (g.fresh) kind.prepend(el("b", "new", "New"));
+    row.append(el("h3", null, g.title), kind);
     body.append(row, el("p", null, g.text));
     a.append(thumb, body);
     card.append(a);
@@ -575,6 +587,16 @@
 
   const gamesGrid = document.getElementById("games-grid");
   gamesGrid.append(...games.map(gameCard));
+
+  // Keep the last row of the 3-up grid full: a lone leftover card goes wide, a pair splits the row.
+  function balance() {
+    const regular = [...gamesGrid.querySelectorAll(".card:not(.hide):not(.featured)")];
+    regular.forEach(c => c.classList.remove("wide", "half"));
+    const left = regular.length % 3;
+    if (left === 1) regular.at(-1).classList.add("wide");
+    if (left === 2) regular.slice(-2).forEach(c => c.classList.add("half"));
+  }
+  balance();
   document.getElementById("toys-grid").append(...toys.map(toyCard));
   document.getElementById("game-count").textContent = games.length;
   document.getElementById("toy-count").textContent = toys.length;
@@ -604,6 +626,7 @@
         c.classList.toggle("hide", !show);
         c.classList.toggle("featured", !kinds && c.dataset.featured === "1");
       });
+      balance();
     });
     chips.append(b);
   });

@@ -1,0 +1,49 @@
+/* Toybox — shared HUD styles: soft white pills, round buttons, bouncy panels. */
+@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap");
+
+:root {
+  --tb-ink: #2b2d42;
+  --tb-dim: #7b7f9a;
+  --tb-card: rgba(255, 255, 255, .92);
+  --tb-accent: #ff8a3d;
+  --tb-accent-2: #ffc23d;
+  --tb-good: #3ccf7a;
+  --tb-bad: #ff5d6c;
+  --tb-shadow: 0 6px 0 rgba(43, 45, 66, .12), 0 14px 28px -10px rgba(43, 45, 66, .35);
+  --tb-font: "Fredoka", ui-rounded, system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #bfe7ff; font-family: var(--tb-font); color: var(--tb-ink); -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+canvas.tb-stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+.tb-hud { position: fixed; inset: 0; pointer-events: none; padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.tb-hud[hidden] { display: none; }
+.tb-row { display: flex; gap: 8px; align-items: center; }
+.tb-pill { pointer-events: auto; background: var(--tb-card); border-radius: 18px; padding: 8px 14px; box-shadow: var(--tb-shadow); display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.tb-pill small { display: block; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--tb-dim); font-weight: 600; line-height: 1; }
+.tb-pill b { display: block; font-size: 26px; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tb-btn { pointer-events: auto; appearance: none; border: 0; cursor: pointer; width: 46px; height: 46px; border-radius: 50%; background: var(--tb-card); box-shadow: var(--tb-shadow); display: grid; place-items: center; color: var(--tb-ink); transition: transform .15s; }
+.tb-btn:active { transform: translateY(3px) scale(.96); }
+.tb-btn svg { width: 22px; height: 22px; }
+
+.tb-cta { pointer-events: auto; appearance: none; border: 0; cursor: pointer; font: 700 22px var(--tb-font); color: #fff; padding: 14px 34px; border-radius: 999px; background: linear-gradient(180deg, var(--tb-accent-2), var(--tb-accent)); box-shadow: 0 6px 0 #d86a1f, 0 16px 30px -10px rgba(216, 106, 31, .7); transition: transform .12s, box-shadow .12s; letter-spacing: .01em; }
+.tb-cta:hover { transform: translateY(-2px); }
+.tb-cta:active { transform: translateY(4px); box-shadow: 0 2px 0 #d86a1f, 0 8px 16px -8px rgba(216, 106, 31, .7); }
+.tb-cta:focus-visible, .tb-btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+.tb-overlay { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; pointer-events: none; }
+.tb-overlay[hidden] { display: none; }
+.tb-panel { pointer-events: auto; background: var(--tb-card); border-radius: 28px; padding: 26px 28px; box-shadow: var(--tb-shadow); text-align: center; max-width: min(420px, 100%); animation: tb-pop-in .45s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes tb-pop-in { from { transform: scale(.7) translateY(20px); opacity: 0; } }
+
+.tb-pop { position: fixed; left: 0; top: 0; pointer-events: none; font: 700 22px var(--tb-font); color: #fff; -webkit-text-stroke: 5px var(--tb-ink); paint-order: stroke fill; white-space: nowrap; z-index: 20; }
+.tb-pop.gold { color: #ffd23d; }
+.tb-pop.good { color: #7cf0a8; }
+.tb-pop.big { font-size: 34px; }
+
+.tb-loading { position: fixed; inset: 0; display: grid; place-items: center; background: #bfe7ff; z-index: 50; transition: opacity .5s; }
+.tb-loading.done { opacity: 0; pointer-events: none; }
+.tb-loading .bar { width: min(240px, 60vw); height: 14px; border-radius: 99px; background: rgba(255, 255, 255, .7); overflow: hidden; box-shadow: var(--tb-shadow); }
+.tb-loading .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--tb-accent-2), var(--tb-accent)); border-radius: inherit; transition: width .2s; }
+
+@media (prefers-reduced-motion: reduce) { .tb-panel { animation: none; } }

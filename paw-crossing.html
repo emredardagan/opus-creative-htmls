@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Paw Crossing</title>
+<meta name="description" content="Hop a little animal across busy roads and rivers. A 3D arcade game built with Kenney's CC0 models.">
+<meta name="theme-color" content="#bfe7ff">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/kit/toybox.css">
+<style>
+  .score b { font-size: 34px; }
+  .coins b { color: #e8a200; }
+  .coin-dot { width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff3a8, #ffc23d 45%, #e39a00); box-shadow: inset 0 -2px 0 rgba(0,0,0,.15); }
+
+  .title-screen { align-content: space-between; }
+  .logo { text-align: center; margin-top: 4vh; }
+  .logo h1 { margin: 0; font-size: clamp(48px, 11vw, 96px); line-height: .9; font-weight: 700; color: #fff; -webkit-text-stroke: 10px var(--tb-ink); paint-order: stroke fill; letter-spacing: -.01em; transform: rotate(-3deg); }
+  .logo h1 span { color: var(--tb-accent-2); }
+  .logo p { margin: 14px 0 0; font-weight: 600; color: var(--tb-ink); background: var(--tb-card); display: inline-block; padding: 6px 14px; border-radius: 99px; box-shadow: var(--tb-shadow); }
+  .picker { pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 14px; margin-bottom: 4vh; }
+  .pick-row { display: flex; align-items: center; gap: 14px; }
+  .pet-name { min-width: 150px; text-align: center; font-size: 22px; font-weight: 700; background: var(--tb-card); border-radius: 99px; padding: 8px 18px; box-shadow: var(--tb-shadow); }
+  .hint { font-size: 14px; color: var(--tb-ink); opacity: .75; font-weight: 500; }
+
+  .over h2 { margin: 0; font-size: 40px; line-height: 1; }
+  .over .why { margin: 6px 0 18px; color: var(--tb-dim); font-weight: 500; }
+  .stats { display: flex; gap: 12px; justify-content: center; margin-bottom: 22px; }
+  .stat { background: #f3f5fb; border-radius: 16px; padding: 10px 16px; min-width: 92px; }
+  .stat small { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--tb-dim); font-weight: 600; }
+  .stat b { font-size: 30px; }
+  .stat.new { background: #fff4d6; }
+  .stat.new small::after { content: " · new!"; color: var(--tb-accent); }
+  .home-link { display: block; margin-top: 14px; color: var(--tb-dim); font-weight: 600; font-size: 14px; }
+
+  .credit { position: fixed; left: 50%; bottom: max(8px, env(safe-area-inset-bottom)); transform: translateX(-50%); font-size: 11px; color: rgba(43,45,66,.55); pointer-events: auto; white-space: nowrap; }
+  .credit a { color: inherit; }
+  .fallback { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; font-size: 18px; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/",
+    "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/",
+    "postprocessing": "https://cdn.jsdelivr.net/npm/postprocessing@6.39.5/build/index.js",
+    "n8ao": "https://cdn.jsdelivr.net/npm/n8ao@2.0.1/dist/N8AO.js"
+  }
+}
+</script>
+</head>
+<body>
+<canvas class="tb-stage" id="stage"></canvas>
+
+<div class="tb-hud" id="hud" hidden>
+  <div class="tb-row">
+    <div class="tb-pill score"><div><small>Score</small><b id="score">0</b></div></div>
+    <div class="tb-pill"><div><small>Best</small><b id="best" style="font-size:20px">0</b></div></div>
+  </div>
+  <div class="tb-row">
+    <div class="tb-pill coins"><span class="coin-dot"></span><b id="coins">0</b></div>
+    <button class="tb-btn" id="mute" aria-label="Sound on/off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path id="wave" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></button>
+  </div>
+</div>
+
+<div class="tb-overlay title-screen" id="title" hidden>
+  <div class="logo">
+    <h1>Paw<br><span>Crossing</span></h1>
+    <p>Hop across roads and rivers. Don't look back.</p>
+  </div>
+  <div class="picker">
+    <div class="pick-row">
+      <button class="tb-btn" id="prev" aria-label="Previous animal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="pet-name" id="petName">Dog</div>
+      <button class="tb-btn" id="next" aria-label="Next animal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
+    <button class="tb-cta" id="play">Let's go!</button>
+    <div class="hint">Arrows / WASD or swipe · tap to hop forward</div>
+  </div>
+</div>
+
+<div class="tb-overlay" id="over" hidden>
+  <div class="tb-panel over">
+    <h2 id="overTitle">Squashed!</h2>
+    <p class="why" id="overWhy">That taxi was not stopping.</p>
+    <div class="stats">
+      <div class="stat" id="statScore"><small>Score</small><b id="finalScore">0</b></div>
+      <div class="stat"><small>Coins</small><b id="finalCoins">0</b></div>
+    </div>
+    <button class="tb-cta" id="retry">Hop again</button>
+    <a class="home-link" href="index.html">← All games</a>
+  </div>
+</div>
+
+<div class="tb-loading" id="loading"><div class="bar"><i id="loadBar"></i></div></div>
+<div class="credit">3D models by <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> (CC0) · sky by <a href="https://polyhaven.com" target="_blank" rel="noopener">Poly Haven</a></div>
+
+<script type="module">
+import {
+  THREE, createStage, kenney, preload, loaded, cloneLoaded, Bursts, popText, Sfx,
+  damp, easeOutBack, store, PALETTE,
+} from './assets/kit/toybox.js';
+
+const $ = id => document.getElementById(id);
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let stage;
+try { stage = createStage({ canvas: $('stage') }); }
+catch (e) { document.body.insertAdjacentHTML('beforeend', '<div class="fallback">Paw Crossing needs WebGL. Try a recent Chrome, Safari or Firefox.</div>'); throw e; }
+const { scene, camera } = stage;
+
+// ---------- assets ----------
+const PETS = ['dog', 'cat', 'bunny', 'fox', 'chick', 'panda', 'penguin', 'pig', 'koala', 'monkey', 'lion', 'tiger', 'cow', 'deer', 'elephant', 'giraffe', 'hog', 'polar', 'parrot', 'beaver', 'bee', 'crab', 'caterpillar', 'fish'];
+const CARS = ['sedan', 'taxi', 'police', 'van', 'suv', 'hatchback-sports', 'sedan-sports', 'suv-luxury', 'delivery', 'truck', 'ambulance', 'firetruck', 'garbage-truck'];
+const TREES = ['tree_default', 'tree_oak', 'tree_pineRoundA', 'tree_pineRoundC', 'tree_detailed', 'tree_fat', 'tree_simple', 'tree_cone', 'tree_blocks'];
+const ROCKS = ['rock_largeA', 'rock_largeC', 'stump_round', 'stump_roundDetailed', 'plant_bushLarge', 'plant_bushDetailed'];
+const FLOWERS = ['flower_redA', 'flower_yellowA', 'flower_purpleA', 'flower_redB', 'flower_yellowB', 'mushroom_red', 'mushroom_tanGroup', 'plant_bushSmall'];
+const P = {
+  pet: n => kenney(`cube-pets/animal-${n}`),
+  car: n => kenney(`car-kit/${n}`),
+  nat: n => kenney(`nature-kit/${n}`),
+  coin: kenney('platformer-kit/coin-gold'),
+  log: kenney('nature-kit/log_large'),
+  lily: kenney('nature-kit/lily_large'),
+  lamp: kenney('city-kit-roads/light-square'),
+  cone: kenney('city-kit-roads/construction-cone'),
+};
+const allPaths = [
+  ...PETS.map(P.pet), ...CARS.map(P.car), ...TREES.map(P.nat), ...ROCKS.map(P.nat), ...FLOWERS.map(P.nat),
+  P.coin, P.log, P.lily, P.lamp, P.cone,
+];
+
+const bursts = new Bursts(scene);
+const sfx = new Sfx();
+sfx.muted = store.get('paw.muted', false);
+
+// ---------- world constants ----------
+const HALF = 4;           // playable columns: -4..4
+const WORLD = 13;         // visual half-width
+const AHEAD = 26, BEHIND = 9;
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = arr => arr[(Math.random() * arr.length) | 0];
+
+const mats = {
+  grassA: new THREE.MeshStandardMaterial({ color: PALETTE.grass, roughness: .95 }),
+  grassB: new THREE.MeshStandardMaterial({ color: PALETTE.grassDark, roughness: .95 }),
+  grassEdgeA: new THREE.MeshStandardMaterial({ color: 0x86bd58, roughness: .95 }),
+  grassEdgeB: new THREE.MeshStandardMaterial({ color: 0x7cb150, roughness: .95 }),
+  road: new THREE.MeshStandardMaterial({ color: PALETTE.road, roughness: .9 }),
+  curb: new THREE.MeshStandardMaterial({ color: 0xc9ccd6, roughness: .8 }),
+  line: new THREE.MeshStandardMaterial({ color: PALETTE.roadLine, roughness: .7 }),
+  bank: new THREE.MeshStandardMaterial({ color: PALETTE.sand, roughness: 1 }),
+};
+const box = new THREE.BoxGeometry(1, 1, 1);
+// lily pad: a notched disc (Kenney's lily flower sits on top)
+const padGeo = new THREE.CylinderGeometry(0.44, 0.44, 0.08, 24, 1, false, 0.35, Math.PI * 2 - 0.7);
+const padMat = new THREE.MeshStandardMaterial({ color: 0x5fbf5a, roughness: .8 });
+
+// stylised water: toon ripples + drifting foam, still tone-mapped with the scene
+const waterMat = new THREE.ShaderMaterial({
+  uniforms: { uTime: { value: 0 }, fogColor: { value: scene.fog.color }, fogNear: { value: scene.fog.near }, fogFar: { value: scene.fog.far } },
+  fog: true,
+  vertexShader: `
+    varying vec2 vW; varying float vFogDepth;
+    void main(){ vec4 w = modelMatrix * vec4(position,1.); vW = w.xz; vec4 mv = viewMatrix * w; vFogDepth = -mv.z; gl_Position = projectionMatrix * mv; }`,
+  fragmentShader: `
+    uniform float uTime; uniform vec3 fogColor; uniform float fogNear, fogFar;
+    varying vec2 vW; varying float vFogDepth;
+    float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
+    float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+      return mix(mix(h(i),h(i+vec2(1,0)),f.x), mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x), f.y); }
+    void main(){
+      vec2 p = vW * vec2(.9, 1.6);
+      float r = n(p*1.3 + vec2(uTime*.35, 0.)) * .6 + n(p*2.7 - vec2(uTime*.2, uTime*.1)) * .4;
+      vec3 deep = vec3(.20,.62,.86), shallow = vec3(.45,.84,.95);
+      vec3 col = mix(deep, shallow, smoothstep(.35,.75,r));
+      float foam = smoothstep(.72,.78,r) * .55;
+      float edge = abs(fract(vW.y + .5) - .5);
+      foam += smoothstep(.40,.5, edge) * (.5 + .5*sin(vW.x*3. + uTime*2.)) * .5;
+      col = mix(col, vec3(1.), foam);
+      gl_FragColor = vec4(col, 1.);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+      float fogF = smoothstep(fogNear, fogFar, vFogDepth);
+      gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, fogF);
+    }`,
+});
+
+// ---------- state ----------
+let rows = new Map();       // index -> row
+let maxRowBuilt = -1, minRowKept = -BEHIND;
+let lastType = 'grass', streak = 0;
+let player, petIndex = store.get('paw.pet', 0) % PETS.length;
+let state = 'loading';      // loading | title | play | dead
+let score = 0, coins = 0, best = store.get('paw.best', 0), bank = store.get('paw.coins', 0);
+let camZ = 0, camX = 0, lastForward = 0, speedy = 0;
+const world = new THREE.Group(); scene.add(world);
+
+// ---------- row construction ----------
+function makeRow(i) {
+  let type;
+  if (i < 4) type = 'grass';
+  else {
+    const difficulty = Math.min(1, i / 120);
+    const r = Math.random();
+    if (lastType === 'grass') type = r < 0.55 + difficulty * .1 ? 'road' : 'river';
+    else if (streak >= (lastType === 'road' ? 2 + Math.round(difficulty * 3) : 1 + Math.round(difficulty * 2))) type = 'grass';
+    else type = r < 0.6 ? lastType : 'grass';
+    if (type === lastType) streak++; else streak = 1;
+  }
+  lastType = type;
+
+  const g = new THREE.Group();
+  g.position.z = -i;
+  world.add(g);
+  const row = { i, type, group: g, blocked: new Set(), movers: [], coin: null };
+  const alt = i % 2 === 0;
+
+  if (type === 'grass') {
+    const top = new THREE.Mesh(box, alt ? mats.grassA : mats.grassB);
+    top.scale.set(HALF * 2 + 1, 0.6, 1); top.position.y = -0.3; top.receiveShadow = true; g.add(top);
+    for (const s of [-1, 1]) {
+      const side = new THREE.Mesh(box, alt ? mats.grassEdgeA : mats.grassEdgeB);
+      side.scale.set(WORLD - HALF, 0.6, 1); side.position.set(s * (HALF + 0.5 + (WORLD - HALF) / 2), -0.28, 0); side.receiveShadow = true; g.add(side);
+    }
+    // outer forest: always trees beyond the playable edge
+    for (let x = HALF + 1; x <= WORLD - 1; x++) for (const s of [-1, 1]) {
+      if (Math.random() < 0.55) addProp(g, pick(TREES), s * x, rand(.9, 1.4), true);
+      else if (Math.random() < 0.3) addProp(g, pick(FLOWERS), s * x + rand(-.3, .3), rand(1.4, 2));
+    }
+    if (i > 2) {
+      const n = Math.random() < 0.3 ? 0 : 1 + ((Math.random() * (1 + Math.min(3, i / 25))) | 0);
+      for (let k = 0; k < n; k++) {
+        const x = Math.round(rand(-HALF, HALF));
+        if (row.blocked.has(x)) continue;
+        row.blocked.add(x);
+        const tree = Math.random() < 0.65;
+        addProp(g, tree ? pick(TREES) : pick(ROCKS), x, tree ? rand(1, 1.3) : rand(1.2, 1.6), true);
+      }
+    } else if (i === 0) {
+      for (const x of [-3, 3]) { row.blocked.add(x); addProp(g, pick(TREES), x, 1.2, true); }
+    }
+    for (let k = 0; k < 3; k++) { const x = rand(-HALF, HALF); if (!row.blocked.has(Math.round(x))) addProp(g, pick(FLOWERS), x, rand(1.2, 1.8)); }
+    if (i > 4 && Math.random() < 0.35) {
+      const free = [...Array(HALF * 2 + 1)].map((_, k) => k - HALF).filter(x => !row.blocked.has(x));
+      if (free.length) {
+        const c = cloneLoaded(loaded(P.coin)).object;
+        c.scale.setScalar(1.3); c.position.set(pick(free), 0.35, 0);
+        g.add(c); row.coin = c;
+      }
+    }
+  }
+
+  if (type === 'road') {
+    const asphalt = new THREE.Mesh(box, mats.road);
+    asphalt.scale.set(WORLD * 2, 0.6, 1); asphalt.position.y = -0.32; asphalt.receiveShadow = true; g.add(asphalt);
+    const prev = rows.get(i - 1);
+    if (prev?.type === 'road') {
+      for (let x = -WORLD; x < WORLD; x += 1.2) {
+        const d = new THREE.Mesh(box, mats.line); d.scale.set(0.55, 0.02, 0.06); d.position.set(x, -0.01, 0.5); d.receiveShadow = true; g.add(d);
+      }
+    } else {
+      const curb = new THREE.Mesh(box, mats.curb); curb.scale.set(WORLD * 2, 0.08, 0.1); curb.position.set(0, -0.02, 0.47); g.add(curb);
+    }
+    if (Math.random() < 0.5) {
+      const s = Math.random() < 0.5 ? -1 : 1;
+      const lamp = cloneLoaded(loaded(P.lamp)).object; lamp.scale.setScalar(2.2); lamp.position.set(s * (HALF + 1.6), 0, 0.42); lamp.rotation.y = s > 0 ? Math.PI : 0; g.add(lamp);
+    }
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    const difficulty = Math.min(1, i / 150);
+    const speed = rand(1.6, 2.8) + difficulty * 3;
+    const count = 1 + ((Math.random() * (2 + difficulty * 2)) | 0);
+    const gap = (WORLD * 2 + 6) / count;
+    const offset = rand(0, gap);
+    for (let k = 0; k < count; k++) {
+      const name = Math.random() < 0.15 ? pick(['truck', 'delivery', 'garbage-truck', 'firetruck']) : pick(CARS.slice(0, 9));
+      const car = cloneLoaded(loaded(P.car(name))).object;
+      car.scale.setScalar(0.62);
+      car.rotation.y = dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+      const len = new THREE.Box3().setFromObject(car).getSize(new THREE.Vector3()).x;
+      car.position.set(-WORLD - 3 + offset + k * gap, 0, 0);
+      g.add(car);
+      row.movers.push({ obj: car, len, kind: 'car', name });
+    }
+    row.dir = dir; row.speed = speed; row.span = WORLD * 2 + 6;
+    row.honked = false;
+  }
+
+  if (type === 'river') {
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(WORLD * 2, 1), waterMat);
+    water.rotation.x = -Math.PI / 2; water.position.y = -0.18; g.add(water);
+    const bed = new THREE.Mesh(box, mats.bank); bed.scale.set(WORLD * 2, 0.4, 1); bed.position.y = -0.55; g.add(bed);
+    const lilyRow = Math.random() < 0.3 && rows.get(i - 1)?.type !== 'river';
+    if (lilyRow) {
+      row.lily = true;
+      const xs = new Set();
+      const n = 3 + ((Math.random() * 3) | 0);
+      while (xs.size < n) xs.add(Math.round(rand(-HALF, HALF)));
+      for (const x of xs) {
+        const p = new THREE.Group();
+        const pad = new THREE.Mesh(padGeo, padMat); pad.castShadow = pad.receiveShadow = true; p.add(pad);
+        const flower = cloneLoaded(loaded(P.lily)).object; flower.scale.setScalar(1.6); flower.position.set(0.14, 0.02, -0.1); p.add(flower);
+        p.position.set(x, -0.12, 0); p.rotation.y = rand(0, 6); g.add(p);
+        row.movers.push({ obj: p, len: 0.9, kind: 'lily', x });
+      }
+      row.dir = 0; row.speed = 0;
+    } else {
+      const dir = rows.get(i - 1)?.type === 'river' && rows.get(i - 1).dir ? -rows.get(i - 1).dir : (Math.random() < 0.5 ? -1 : 1);
+      const speed = rand(1.1, 2.0) + Math.min(1.2, i / 120);
+      const count = 3 + ((Math.random() * 2) | 0);
+      const span = WORLD * 2 + 6, gap = span / count, offset = rand(0, gap);
+      for (let k = 0; k < count; k++) {
+        const len = pick([2, 3, 3, 4]);
+        const log = cloneLoaded(loaded(P.log)).object;
+        log.scale.set(len, 1.5, 1.5);
+        log.position.set(-WORLD - 3 + offset + k * gap, -0.25, 0);
+        g.add(log);
+        row.movers.push({ obj: log, len, kind: 'log' });
+      }
+      row.dir = dir; row.speed = speed; row.span = span;
+    }
+  }
+
+  rows.set(i, row);
+  maxRowBuilt = Math.max(maxRowBuilt, i);
+  return row;
+}
+
+function addProp(g, name, x, scale, collide = false) {
+  const gl = loaded(P.nat(name));
+  if (!gl) return;
+  const o = cloneLoaded(gl).object;
+  o.scale.setScalar(scale);
+  o.position.set(x, 0, rand(-0.12, 0.12));
+  o.rotation.y = rand(0, Math.PI * 2);
+  g.add(o);
+  return o;
+}
+
+function ensureRows(front) {
+  while (maxRowBuilt < front + AHEAD) makeRow(maxRowBuilt + 1);
+  for (const [i, row] of rows) if (i < front - BEHIND) { world.remove(row.group); rows.delete(i); }
+}
+
+// ---------- player ----------
+const pl = {
+  root: new THREE.Group(), body: null, mixer: null, actions: null,
+  x: 0, row: 0, fromX: 0, fromZ: 0, toX: 0, toRow: 0, t: 1, hopDur: 0.14,
+  facing: Math.PI, queue: null, dead: false, riding: null, squash: 0,
+};
+scene.add(pl.root);
+const shadowBlob = new THREE.Mesh(new THREE.CircleGeometry(0.34, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.18, depthWrite: false }));
+shadowBlob.rotation.x = -Math.PI / 2; shadowBlob.position.y = 0.01; scene.add(shadowBlob);
+
+function setPet(idx) {
+  petIndex = (idx + PETS.length) % PETS.length;
+  store.set('paw.pet', petIndex);
+  $('petName').textContent = PETS[petIndex][0].toUpperCase() + PETS[petIndex].slice(1);
+  if (pl.body) pl.root.remove(pl.body);
+  const { object, mixer, actions } = cloneLoaded(loaded(P.pet(PETS[petIndex])));
+  object.scale.setScalar(0.5);
+  pl.body = object; pl.mixer = mixer; pl.actions = actions;
+  pl.root.add(object);
+  play(state === 'title' ? 'dance' : 'idle');
+}
+function play(name, once = false) {
+  if (!pl.actions) return;
+  const a = pl.actions[name] || pl.actions.idle;
+  for (const k in pl.actions) if (pl.actions[k] !== a) pl.actions[k].fadeOut(0.12);
+  a.reset().fadeIn(0.12).setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity).play();
+  a.clampWhenFinished = once;
+}
+
+function hop(dx, dz) {
+  if (state !== 'play' || pl.dead) return;
+  if (pl.t < 1) { pl.queue = [dx, dz]; return; }
+  const baseX = Math.round(pl.x);
+  const tx = baseX + dx, tr = pl.row + dz;
+  pl.facing = dz > 0 ? Math.PI : dz < 0 ? 0 : dx > 0 ? Math.PI / 2 : -Math.PI / 2;
+  const target = rows.get(tr);
+  if (Math.abs(tx) > HALF || tr < Math.max(0, score - 12) || !target || (target.type === 'grass' && target.blocked.has(tx))) {
+    // bump: a little wobble, no move
+    pl.squash = 0.6; sfx.tone(180, 0.08, { type: 'square', vol: 0.08 });
+    return;
+  }
+  pl.fromX = pl.x; pl.fromZ = pl.row; pl.toX = tx; pl.toRow = tr; pl.t = 0;
+  pl.riding = null;
+  sfx.tone(520 + Math.random() * 60, 0.09, { type: 'triangle', vol: 0.18, slide: 380 });
+  bursts.emit(new THREE.Vector3(pl.x, 0.05, -pl.row), { tex: 'smoke_04', count: 4, color: 0xffffff, speed: [0.3, 0.8], up: [0.3, 0.8], life: [0.3, 0.5], size: [0.25, 0.4], gravity: -1, grow: 1.8 });
+  if (dz > 0) {
+    const now = performance.now();
+    speedy = now - lastForward < 360 ? speedy + 1 : 0;
+    lastForward = now;
+    if (speedy === 4 || speedy === 8 || speedy === 12) popText(stage, new THREE.Vector3(tx, 1.4, -tr), `Speedy ×${speedy}`, 'good');
+  }
+}
+
+function landed() {
+  pl.x = pl.toX; pl.row = pl.toRow; pl.squash = 1;
+  const row = rows.get(pl.row);
+  if (pl.row > score) {
+    score = pl.row; $('score').textContent = score;
+    ensureRows(score);
+  }
+  if (row?.coin && Math.round(pl.x) === Math.round(row.coin.position.x)) {
+    const p = new THREE.Vector3(row.coin.position.x, 0.6, -pl.row);
+    row.group.remove(row.coin); row.coin = null;
+    coins++; bank++; store.set('paw.coins', bank); $('coins').textContent = bank;
+    bursts.emit(p, { tex: 'star_06', count: 10, colors: [0xffd23d, 0xffffff, 0xffa53d], speed: [1.5, 3], up: [2, 4], size: [0.25, 0.45], life: [0.5, 0.8], additive: false });
+    popText(stage, p, '+1', 'gold');
+    sfx.tone(988, 0.08, { type: 'square', vol: 0.1 }); sfx.tone(1318, 0.18, { type: 'square', vol: 0.1, delay: 0.07 });
+  }
+  if (row?.type === 'river') {
+    const m = supportAt(row, pl.x);
+    if (!m) return die('water');
+    pl.riding = m;
+    m.obj.userData.bob = 1;
+    bursts.emit(new THREE.Vector3(pl.x, 0, -pl.row), { tex: 'circle_05', count: 6, color: 0xe8fbff, speed: [0.5, 1.2], up: [0.8, 1.5], size: [0.12, 0.22], life: [0.3, 0.5] });
+  }
+  if (pl.queue) { const q = pl.queue; pl.queue = null; hop(q[0], q[1]); }
+}
+
+function supportAt(row, x) {
+  for (const m of row.movers) {
+    const mx = m.obj.position.x;
+    if (Math.abs(x - mx) <= m.len / 2 + (m.kind === 'lily' ? 0.05 : -0.05)) return m;
+  }
+  return null;
+}
+
+const DEATHS = {
+  car: ['Squashed!', ['That car was not stopping.', 'Look both ways next time.', 'Rush hour got you.', 'Beep beep. Too late.']],
+  water: ['Splash!', ['Turns out you can\'t swim.', 'The river wins this round.', 'Logs float. You don\'t.']],
+  drift: ['Swept away!', ['The log took you off the map.', 'Ride the log, but not that far.']],
+  slow: ['Too slow!', ['The world moved on without you.', 'Keep hopping forward!']],
+};
+
+function die(kind, mover) {
+  if (pl.dead) return;
+  pl.dead = true; state = 'dead';
+  const pos = pl.root.position.clone();
+  if (kind === 'car') {
+    pl.body.scale.set(0.62, 0.12, 0.62);
+    bursts.emit(pos.clone().setY(0.6), { tex: 'star_06', count: 14, colors: [0xffffff, 0xffe066], speed: [2, 4], up: [2, 4], size: [0.2, 0.4], life: [0.5, 0.9] });
+    bursts.emit(pos.clone().setY(0.2), { tex: 'smoke_04', count: 8, color: 0xffffff, speed: [1, 2], up: [0.5, 1.5], size: [0.4, 0.7], life: [0.5, 0.8], gravity: 0, grow: 2 });
+    sfx.noise(0.25, { vol: 0.4, freq: 400, type: 'lowpass' }); sfx.tone(220, 0.35, { type: 'sawtooth', vol: 0.12, slide: -150 });
+    if (!reduced) shake = 0.35;
+  } else {
+    bursts.emit(pos.clone().setY(0), { tex: 'circle_05', count: 22, colors: [0xffffff, 0xbdf2ff], speed: [1, 3], up: [2.5, 4.5], size: [0.15, 0.35], life: [0.6, 1] });
+    sfx.noise(0.5, { vol: 0.35, freq: 900, q: 0.5 });
+    sinking = 1;
+  }
+  const [title, lines] = DEATHS[kind];
+  $('overTitle').textContent = title;
+  $('overWhy').textContent = pick(lines);
+  const isBest = score > best;
+  if (isBest) { best = score; store.set('paw.best', best); }
+  $('best').textContent = best;
+  $('finalScore').textContent = score;
+  $('finalCoins').textContent = coins;
+  $('statScore').classList.toggle('new', isBest && score > 0);
+  setTimeout(() => { $('over').hidden = false; $('retry').focus(); }, 900);
+}
+
+// ---------- game flow ----------
+let shake = 0, sinking = 0;
+function reset() {
+  for (const [, row] of rows) world.remove(row.group);
+  rows.clear(); maxRowBuilt = -1; lastType = 'grass'; streak = 0;
+  for (let i = -BEHIND; i < AHEAD; i++) makeRow(i);
+  Object.assign(pl, { x: 0, row: 0, toX: 0, toRow: 0, t: 1, dead: false, riding: null, queue: null, facing: Math.PI, squash: 0 });
+  if (pl.body) pl.body.scale.setScalar(0.5);
+  pl.root.position.set(0, 0, 0);
+  score = 0; coins = 0; sinking = 0; speedy = 0;
+  camZ = 0; camX = 0;
+  $('score').textContent = 0; $('best').textContent = best; $('coins').textContent = bank;
+}
+function start() {
+  sfx.unlock();
+  $('title').hidden = true; $('over').hidden = true; $('hud').hidden = false;
+  if (state !== 'title') reset();
+  state = 'play';
+  play('idle');
+  sfx.tone(660, 0.1, { type: 'triangle', vol: 0.15 }); sfx.tone(990, 0.15, { type: 'triangle', vol: 0.15, delay: 0.08 });
+}
+
+$('play').addEventListener('click', start);
+$('retry').addEventListener('click', start);
+$('prev').addEventListener('click', () => { setPet(petIndex - 1); sfx.unlock(); sfx.tone(440, 0.06, { type: 'triangle', vol: 0.12 }); });
+$('next').addEventListener('click', () => { setPet(petIndex + 1); sfx.unlock(); sfx.tone(560, 0.06, { type: 'triangle', vol: 0.12 }); });
+$('mute').addEventListener('click', () => { sfx.muted = !sfx.muted; store.set('paw.muted', sfx.muted); $('wave').style.opacity = sfx.muted ? 0 : 1; });
+$('wave').style.opacity = sfx.muted ? 0 : 1;
+
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  const map = { arrowup: [0, 1], w: [0, 1], arrowdown: [0, -1], s: [0, -1], arrowleft: [-1, 0], a: [-1, 0], arrowright: [1, 0], d: [1, 0] };
+  if (map[k]) { e.preventDefault(); if (state === 'play') hop(...map[k]); else if (state === 'title' && (k === 'arrowleft' || k === 'a')) $('prev').click(); else if (state === 'title' && (k === 'arrowright' || k === 'd')) $('next').click(); }
+  if ((k === 'enter' || k === ' ') && state !== 'play' && !e.target.closest?.('button')) { e.preventDefault(); if (state === 'title' || !$('over').hidden) start(); }
+  if (k === 'm') $('mute').click();
+});
+// touch / mouse: swipe to steer, tap to hop forward
+let touch = null;
+$('stage').addEventListener('pointerdown', e => { touch = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+addEventListener('pointerup', e => {
+  if (!touch || state !== 'play') { touch = null; return; }
+  const dx = e.clientX - touch.x, dy = e.clientY - touch.y; touch = null;
+  if (Math.hypot(dx, dy) < 24) return hop(0, 1);
+  if (Math.abs(dx) > Math.abs(dy)) hop(dx > 0 ? 1 : -1, 0); else hop(0, dy < 0 ? 1 : -1);
+});
+
+// ---------- main loop ----------
+let lastT = performance.now(), elapsed = 0;
+const tmp = new THREE.Vector3();
+function tick() {
+  const nowT = performance.now();
+  const dt = Math.min(0.05, (nowT - lastT) / 1000); lastT = nowT; elapsed += dt;
+  const t = elapsed;
+  waterMat.uniforms.uTime.value = t;
+
+  // traffic & logs
+  for (const [, row] of rows) {
+    if (!row.speed) continue;
+    for (const m of row.movers) {
+      m.obj.position.x += row.dir * row.speed * dt;
+      const edge = row.span / 2;
+      if (row.dir > 0 && m.obj.position.x > edge) m.obj.position.x -= row.span;
+      if (row.dir < 0 && m.obj.position.x < -edge) m.obj.position.x += row.span;
+      if (m.kind === 'log') {
+        m.obj.userData.bob = Math.max(0, (m.obj.userData.bob || 0) - dt * 3);
+        m.obj.position.y = -0.25 + Math.sin(t * 2 + m.obj.id) * 0.02 - m.obj.userData.bob * 0.06;
+      }
+      if (m.kind === 'car') m.obj.position.y = Math.abs(Math.sin(t * 18 + m.obj.id)) * 0.012;
+    }
+  }
+  // coins spin
+  for (const [, row] of rows) if (row.coin) { row.coin.rotation.y += dt * 3; row.coin.position.y = 0.35 + Math.sin(t * 3 + row.i) * 0.06; }
+
+  // player hop
+  if (state === 'play' || state === 'dead') {
+    if (pl.t < 1 && !pl.dead) {
+      pl.t = Math.min(1, pl.t + dt / pl.hopDur);
+      const k = pl.t;
+      pl.x = pl.fromX + (pl.toX - pl.fromX) * k;
+      const z = pl.fromZ + (pl.toRow - pl.fromZ) * k;
+      pl.root.position.set(pl.x, Math.sin(k * Math.PI) * 0.45, -z);
+      if (pl.t >= 1) landed();
+    } else if (!pl.dead) {
+      if (pl.riding && rows.get(pl.row)) {
+        const row = rows.get(pl.row);
+        pl.x += row.dir * row.speed * dt;
+        if (Math.abs(pl.x) > HALF + 0.6) die('drift');
+      }
+      pl.root.position.set(pl.x, pl.riding ? pl.riding.obj.position.y + 0.3 : 0, -pl.row);
+    }
+    // squash & stretch
+    pl.squash = Math.max(0, pl.squash - dt * 6);
+    if (pl.body && !pl.dead) {
+      const s = 0.5, q = Math.sin(pl.squash * Math.PI) * 0.18;
+      const air = pl.t < 1 ? Math.sin(pl.t * Math.PI) * 0.12 : 0;
+      pl.body.scale.set(s * (1 + q - air * .5), s * (1 - q + air), s * (1 + q - air * .5));
+    }
+    pl.root.rotation.y = damp(pl.root.rotation.y, pl.facing, 25, dt);
+    if (sinking) { sinking = Math.max(0, sinking - dt); pl.root.position.y = -0.9 * (1 - sinking); }
+
+    // collisions with cars (checked every frame, including mid-hop)
+    if (!pl.dead) {
+      const r = Math.round(-pl.root.position.z);
+      const row = rows.get(r);
+      if (row?.type === 'road') {
+        for (const m of row.movers) {
+          const d = Math.abs(m.obj.position.x - pl.root.position.x);
+          if (d < m.len / 2 + 0.28) { die('car', m); break; }
+          if (!m.close && d < m.len / 2 + 0.75 && Math.sign(pl.root.position.x - m.obj.position.x) === row.dir) {
+            m.close = true;
+            if (Math.random() < 0.5) popText(stage, new THREE.Vector3(pl.root.position.x, 1.5, -r), pick(['Close call!', 'Phew!', 'Whoosh!']), 'good');
+            if (Math.random() < 0.4) sfx.tone(392, 0.18, { type: 'square', vol: 0.05 });
+          }
+        }
+      }
+    }
+
+    // camera creeps forward once you start, so you can't dawdle forever
+    if (state === 'play' && score > 0) camZ += dt * Math.min(1.1, 0.35 + score / 120);
+    camZ = Math.max(camZ, damp(camZ, pl.row - 1, 3, dt));
+    if (state === 'play' && pl.row < camZ - 4.5 && !pl.dead) die('slow');
+  } else if (state === 'title') {
+    pl.root.rotation.y = damp(pl.root.rotation.y, 0.35 + Math.sin(t * 0.8) * 0.35, 4, dt);
+  }
+
+  camX = damp(camX, camera.aspect < 1 ? Math.max(-1, Math.min(1, pl.x * 0.3)) : Math.max(-2, Math.min(2, pl.x * 0.5)), 3, dt);
+  const cz = state === 'title' ? 0 : -camZ;
+  const sh = shake > 0 ? (shake -= dt, (Math.random() - 0.5) * shake * 0.6) : 0;
+  const titleOff = state === 'title' ? 1 : 0;
+  // pull back on tall, narrow screens so the whole 9-column playfield stays in view
+  const zoom = Math.min(2.4, Math.max(1, 1.25 / camera.aspect));
+  scene.fog.near = 28 * zoom; scene.fog.far = 60 * zoom;
+  waterMat.uniforms.fogNear.value = scene.fog.near; waterMat.uniforms.fogFar.value = scene.fog.far;
+  camera.position.set(camX + (3.2 + sh - titleOff * 0.6) * zoom, (10.5 - titleOff * 2) * zoom, cz + (7.2 - titleOff * 0.6) * zoom);
+  camera.lookAt(camX + sh * 0.5, titleOff * 0.3, cz - 2.2 + titleOff * 1.6);
+  stage.followShadow(tmp.set(camX, 0, cz - 3));
+
+  shadowBlob.position.set(pl.root.position.x, 0.02, pl.root.position.z);
+  shadowBlob.visible = !sinking && rows.get(Math.round(-pl.root.position.z))?.type !== 'river';
+  shadowBlob.scale.setScalar(1 - Math.max(0, pl.root.position.y) * 0.8);
+
+  pl.mixer?.update(dt);
+  bursts.update(dt);
+  stage.render();
+  requestAnimationFrame(tick);
+}
+
+// ---------- boot ----------
+(async () => {
+  const bar = $('loadBar');
+  await preload(allPaths, p => { bar.style.width = `${Math.round(p * 100)}%`; });
+  await stage.envReady;
+  reset();
+  setPet(petIndex);
+  state = 'title';
+  play('dance');
+  $('title').hidden = false;
+  $('loading').classList.add('done');
+  $('coins').textContent = bank;
+  lastT = performance.now();
+  tick();
+})();
+</script>
+</body>
+</html>
