@@ -1,0 +1,5 @@
+Textures from ambientCG (https://ambientcg.com), released under CC0 1.0 Universal.
+https://docs.ambientcg.com/license/
+
+- leather008_scales.jpg / leather008_normal.jpg: Leather008 (https://ambientcg.com/view?id=Leather008), color map remapped to a light scale pattern, normal map downscaled to 512px
+- bark014_normal.jpg: Bark014 (https://ambientcg.com/view?id=Bark014), normal map downscaled to 512px

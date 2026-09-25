@@ -1,0 +1,10 @@
+Models downloaded from Poly Pizza (https://poly.pizza). Every model in this folder is released under CC0 1.0 Universal
+(https://creativecommons.org/publicdomain/zero/1.0/) by its creator.
+
+| File                 | Model            | Creator     | Source                                |
+| -------------------- | ---------------- | ----------- | ------------------------------------- |
+| starfish.glb         | Star             | Quaternius  | https://poly.pizza/m/Tyau1aS2r0       |
+| sea-urchin.glb       | Sea Urchin       | Quaternius  | https://poly.pizza/m/uYSDAQuNT9       |
+| sea-urchin-open.glb  | Sea Urchin Open  | Quaternius  | https://poly.pizza/m/LdYoJyw4pQ       |
+| coral-reef-set.glb   | Coral Reef Set   | MiniPoly    | https://poly.pizza/m/74GL45Fvdh       |
+| seaweed.glb          | Seaweed          | Mohabins    | https://poly.pizza/m/oYxUdpyc4u       |
