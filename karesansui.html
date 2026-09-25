@@ -1,0 +1,1447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Karesansui: a Zen dry-stone garden you rake. Real-time lit sand, moss and granite, a slow sun from morning to dusk, drifting petals and quiet sound.">
+<meta name="theme-color" content="#14120f">
+<title>Karesansui</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600&family=Inter+Tight:wght@400;500;600&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --ground: #14120f;
+    --paper: #efe6d4;
+    --paper-dim: rgba(239, 230, 212, .62);
+    --paper-faint: rgba(239, 230, 212, .14);
+    --ink: #2a241d;
+    --vermilion: #b9472f;
+    --moss: #6b7a3a;
+    --glass: rgba(24, 21, 18, .58);
+    --serif: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif;
+    --sans: "Inter Tight", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--ground); overflow: hidden; }
+  body { font-family: var(--sans); color: var(--paper); -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #gl { touch-action: none; cursor: crosshair; }
+  #fx { pointer-events: none; }
+
+  /* Title */
+  .title { position: fixed; left: max(16px, env(safe-area-inset-left)); top: 22px; display: flex; align-items: flex-start; gap: 12px; pointer-events: none; user-select: none; }
+  .seal { flex: none; width: 24px; padding: 5px 0 4px; background: var(--vermilion); border-radius: 3px; display: flex; flex-direction: column; align-items: center; gap: 1px; transform: rotate(-2.5deg); opacity: .9; box-shadow: inset 0 0 0 1.5px rgba(239, 230, 212, .0), inset 0 0 0 2px rgba(255, 240, 225, .75); position: relative; margin-top: 3px; }
+  .seal span { font-family: var(--serif); font-weight: 600; font-size: 13px; line-height: 1.12; color: #f7eadb; }
+  .seal::after { content: ""; position: absolute; inset: 0; border-radius: 3px; background: radial-gradient(circle at 30% 70%, rgba(20, 18, 15, .35) 0 1px, transparent 2px), radial-gradient(circle at 70% 25%, rgba(20, 18, 15, .3) 0 1.5px, transparent 2.5px), radial-gradient(circle at 55% 88%, rgba(20, 18, 15, .25) 0 1px, transparent 2px); mix-blend-mode: multiply; }
+  .title h1 { text-shadow: 0 1px 12px rgba(0,0,0,.6); margin: 0; font-family: var(--serif); font-weight: 500; font-size: 28px; line-height: 1; letter-spacing: .06em; color: var(--paper); }
+  .title p { text-shadow: 0 1px 8px rgba(0,0,0,.8); margin: 7px 0 0; font-family: var(--serif); font-size: 13.5px; letter-spacing: .04em; color: var(--paper-dim); font-style: italic; }
+
+  /* Corner actions */
+  .corner { position: fixed; right: max(16px, env(safe-area-inset-right)); top: 22px; display: flex; gap: 6px; }
+  .icon-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(239, 230, 212, .12); background: var(--glass); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); color: var(--paper-dim); display: grid; place-items: center; cursor: pointer; padding: 0; transition: color .25s, background .25s, border-color .25s; }
+  .icon-btn:hover { color: var(--paper); border-color: rgba(239, 230, 212, .28); }
+  .icon-btn:focus-visible, .tool:focus-visible, .mini:focus-visible { outline: 1.5px solid var(--paper); outline-offset: 2px; }
+  .icon-btn svg { width: 17px; height: 17px; }
+  .icon-btn .off { display: none; }
+  .icon-btn[aria-pressed="false"] .on { display: none; }
+  .icon-btn[aria-pressed="false"] .off { display: block; }
+
+  /* Toolbar */
+  .toolbar { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; align-items: stretch; gap: 4px; padding: 6px; background: var(--glass); -webkit-backdrop-filter: blur(16px) saturate(1.1); backdrop-filter: blur(16px) saturate(1.1); border: 1px solid rgba(239, 230, 212, .1); border-radius: 18px; box-shadow: 0 18px 40px -22px rgba(0, 0, 0, .7); max-width: calc(100vw - 32px); }
+  .tools { display: flex; gap: 2px; }
+  .tool { position: relative; width: 64px; border: 0; background: transparent; color: var(--paper-dim); border-radius: 12px; padding: 9px 4px 7px; display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; font: 500 10.5px/1 var(--sans); letter-spacing: .08em; text-transform: lowercase; transition: background .25s, color .25s; }
+  .tool svg { width: 22px; height: 22px; }
+  .tool:hover { color: var(--paper); }
+  .tool[aria-pressed="true"] { background: rgba(239, 230, 212, .1); color: var(--paper); }
+  .tool[aria-pressed="true"]::after { content: ""; position: absolute; top: 6px; right: 8px; width: 4px; height: 4px; border-radius: 50%; background: var(--vermilion); }
+  .sep { width: 1px; background: rgba(239, 230, 212, .1); margin: 8px 6px; }
+  .sun { display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 4px 10px 4px 6px; min-width: 170px; }
+  .sun-row { display: flex; align-items: center; gap: 8px; }
+  .sun-label { display: flex; justify-content: space-between; font: 500 10.5px/1 var(--sans); letter-spacing: .08em; color: var(--paper-dim); }
+  .sun-label b { font-weight: 500; color: var(--paper); font-family: var(--serif); font-style: italic; letter-spacing: .03em; font-size: 12.5px; }
+  .mini { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(239, 230, 212, .14); background: transparent; color: var(--paper-dim); display: grid; place-items: center; cursor: pointer; padding: 0; flex: none; }
+  .mini svg { width: 11px; height: 11px; }
+  .mini .off { display: none; }
+  .mini[aria-pressed="false"] .on { display: none; }
+  .mini[aria-pressed="false"] .off { display: block; }
+  input[type=range] { -webkit-appearance: none; appearance: none; flex: 1; min-width: 90px; height: 22px; background: transparent; cursor: pointer; margin: 0; }
+  input[type=range]::-webkit-slider-runnable-track { height: 3px; border-radius: 3px; background: linear-gradient(90deg, #6f6a86, #e2b98a 18%, #f3ead8 45%, #e8a55e 72%, #b8563a 88%, #3c3f63); }
+  input[type=range]::-moz-range-track { height: 3px; border-radius: 3px; background: linear-gradient(90deg, #6f6a86, #e2b98a 18%, #f3ead8 45%, #e8a55e 72%, #b8563a 88%, #3c3f63); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5.5px; border-radius: 50%; background: var(--paper); box-shadow: 0 0 0 3px rgba(239, 230, 212, .15), 0 2px 6px rgba(0, 0, 0, .4); }
+  input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border: 0; border-radius: 50%; background: var(--paper); box-shadow: 0 0 0 3px rgba(239, 230, 212, .15); }
+  input[type=range]:focus-visible { outline: 1.5px solid var(--paper); outline-offset: 2px; border-radius: 4px; }
+
+  .hint { position: fixed; transform: translate(-50%, -50%); pointer-events: none; font: 500 11px/1 var(--sans); letter-spacing: .32em; text-transform: uppercase; color: rgba(52, 40, 28, .62); white-space: nowrap; transition: opacity 1.4s ease; display: flex; align-items: center; gap: 14px; }
+  .hint i { display: block; width: 36px; height: 1px; background: currentColor; opacity: .6; }
+  .hint.gone { opacity: 0; }
+
+  .nogl { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; background: radial-gradient(ellipse at center, #2a251f, #121010); }
+  .nogl h2 { font-family: var(--serif); font-weight: 500; font-size: 26px; margin: 0 0 10px; }
+  .nogl p { margin: 0 auto; max-width: 36ch; color: var(--paper-dim); line-height: 1.6; font-size: 14px; }
+  [hidden] { display: none !important; }
+
+  @media (max-width: 719px) {
+    .title { top: 16px; gap: 10px; }
+    .title h1 { font-size: 22px; }
+    .title p { font-size: 12px; margin-top: 5px; }
+    .seal { width: 20px; padding: 4px 0 3px; }
+    .seal span { font-size: 11px; }
+    .corner { top: 16px; gap: 4px; }
+    .icon-btn { width: 32px; height: 32px; }
+    .icon-btn svg { width: 15px; height: 15px; }
+  }
+  @media (max-width: 599px) {
+    .toolbar { flex-wrap: wrap; width: calc(100vw - 32px); justify-content: center; bottom: max(14px, env(safe-area-inset-bottom)); }
+    .tools { width: 100%; justify-content: space-between; }
+    .tool { flex: 1; width: auto; }
+    .sep { display: none; }
+    .sun { width: 100%; min-width: 0; padding: 4px 8px 6px; border-top: 1px solid rgba(239, 230, 212, .08); margin-top: 2px; }
+  }
+  @media (max-width: 359px) {
+    .title p { display: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="gl" aria-label="A raked sand garden. Drag to rake."></canvas>
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<header class="title">
+  <div class="seal" aria-hidden="true"><span>枯</span><span>山</span><span>水</span></div>
+  <div>
+    <h1>Karesansui</h1>
+    <p>a dry garden to rake</p>
+  </div>
+</header>
+
+<div class="corner">
+  <button class="icon-btn" id="btn-sound" aria-pressed="true" aria-label="Sound" title="Sound on / off">
+    <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3.5L12 18V6L7.5 10z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5"/><path d="M18 7a7 7 0 0 1 0 10"/></svg>
+    <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3.5L12 18V6L7.5 10z"/><path d="M16 10l4 4M20 10l-4 4"/></svg>
+  </button>
+  <button class="icon-btn" id="btn-clear" aria-label="Clear the garden" title="Clear: sweep the sand smooth">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16"/><path d="M6 14.5c3-1.2 9-1.2 12 0"/><path d="M8 11c2.2-.7 5.8-.7 8 0"/></svg>
+  </button>
+  <button class="icon-btn" id="btn-restore" aria-label="Restore the pristine pattern" title="Restore: re-rake the pristine pattern">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="12" r="5.4"/><path d="M12 3.4A8.6 8.6 0 1 1 3.9 9.2"/><path d="M3.4 5.4l.5 3.8 3.7-.8"/></svg>
+  </button>
+  <button class="icon-btn" id="btn-save" aria-label="Save image" title="Save image">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19h14"/></svg>
+  </button>
+</div>
+
+<div class="hint" id="hint"><i></i>drag to rake<i></i></div>
+
+<nav class="toolbar" aria-label="Garden tools">
+  <div class="tools" role="group" aria-label="Tool">
+    <button class="tool" data-tool="rake" aria-pressed="true" title="Rake (1)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M12 3v9"/><path d="M5 12h14"/><path d="M5.5 12v5M8.75 12v5M12 12v5M15.25 12v5M18.5 12v5"/></svg>
+      <span>rake</span>
+    </button>
+    <button class="tool" data-tool="wide" aria-pressed="false" title="Wide rake (2)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M12 3v9"/><path d="M3 12h18"/><path d="M3.5 12v4.5M5.6 12v4.5M7.8 12v4.5M9.9 12v4.5M12 12v4.5M14.1 12v4.5M16.2 12v4.5M18.4 12v4.5M20.5 12v4.5"/></svg>
+      <span>wide</span>
+    </button>
+    <button class="tool" data-tool="smooth" aria-pressed="false" title="Smooth (3)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c3 0 3-2 6-2s3 2 6 2 3-2 6-2" opacity=".45"/><path d="M5 11.5h14l-2 2.5H7z"/><path d="M12 11.5V6"/></svg>
+      <span>smooth</span>
+    </button>
+    <button class="tool" data-tool="stone" aria-pressed="false" title="Stone (4)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16.5c-.8-3 1.4-7.2 5.2-8.3 3.6-1 7.6.6 8.6 4 .8 2.7-.9 4.8-4.2 5.3-3.6.6-8.9.9-9.6-1z"/><path d="M3 19.5h18" opacity=".45"/></svg>
+      <span>stone</span>
+    </button>
+  </div>
+  <div class="sep" aria-hidden="true"></div>
+  <div class="sun">
+    <div class="sun-label"><span>sun</span><b id="sun-name">late afternoon</b></div>
+    <div class="sun-row">
+      <input type="range" id="sun" min="0" max="1000" value="700" aria-label="Time of day">
+      <button class="mini" id="btn-drift" aria-pressed="true" aria-label="Let the sun drift" title="Let the sun drift">
+        <svg class="on" viewBox="0 0 12 12" fill="currentColor"><rect x="2.5" y="2" width="2.2" height="8" rx=".6"/><rect x="7.3" y="2" width="2.2" height="8" rx=".6"/></svg>
+        <svg class="off" viewBox="0 0 12 12" fill="currentColor"><path d="M3.5 2.2v7.6L10 6z"/></svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="nogl" id="nogl" hidden>
+  <div>
+    <h2>The garden could not open</h2>
+    <p>Karesansui needs WebGL 2 to light its sand. Try a current version of Chrome, Safari, Firefox or Edge, or enable hardware acceleration.</p>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+const $ = (s) => document.querySelector(s);
+const glCanvas = $('#gl');
+const fxCanvas = $('#fx');
+const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let gl = null;
+try {
+  gl = glCanvas.getContext('webgl2', { antialias: false, alpha: false, depth: false, stencil: false, premultipliedAlpha: false, powerPreference: 'high-performance' });
+} catch (e) { gl = null; }
+if (!gl) {
+  $('#nogl').hidden = false;
+  document.querySelector('.toolbar').hidden = true;
+  document.querySelector('.corner').hidden = true;
+  $('#hint').hidden = true;
+  return;
+}
+const fx = fxCanvas.getContext('2d');
+
+/* ---------------------------------------------------------------- noise */
+const TAU = Math.PI * 2;
+function hash2(x, y, s) {
+  let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263) ^ Math.imul((s | 0) + 1013, 1442695041);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+function vnoise(x, y, s) {
+  const xi = Math.floor(x), yi = Math.floor(y);
+  const xf = x - xi, yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = hash2(xi, yi, s), b = hash2(xi + 1, yi, s), c = hash2(xi, yi + 1, s), d = hash2(xi + 1, yi + 1, s);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+function fbm(x, y, s, oct) {
+  let f = 0, a = 0.5, n = oct || 4;
+  for (let i = 0; i < n; i++) { f += a * vnoise(x, y, s + i * 17); x = x * 2.03 + 11.7; y = y * 2.03 + 3.1; a *= 0.5; }
+  return f / (1 - Math.pow(0.5, n));
+}
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const smooth = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); };
+const lerp = (a, b, t) => a + (b - a) * t;
+const rand = (a, b) => a + Math.random() * (b - a);
+
+/* ---------------------------------------------------------------- garden state */
+const SP = 8;        // pristine groove spacing (cells)
+const AMP = 0.95;    // pristine groove amplitude (cells)
+const FH = 7;        // frame height (cells)
+let W = 0, H = 0, S = 0, FW = 12, landscape = true;
+let sand, base, stoneH, tot, mat, pristine;
+let island = null, stones = [], groups = [];
+let dirty = null;    // [x0,y0,x1,y1]
+let matDirty = false;
+
+const TOOLS = {
+  rake:   { tines: 5, sp: 9,   amp: 1.05, len: 2.6, str: 0.5 },
+  wide:   { tines: 9, sp: 6.4, amp: 0.88, len: 2.2, str: 0.5 },
+  smooth: { r: 20 },
+  stone:  {}
+};
+let tool = 'rake';
+
+// Classic asymmetric arrangement, normalized for a landscape garden (u across, v down), sizes in units of the short side.
+const DESIGN = {
+  island: { u: 0.300, v: 0.505, rx: 0.175, ry: 0.13, rot: -0.22 },
+  groups: [
+    { rings: 5, island: true, stones: [
+      { u: 0.283, v: 0.455, rx: 0.078, ry: 0.058, rot: 0.55, h: 0.15, pow: 0.78, tint: 0.35, moss: 0 },
+      { u: 0.347, v: 0.555, rx: 0.052, ry: 0.039, rot: -0.35, h: 0.085, pow: 0.8, tint: 0.62, moss: 0 },
+      { u: 0.228, v: 0.56, rx: 0.038, ry: 0.029, rot: 0.9, h: 0.05, pow: 0.85, tint: 0.2, moss: 0 }
+    ] },
+    { rings: 4, stones: [
+      { u: 0.705, v: 0.33, rx: 0.064, ry: 0.045, rot: 0.25, h: 0.1, pow: 0.75, tint: 0.5, moss: 0 },
+      { u: 0.762, v: 0.388, rx: 0.032, ry: 0.025, rot: 1.1, h: 0.045, pow: 0.85, tint: 0.75, moss: 0 }
+    ] },
+    { rings: 3, stones: [
+      { u: 0.605, v: 0.77, rx: 0.07, ry: 0.037, rot: -0.12, h: 0.035, pow: 1.0, tint: 0.42, moss: 0 }
+    ] }
+  ]
+};
+
+function makeStone(x, y, rx, ry, rot, h, pow, tint, moss, seed) {
+  const a1 = rand(0, TAU), a2 = a1 + rand(1.8, 3.4);
+  return {
+    x, y, rx, ry, rot, h, pow, tint, moss, seed: seed == null ? Math.floor(rand(1, 999)) : seed,
+    c: Math.cos(rot), s: Math.sin(rot),
+    f1x: Math.cos(a1), f1y: Math.sin(a1), f2x: Math.cos(a2), f2y: Math.sin(a2)
+  };
+}
+
+function toGardenXY(u, v) { return landscape ? [u * W, v * H] : [v * W, u * H]; }
+
+function buildGarden(aspect, cellsLong) {
+  landscape = aspect >= 1;
+  if (landscape) { W = cellsLong; H = Math.round(cellsLong / aspect); }
+  else { H = cellsLong; W = Math.round(cellsLong * aspect); }
+  S = Math.min(W, H);
+  FW = Math.max(9, Math.round(S * 0.036));
+  const N = W * H;
+  sand = new Float32Array(N); base = new Float32Array(N); stoneH = new Float32Array(N);
+  tot = new Float32Array(N); pristine = new Float32Array(N); mat = new Uint8Array(N * 4);
+
+  const rotAdj = landscape ? 0 : Math.PI / 2;
+  stones = []; groups = [];
+  const di = DESIGN.island;
+  const ip = toGardenXY(di.u, di.v);
+  island = { x: ip[0], y: ip[1], rx: di.rx * S, ry: di.ry * S, rot: di.rot + rotAdj };
+  island.c = Math.cos(island.rot); island.s = Math.sin(island.rot);
+  let seed = 11;
+  for (const gd of DESIGN.groups) {
+    const g = { rings: gd.rings, island: gd.island ? island : null, members: [] };
+    for (const sd of gd.stones) {
+      const p = toGardenXY(sd.u, sd.v);
+      const st = makeStone(p[0], p[1], sd.rx * S, sd.ry * S, sd.rot + rotAdj, sd.h * S, sd.pow, sd.tint, sd.moss, (seed += 37));
+      stones.push(st); g.members.push(st);
+    }
+    groups.push(g);
+  }
+  rebuildStoneLayer();
+  computeBase();
+  computePristine(pristine);
+  sand.set(pristine);
+  markDirty(0, 0, W, H);
+  matDirty = true;
+  texturesStale = true;
+}
+
+function computeBase() {
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    base[y * W + x] = 0.9 * (fbm(x * 0.006, y * 0.006, 3, 3) - 0.5) + 0.3 * (vnoise(x * 0.03, y * 0.03, 4) - 0.5);
+  }
+}
+
+function stampIsland(is) {
+  const R = Math.max(is.rx, is.ry) * 1.3;
+  const x0 = Math.max(0, Math.floor(is.x - R)), x1 = Math.min(W, Math.ceil(is.x + R));
+  const y0 = Math.max(0, Math.floor(is.y - R)), y1 = Math.min(H, Math.ceil(is.y + R));
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+    const dx = x + 0.5 - is.x, dy = y + 0.5 - is.y;
+    const qx = (dx * is.c + dy * is.s) / is.rx, qy = (-dx * is.s + dy * is.c) / is.ry;
+    let r = Math.hypot(qx, qy);
+    if (r > 1.35) continue;
+    r *= 1 + 0.42 * (fbm(x * 0.028, y * 0.028, 91, 3) - 0.5);
+    if (r >= 1) continue;
+    const i = y * W + x;
+    const h = 1.35 * Math.pow(1 - r * r, 0.35) + (1.6 * fbm(x * 0.045, y * 0.045, 6, 3) + 0.5 * fbm(x * 0.16, y * 0.16, 5, 2)) * Math.sqrt(1 - r);
+    if (h > stoneH[i]) {
+      stoneH[i] = h;
+      mat[i * 4] = 255 * clamp(h / 0.55, 0, 1);
+      mat[i * 4 + 1] = 255;
+      mat[i * 4 + 2] = 0;
+    }
+  }
+}
+
+function stampStone(st) {
+  const R = Math.max(st.rx, st.ry) * 1.45;
+  const x0 = Math.max(0, Math.floor(st.x - R)), x1 = Math.min(W, Math.ceil(st.x + R));
+  const y0 = Math.max(0, Math.floor(st.y - R)), y1 = Math.min(H, Math.ceil(st.y + R));
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+    const dx = x + 0.5 - st.x, dy = y + 0.5 - st.y;
+    const qx = (dx * st.c + dy * st.s) / st.rx, qy = (-dx * st.s + dy * st.c) / st.ry;
+    let r = Math.hypot(qx, qy);
+    if (r > 1.45) continue;
+    r *= 1 + 0.3 * (fbm(qx * 1.1 + st.seed, qy * 1.1 - st.seed, 7, 3) - 0.5);
+    if (r >= 1) continue;
+    let hh = Math.pow(1 - r * r, st.pow);
+    hh = Math.min(hh, 0.92 + 0.6 * (qx * st.f1x + qy * st.f1y), 0.97 + 0.55 * (qx * st.f2x + qy * st.f2y));
+    if (hh <= 0) continue;
+    let h = st.h * hh * (0.82 + 0.36 * fbm(x * 0.045, y * 0.045, 13 + st.seed, 3));
+    h += Math.min(2.5, st.h * 0.03) * (vnoise(x * 0.3, y * 0.3, 17 + st.seed) - 0.5) * hh;
+    const i = y * W + x;
+    if (h > stoneH[i]) {
+      stoneH[i] = h;
+      mat[i * 4] = 255 * clamp(h / 2.2, 0, 1);
+      let m = 0;
+      if (st.moss > 0) m = st.moss * smooth(0.45, 0.62, fbm(x * 0.045, y * 0.045, 23 + st.seed, 3) + hh * 0.3 - 0.12);
+      mat[i * 4 + 1] = 255 * m;
+      mat[i * 4 + 2] = 255 * st.tint;
+    }
+  }
+}
+
+function rebuildStoneLayer() {
+  stoneH.fill(0); mat.fill(0);
+  for (let i = 3; i < mat.length; i += 4) mat[i] = 255;
+  if (island) stampIsland(island);
+  for (const st of stones) stampStone(st);
+  matDirty = true;
+}
+
+function smin(a, b, k) { const h = clamp(0.5 + 0.5 * (b - a) / k, 0, 1); return lerp(b, a, h) - k * h * (1 - h); }
+function ellDist(e, x, y, grow) {
+  const dx = x - e.x, dy = y - e.y;
+  const rx = e.rx * grow, ry = e.ry * grow;
+  const qx = (dx * e.c + dy * e.s) / rx, qy = (-dx * e.s + dy * e.c) / ry;
+  return (Math.hypot(qx, qy) - 1) * Math.sqrt(rx * ry);
+}
+function groupDist(g, x, y) {
+  if (g.island) return ellDist(g.island, x, y, 1.02);
+  let d = Infinity;
+  for (const m of g.members) { const dm = ellDist(m, x, y, 1.12); d = d === Infinity ? dm : smin(d, dm, 14); }
+  return d;
+}
+
+function linesAt(x, y) {
+  const a = landscape ? x : y, b = landscape ? y : x;
+  const bw = b + 1.4 * Math.sin(a * 0.011 + 0.6) + 0.7 * Math.sin(a * 0.027 + 1.7) + 2.2 * (vnoise(a * 0.007, b * 0.004, 8) - 0.5);
+  return -Math.cos(TAU * bw / SP);
+}
+
+function computePristine(out) {
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x;
+    const px = x + 0.5, py = y + 0.5;
+    const amp = AMP * (0.86 + 0.26 * vnoise(x * 0.012, y * 0.012, 9));
+    let h = amp * linesAt(px, py);
+    let best = Infinity, bD = 0;
+    for (const g of groups) {
+      const D = groupDist(g, px, py);
+      const R = (g.rings + 0.5) * SP;
+      if (D - R < best) { best = D - R; bD = D; }
+    }
+    if (best < SP * 0.5) {
+      const Dw = bD + 1.8 * (vnoise(x * 0.03, y * 0.03, 10) - 0.5);
+      const hR = -amp * Math.cos(TAU * Dw / SP);
+      const w = smooth(SP * 0.3, -SP * 0.2, best);
+      h = h + (hR - h) * w;
+    }
+    out[i] = base[i] + h * (1 - smooth(0, 0.6, stoneH[i]));
+  }
+}
+function flattenUnderStones() {
+  for (let i = 0; i < sand.length; i++) {
+    const k = smooth(0, 0.6, stoneH[i]);
+    if (k > 0) sand[i] += (base[i] - sand[i]) * k;
+  }
+}
+
+function markDirty(x0, y0, x1, y1) {
+  x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0));
+  x1 = Math.min(W, Math.ceil(x1)); y1 = Math.min(H, Math.ceil(y1));
+  if (x1 <= x0 || y1 <= y0) return;
+  if (!dirty) dirty = [x0, y0, x1, y1];
+  else { dirty[0] = Math.min(dirty[0], x0); dirty[1] = Math.min(dirty[1], y0); dirty[2] = Math.max(dirty[2], x1); dirty[3] = Math.max(dirty[3], y1); }
+}
+
+/* ---------------------------------------------------------------- tools */
+let rakeDist = 0, rakeAcc = 0;
+
+function rakeStamp(px, py, dx, dy, t) {
+  const n = t.tines, s = t.sp, A = t.amp, L = t.len;
+  const nx = -dy, ny = dx;
+  const halfW = (n - 1) / 2 * s + 0.5 * s, fall = 0.7 * s, ext = halfW + fall;
+  const vl = 2.3 * L;
+  const bx = Math.abs(nx) * ext + Math.abs(dx) * vl, by = Math.abs(ny) * ext + Math.abs(dy) * vl;
+  const x0 = Math.max(0, Math.floor(px - bx)), x1 = Math.min(W, Math.ceil(px + bx));
+  const y0 = Math.max(0, Math.floor(py - by)), y1 = Math.min(H, Math.ceil(py + by));
+  const off = (n % 2 === 0) ? s * 0.5 : 0;
+  const heapS = 0.32 * s;
+  for (let y = y0; y < y1; y++) {
+    const ry = y + 0.5 - py;
+    for (let x = x0; x < x1; x++) {
+      const i = y * W + x;
+      if (stoneH[i] > 0.25) continue;
+      const rx = x + 0.5 - px;
+      const v = (rx * dx + ry * dy) / L;
+      if (v > 2.3 || v < -2.3) continue;
+      const u = rx * nx + ry * ny;
+      const au = Math.abs(u);
+      if (au > ext) continue;
+      const wu = au < halfW ? 1 : 1 - smooth(0, 1, (au - halfW) / fall);
+      const e = (au - halfW) / heapS;
+      const target = base[i] - A * Math.cos(TAU * (u + off) / s) + A * 0.55 * Math.exp(-e * e);
+      const w = wu * Math.exp(-v * v) * t.str;
+      sand[i] += (target - sand[i]) * w;
+    }
+  }
+  markDirty(x0, y0, x1, y1);
+  buryPetals(px, py, ext * 0.9, dx, dy);
+}
+
+function smoothStamp(px, py) {
+  const r = TOOLS.smooth.r;
+  const x0 = Math.max(0, Math.floor(px - r)), x1 = Math.min(W, Math.ceil(px + r));
+  const y0 = Math.max(0, Math.floor(py - r)), y1 = Math.min(H, Math.ceil(py + r));
+  const inv = 1 / (r * 0.5 * r * 0.5);
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+    const i = y * W + x;
+    if (stoneH[i] > 0.25) continue;
+    const ddx = x + 0.5 - px, ddy = y + 0.5 - py;
+    const w = Math.exp(-(ddx * ddx + ddy * ddy) * inv) * 0.16;
+    if (w < 0.002) continue;
+    sand[i] += (base[i] - sand[i]) * w;
+  }
+  markDirty(x0, y0, x1, y1);
+  buryPetals(px, py, r * 0.6, 0, 0);
+}
+
+function placeStone(gx, gy) {
+  if (gx < 6 || gy < 6 || gx > W - 6 || gy > H - 6) return;
+  if (stones.length >= 20) return;
+  const size = rand(0.03, 0.058) * S;
+  const st = makeStone(gx, gy, size, size * rand(0.62, 0.9), rand(0, Math.PI), S * rand(0.03, 0.08), rand(0.75, 1.0), Math.random(), Math.random() < 0.28 ? rand(0.5, 1) : 0);
+  stones.push(st);
+  const g = { rings: 3, island: null, members: [st] };
+  groups.push(g);
+  rebuildStoneLayer();
+  flattenUnderStones();
+  // rake three fresh rings around it
+  const R = (g.rings + 0.5) * SP;
+  const ext = Math.max(st.rx, st.ry) * 1.2 + R + SP;
+  const x0 = Math.max(0, Math.floor(gx - ext)), x1 = Math.min(W, Math.ceil(gx + ext));
+  const y0 = Math.max(0, Math.floor(gy - ext)), y1 = Math.min(H, Math.ceil(gy + ext));
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+    const i = y * W + x;
+    const D = groupDist(g, x + 0.5, y + 0.5);
+    if (D > R + SP) continue;
+    const Dw = D + 1.6 * (vnoise(x * 0.03, y * 0.03, 10) - 0.5);
+    const target = base[i] - AMP * Math.cos(TAU * Dw / SP);
+    const w = smooth(R + SP * 0.4, R - SP * 0.2, D);
+    sand[i] += (target - sand[i]) * w;
+  }
+  markDirty(0, 0, W, H);
+  buryPetals(gx, gy, Math.max(st.rx, st.ry) * 1.2, 0, 0);
+  Sound.thud();
+}
+
+/* sweeping clear / restore */
+let sweep = null;
+function startSweep(target, dur) {
+  if (reduceMotion) { sand.set(target); markDirty(0, 0, W, H); petals.forEach(p => { if (p.settled) p.buried = true; }); return; }
+  sweep = { target, pos: 0, len: landscape ? W : H, t: 0, dur };
+  Sound.sweep(dur);
+}
+function stepSweep(dt) {
+  sweep.t += dt;
+  const k = clamp(sweep.t / sweep.dur, 0, 1);
+  const e = 0.5 - 0.5 * Math.cos(Math.PI * k);
+  const np = Math.min(sweep.len, Math.ceil(sweep.len * e));
+  const a = sweep.pos;
+  if (np > a) {
+    if (landscape) {
+      for (let y = 0; y < H; y++) for (let x = a; x < np; x++) { const i = y * W + x; sand[i] = sweep.target[i]; }
+      markDirty(a, 0, np, H);
+    } else {
+      for (let y = a; y < np; y++) for (let x = 0; x < W; x++) { const i = y * W + x; sand[i] = sweep.target[i]; }
+      markDirty(0, a, W, np);
+    }
+    for (const p of petals) {
+      if (!p.settled) continue;
+      const c = landscape ? p.x : p.y;
+      if (c >= a - 2 && c < np + 2 && p.x > -2 && p.y > -2 && p.x < W + 2 && p.y < H + 2) p.buried = true;
+    }
+    sweep.pos = np;
+  }
+  if (k >= 1) sweep = null;
+}
+
+/* ---------------------------------------------------------------- WebGL */
+const VS = `#version 300 es
+void main(){ vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)); gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`;
+
+const FS = `#version 300 es
+precision highp float;
+uniform sampler2D uH;
+uniform sampler2D uM;
+uniform vec2 uGrid;
+uniform vec2 uRes;
+uniform vec3 uRect;
+uniform vec3 uSun;
+uniform vec3 uSunCol;
+uniform vec3 uSkyCol;
+uniform float uFW, uFH, uGlint, uExpo, uFade, uDusk;
+out vec4 outColor;
+
+float h12(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+vec2 h22(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * vec3(.1031, .1030, .0973)); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.xx + p3.yz) * p3.zy); }
+float vn(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
+  float a = h12(i), b = h12(i + vec2(1,0)), c = h12(i + vec2(0,1)), d = h12(i + vec2(1,1));
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y); }
+float fbm(vec2 p){ float f = 0.0, a = 0.5; for (int i = 0; i < 4; i++){ f += a * vn(p); p = p * 2.03 + 17.1; a *= 0.5; } return f / 0.9375; }
+
+float edgeD(vec2 p){ return max(max(-p.x, p.x - uGrid.x), max(-p.y, p.y - uGrid.y)); }
+float frameH(float e){ float b = smoothstep(0.0, 2.2, e) * smoothstep(uFW, uFW - 2.2, e); return uFH * b + 0.35 * sin(3.14159 * clamp(e / uFW, 0.0, 1.0)) * b; }
+float hAt(vec2 p){
+  float e = edgeD(p);
+  if (e < 0.0) return texture(uH, p / uGrid).r;
+  if (e < uFW) return frameH(e);
+  return 0.6;
+}
+
+float shadowAt(vec2 p, float h0){
+  float hl = length(uSun.xy);
+  vec2 d = uSun.xy / max(hl, 1e-4);
+  float tanE = uSun.z / max(hl, 1e-4);
+  float res = 1.0, t = 0.45 + 0.5 * h12(p * 7.13 + gl_FragCoord.xy * 0.37);
+  for (int i = 0; i < 22; i++){
+    float hq = hAt(p + d * t);
+    float dh = h0 + 0.1 + t * tanE - hq;
+    res = min(res, 4.5 * dh / t);
+    if (res < 0.0 || h0 + t * tanE > uFH + 70.0) break;
+    t = t * 1.24 + 0.35;
+  }
+  res = clamp(res, 0.0, 1.0);
+  return res * res * (3.0 - 2.0 * res);
+}
+
+float aoAt(vec2 p, float h0){
+  float o = 0.0;
+  for (int i = 0; i < 6; i++){
+    float a = float(i) * 1.0472 + 0.4;
+    vec2 d = vec2(cos(a), sin(a));
+    o += clamp((hAt(p + d * 2.5) - h0) * 0.2, 0.0, 1.0);
+    o += clamp((hAt(p + d * 8.0) - h0) * 0.07, 0.0, 1.0);
+  }
+  return clamp(1.0 - o / 6.0 * 1.15, 0.2, 1.0);
+}
+
+vec3 voronoi(vec2 x){
+  vec2 n = floor(x), f = fract(x);
+  float F1 = 8.0, F2 = 8.0; vec2 id = vec2(0);
+  for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++){
+    vec2 g = vec2(float(i), float(j));
+    vec2 o = h22(n + g) * 0.75 + 0.125;
+    vec2 r = g + o - f;
+    float d = dot(r, r);
+    if (d < F1){ F2 = F1; F1 = d; id = n + g; } else if (d < F2) F2 = d;
+  }
+  return vec3(sqrt(F1), sqrt(F2), h12(id));
+}
+float pebbleH(vec2 p){ vec3 v = voronoi(p / 7.0); float r = 0.42 + 0.14 * v.z; float k = clamp(1.0 - (v.x * v.x) / (r * r), 0.0, 1.0); return sqrt(k) * 2.4 * smoothstep(0.0, 0.12, v.y - v.x); }
+
+vec3 aces(vec3 x){ return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
+
+void main(){
+  vec2 pix = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);
+  vec2 p = (pix - uRect.xy) / uRect.z;
+  float e = edgeD(p);
+  vec3 L = normalize(uSun);
+  vec3 Hv = normalize(L + vec3(0.0, 0.0, 1.0));
+  float g1 = h12(pix), g2 = h12(pix + 31.7);
+  vec3 col;
+
+  if (e < uFW){
+    float h0 = hAt(p);
+    float hx1 = hAt(p + vec2(1.0, 0.0)), hx0 = hAt(p - vec2(1.0, 0.0));
+    float hy1 = hAt(p + vec2(0.0, 1.0)), hy0 = hAt(p - vec2(0.0, 1.0));
+    vec3 n = normalize(vec3((hx0 - hx1) * 0.5, (hy0 - hy1) * 0.5, 1.0));
+    float sh = shadowAt(p, h0);
+    float ao = aoAt(p, h0);
+    if (e < 0.0){
+      vec2 uv = p / uGrid;
+      vec4 m = texture(uM, uv);
+      // ---- sand
+      float big = fbm(p * 0.018);
+      vec3 alb = vec3(0.74, 0.655, 0.52) * (0.93 + 0.12 * big);
+      alb *= 0.9 + 0.2 * g1;
+      alb = mix(alb, vec3(0.30, 0.25, 0.21), step(0.991, g2));
+      alb = mix(alb, vec3(0.93, 0.91, 0.87), step(g2, 0.012));
+      vec3 ns = normalize(n + vec3((h22(pix + 7.0) - 0.5) * 0.38, 0.0));
+      float ndl = max((dot(ns, L) + 0.1) / 1.1, 0.0);
+      vec3 bounce = uSunCol * vec3(1.0, 0.9, 0.75) * 0.06 * (1.25 - ns.z);
+      vec3 c = alb * (uSunCol * ndl * sh + uSkyCol * (0.55 + 0.45 * ns.z) * ao + bounce);
+      if (g2 > 0.972){
+        vec3 gn = normalize(vec3((h22(pix + 3.1) - 0.5) * 1.5, 1.0));
+        float sp = pow(max(dot(gn, Hv), 0.0), 28.0);
+        c += uSunCol * sp * uGlint * sh * 1.6;
+      }
+      col = c;
+      // ---- stone / moss
+      float sm = smoothstep(0.03, 0.3, m.r);
+      if (sm > 0.0){
+        float moss = smoothstep(0.35, 0.7, m.g + (fbm(p * 0.33) - 0.5) * 0.55);
+        vec3 gran = mix(vec3(0.12, 0.118, 0.115), vec3(0.2, 0.175, 0.15), m.b);
+        gran *= 0.72 + 0.56 * fbm(p * 0.07 + m.b * 9.0);
+        gran *= 0.82 + 0.36 * g1;
+        gran = mix(gran, vec3(0.52, 0.5, 0.47), step(0.955, g2) * 0.55);
+        gran = mix(gran, vec3(0.43, 0.45, 0.37), smoothstep(0.64, 0.74, fbm(p * 0.11 + 3.0)) * 0.45);
+        float mf = fbm(p * 0.45);
+        vec3 mossAlb = mix(vec3(0.028, 0.04, 0.02), vec3(0.085, 0.105, 0.04), mf) * (0.55 + 0.9 * g1) * (0.75 + 0.5 * fbm(p * 0.06 + 7.0));
+        mossAlb = mix(mossAlb, vec3(0.22, 0.24, 0.08), step(0.985, g2) * 0.5);
+        vec2 sp3 = p * 0.22 + m.b * 13.0;
+        float f0 = fbm(sp3);
+        vec2 crink = vec2(fbm(sp3 + vec2(0.35, 0.0)) - f0, fbm(sp3 + vec2(0.0, 0.35)) - f0) * 3.2 * (1.0 - moss);
+        vec3 nm = normalize(n + vec3(-crink + (h22(pix + 11.0) - 0.5) * mix(0.18, 0.7, moss), 0.0));
+        float w = mix(0.28, 0.4, moss);
+        float nd = max((dot(nm, L) + w) / (1.0 + w), 0.0);
+        float ssh = mix(sh, 1.0, 0.18 * (1.0 - moss));
+        vec3 a2 = mix(gran, mossAlb, moss);
+        vec3 c2 = a2 * (uSunCol * nd * ssh * mix(0.8, 1.0, moss) + uSkyCol * (0.5 + 0.5 * nm.z) * ao * mix(1.7, 1.0, moss));
+        c2 += uSunCol * pow(max(dot(nm, Hv), 0.0), 16.0) * 0.06 * (1.0 - moss) * sh;
+        col = mix(col, c2, sm);
+      }
+    } else {
+      // ---- charred timber frame
+      bool vert = max(-p.x, p.x - uGrid.x) > max(-p.y, p.y - uGrid.y);
+      float along = vert ? p.y : p.x;
+      float across = vert ? p.x : p.y;
+      float grain = fbm(vec2(along * 0.018, across * 0.7));
+      float crack = smoothstep(0.02, 0.0, abs(fract(along * 0.035 + grain * 1.3) - 0.5) - 0.47);
+      vec3 alb = vec3(0.055, 0.047, 0.04) * (0.6 + 0.8 * grain) * (1.0 - 0.5 * crack) * (0.9 + 0.2 * g1);
+      float nd = max(dot(n, L), 0.0);
+      col = alb * (uSunCol * nd * sh + uSkyCol * (0.5 + 0.5 * n.z) * ao);
+      col += uSunCol * pow(max(dot(n, Hv), 0.0), 30.0) * 0.05 * sh * (0.5 + grain);
+    }
+  } else {
+    // ---- dark river-pebble gutter
+    float hp = pebbleH(p);
+    float hpx = pebbleH(p + vec2(0.6, 0.0)), hpy = pebbleH(p + vec2(0.0, 0.6));
+    vec3 n = normalize(vec3(-(hpx - hp) / 0.6, -(hpy - hp) / 0.6, 1.0));
+    vec3 v = voronoi(p / 7.0);
+    float edge = hp / 2.4;
+    float sh = shadowAt(p, hp + 0.6);
+    vec3 alb = mix(vec3(0.03, 0.03, 0.032), vec3(0.09, 0.085, 0.078), v.z) * (0.85 + 0.3 * g1) * mix(0.25, 1.0, smoothstep(0.0, 0.25, edge));
+    float nd = max(dot(n, L), 0.0);
+    col = alb * (uSunCol * nd * sh + uSkyCol * (0.45 + 0.55 * n.z) * smoothstep(0.0, 0.3, edge));
+    col += uSunCol * pow(max(dot(n, Hv), 0.0), 60.0) * 0.06 * sh;
+    col *= mix(0.7, 0.08, smoothstep(uFW + 3.0, uFW + 36.0, e));
+  }
+
+  // tone
+  col *= uExpo;
+  col = aces(col);
+  col = pow(col, vec3(1.0 / 2.2));
+  vec2 q = pix / uRes - 0.5;
+  col *= 1.0 - 0.32 * dot(q, q) * 1.6;
+  col = mix(col, col * vec3(0.82, 0.9, 1.1), uDusk * 0.5);
+  col *= uFade;
+  col += (h12(pix + 91.3) - 0.5) / 255.0;
+  outColor = vec4(col, 1.0);
+}`;
+
+function compile(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { const log = gl.getShaderInfoLog(s); gl.deleteShader(s); throw new Error(log); }
+  return s;
+}
+let prog, U = {};
+try {
+  prog = gl.createProgram();
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+} catch (err) {
+  $('#nogl').hidden = false;
+  return;
+}
+gl.useProgram(prog);
+for (const n of ['uH', 'uM', 'uGrid', 'uRes', 'uRect', 'uSun', 'uSunCol', 'uSkyCol', 'uFW', 'uFH', 'uGlint', 'uExpo', 'uFade', 'uDusk']) U[n] = gl.getUniformLocation(prog, n);
+const vao = gl.createVertexArray();
+gl.bindVertexArray(vao);
+
+const texH = gl.createTexture(), texM = gl.createTexture();
+function setupTex(t) {
+  gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+}
+setupTex(texH); setupTex(texM);
+let texturesStale = true;
+
+function uploadTextures() {
+  if (texturesStale) {
+    for (let i = 0; i < tot.length; i++) tot[i] = sand[i] + stoneH[i];
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0); gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0); gl.pixelStorei(gl.UNPACK_SKIP_ROWS, 0);
+    gl.bindTexture(gl.TEXTURE_2D, texH);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, W, H, 0, gl.RED, gl.FLOAT, tot);
+    gl.bindTexture(gl.TEXTURE_2D, texM);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, W, H, 0, gl.RGBA, gl.UNSIGNED_BYTE, mat);
+    texturesStale = false; dirty = null; matDirty = false;
+    return true;
+  }
+  let did = false;
+  if (matDirty) {
+    for (let i = 0; i < tot.length; i++) tot[i] = sand[i] + stoneH[i];
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0); gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0); gl.pixelStorei(gl.UNPACK_SKIP_ROWS, 0);
+    gl.bindTexture(gl.TEXTURE_2D, texM);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, mat);
+    gl.bindTexture(gl.TEXTURE_2D, texH);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, W, H, gl.RED, gl.FLOAT, tot);
+    matDirty = false; dirty = null; did = true;
+  }
+  if (dirty) {
+    const [x0, y0, x1, y1] = dirty;
+    for (let y = y0; y < y1; y++) { let i = y * W + x0; for (let x = x0; x < x1; x++, i++) tot[i] = sand[i] + stoneH[i]; }
+    gl.bindTexture(gl.TEXTURE_2D, texH);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+    gl.pixelStorei(gl.UNPACK_ROW_LENGTH, W);
+    gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, x0);
+    gl.pixelStorei(gl.UNPACK_SKIP_ROWS, y0);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, x0, y0, x1 - x0, y1 - y0, gl.RED, gl.FLOAT, tot);
+    gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0); gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0); gl.pixelStorei(gl.UNPACK_SKIP_ROWS, 0);
+    dirty = null; did = true;
+  }
+  return did;
+}
+
+/* ---------------------------------------------------------------- sun */
+// t, elevation(deg), azimuth(deg; 90 = top of screen), sun rgb (intensity baked), sky rgb, glint, exposure
+const KF = [
+  [0.00, 3.0, 20, [1.5, 0.72, 0.46], [0.30, 0.34, 0.52], 1.0, 1.35],
+  [0.14, 14,  42, [2.5, 1.95, 1.45], [0.44, 0.48, 0.62], 0.8, 1.02],
+  [0.45, 46,  96, [2.8, 2.7, 2.52], [0.46, 0.50, 0.62], 0.3, 0.72],
+  [0.70, 19, 132, [2.9, 2.15, 1.4],  [0.44, 0.44, 0.52], 0.85, 0.98],
+  [0.86, 7.5, 150, [2.5, 1.35, 0.62], [0.38, 0.34, 0.38], 1.0, 1.08],
+  [1.00, 2.5, 162, [1.2, 0.45, 0.26], [0.085, 0.1, 0.19], 0.4, 1.15]
+];
+let tSun = 0.70, drift = !reduceMotion, driftDir = 1;
+const sun = { dir: [0, 0, 1], col: [1, 1, 1], sky: [0.5, 0.5, 0.5], glint: 0, expo: 1, dusk: 0, el: 0.3 };
+function computeSun() {
+  let k = 0;
+  while (k < KF.length - 2 && tSun > KF[k + 1][0]) k++;
+  const a = KF[k], b = KF[k + 1];
+  let f = clamp((tSun - a[0]) / (b[0] - a[0]), 0, 1);
+  f = f * f * (3 - 2 * f);
+  const el = lerp(a[1], b[1], f) * Math.PI / 180;
+  const az = lerp(a[2], b[2], f) * Math.PI / 180;
+  sun.el = el;
+  sun.dir = [Math.cos(el) * Math.cos(az), -Math.cos(el) * Math.sin(az), Math.sin(el)];
+  for (let i = 0; i < 3; i++) { sun.col[i] = lerp(a[3][i], b[3][i], f); sun.sky[i] = lerp(a[4][i], b[4][i], f); }
+  sun.glint = lerp(a[5], b[5], f);
+  sun.expo = lerp(a[6], b[6], f);
+  sun.dusk = smooth(0.88, 1.0, tSun);
+}
+function sunName(t) {
+  if (t < 0.07) return 'dawn';
+  if (t < 0.3) return 'morning';
+  if (t < 0.56) return 'midday';
+  if (t < 0.66) return 'afternoon';
+  if (t < 0.8) return 'late afternoon';
+  if (t < 0.93) return 'golden hour';
+  return 'dusk';
+}
+
+/* ---------------------------------------------------------------- layout */
+const L = { x: 0, y: 0, cell: 2, vw: 0, vh: 0, dpr: 1 };
+function availBox() {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const oneRow = vw >= 600;
+  const padTop = vh < 520 ? 64 : (vw < 720 ? 72 : 84);
+  const padBottom = oneRow ? (vh < 520 ? 84 : 100) : 150;
+  const padX = vw < 720 ? 16 : 56;
+  return { vw, vh, padTop, padBottom, padX, aw: Math.max(120, vw - padX * 2), ah: Math.max(120, vh - padTop - padBottom) };
+}
+function idealGrid(box) {
+  let aspect = box.aw / box.ah;
+  aspect = aspect >= 1 ? clamp(aspect, 1.3, 2.0) : clamp(aspect, 0.5, 0.8);
+  const longCss = Math.max(box.aw, box.ah);
+  const cellsLong = Math.round(clamp(longCss / (longCss > 900 ? 2.1 : 1.75), 240, 760));
+  return { aspect, cellsLong };
+}
+function fitLayout(box) {
+  const cell = Math.min(box.aw / (W + 2 * FW), box.ah / (H + 2 * FW));
+  L.cell = cell;
+  L.x = (box.vw - W * cell) / 2;
+  L.y = box.padTop + (box.ah - (H + 2 * FW) * cell) / 2 + FW * cell;
+  L.vw = box.vw; L.vh = box.vh;
+  let dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const maxPix = 4.6e6;
+  if (box.vw * box.vh * dpr * dpr > maxPix) dpr = Math.sqrt(maxPix / (box.vw * box.vh));
+  L.dpr = dpr;
+  const cw = Math.round(box.vw * dpr), ch = Math.round(box.vh * dpr);
+  if (glCanvas.width !== cw || glCanvas.height !== ch) { glCanvas.width = cw; glCanvas.height = ch; }
+  if (fxCanvas.width !== cw || fxCanvas.height !== ch) { fxCanvas.width = cw; fxCanvas.height = ch; }
+  const hint = $('#hint');
+  hint.style.left = (L.x + W * cell / 2) + 'px';
+  hint.style.top = (L.y + H * cell - Math.min(46, H * cell * 0.08)) + 'px';
+}
+let gridSig = null;
+function onResize(first) {
+  const box = availBox();
+  const ig = idealGrid(box);
+  const orient = ig.aspect >= 1;
+  if (first || !gridSig || gridSig.orient !== orient || ig.cellsLong / gridSig.cellsLong > 1.6 || gridSig.cellsLong / ig.cellsLong > 1.6) {
+    buildGarden(ig.aspect, ig.cellsLong);
+    gridSig = { orient, cellsLong: ig.cellsLong };
+    petals.length = 0; seedPetals();
+  }
+  fitLayout(box);
+  needsGL = true;
+}
+
+/* ---------------------------------------------------------------- render */
+let needsGL = true, fade = 0;
+function renderGL() {
+  gl.viewport(0, 0, glCanvas.width, glCanvas.height);
+  gl.useProgram(prog);
+  gl.bindVertexArray(vao);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texH);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texM);
+  gl.uniform1i(U.uH, 0); gl.uniform1i(U.uM, 1);
+  gl.uniform2f(U.uGrid, W, H);
+  gl.uniform2f(U.uRes, glCanvas.width, glCanvas.height);
+  gl.uniform3f(U.uRect, L.x * L.dpr, L.y * L.dpr, L.cell * L.dpr);
+  gl.uniform3f(U.uSun, sun.dir[0], sun.dir[1], sun.dir[2]);
+  gl.uniform3f(U.uSunCol, sun.col[0], sun.col[1], sun.col[2]);
+  gl.uniform3f(U.uSkyCol, sun.sky[0], sun.sky[1], sun.sky[2]);
+  gl.uniform1f(U.uFW, FW); gl.uniform1f(U.uFH, FH);
+  gl.uniform1f(U.uGlint, sun.glint); gl.uniform1f(U.uExpo, sun.expo);
+  gl.uniform1f(U.uFade, fade); gl.uniform1f(U.uDusk, sun.dusk);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+/* ---------------------------------------------------------------- petals & fireflies */
+const petals = [];
+const fireflies = [];
+let spawnT = 2;
+function newPetal(settled) {
+  const maple = Math.random() < 0.14;
+  const p = {
+    x: 0, y: 0, z: 1, vx: 0, vy: 0, rot: rand(0, TAU), spin: rand(-1.6, 1.6), flip: rand(0, TAU), flipS: rand(1.5, 3.5),
+    size: maple ? rand(7, 9.5) : rand(5, 7), maple, settled: false, alpha: 0, buried: false, age: 0, phase: rand(0, TAU), fall: rand(0.06, 0.1)
+  };
+  if (settled) {
+    p.settled = true; p.z = 0; p.alpha = 1; p.flip = rand(-0.9, 0.9); p.age = rand(0, 20);
+  }
+  return p;
+}
+function seedPetals() {
+  let tries = 0, placed = 0;
+  const want = reduceMotion ? 4 : 7;
+  while (placed < want && tries < 200) {
+    tries++;
+    const x = rand(W * 0.06, W * 0.94), y = rand(H * 0.06, H * 0.94);
+    if (stoneH[Math.floor(y) * W + Math.floor(x)] > 0.2) continue;
+    const p = newPetal(true); p.x = x; p.y = y; petals.push(p); placed++;
+  }
+  for (let i = 0; i < (reduceMotion ? 1 : 3); i++) {
+    const p = newPetal(false);
+    p.x = rand(-0.1 * W, 0.8 * W); p.y = rand(-0.1 * H, 1.0 * H); p.z = rand(0.35, 0.9); p.alpha = 1;
+    petals.push(p);
+  }
+}
+function spawnPetal() {
+  const p = newPetal(false);
+  const leftCells = -L.x / L.cell, wCells = L.vw / L.cell;
+  const topCells = -L.y / L.cell, hCells = L.vh / L.cell;
+  p.x = leftCells + rand(-0.05, 0.6) * wCells;
+  p.y = topCells + rand(0.0, 0.9) * hCells;
+  p.z = 1;
+  petals.push(p);
+}
+function buryPetals(px, py, r, dx, dy) {
+  const r2 = r * r;
+  for (const p of petals) {
+    if (!p.settled || p.buried) continue;
+    const ex = p.x - px, ey = p.y - py;
+    if (ex * ex + ey * ey < r2) { p.buried = true; p.x += dx * 2; p.y += dy * 2; }
+  }
+}
+function windAt(t) {
+  return [22 + 10 * Math.sin(t * 0.07) + 6 * Math.sin(t * 0.23), 6 * Math.sin(t * 0.05 + 1.3)];
+}
+function updatePetals(dt, time) {
+  spawnT -= dt;
+  const airborne = petals.reduce((n, p) => n + (p.settled ? 0 : 1), 0);
+  if (spawnT <= 0) {
+    if (airborne < (reduceMotion ? 2 : 10)) spawnPetal();
+    spawnT = reduceMotion ? rand(10, 18) : rand(1.6, 4.5);
+  }
+  const wind = windAt(time);
+  for (let i = petals.length - 1; i >= 0; i--) {
+    const p = petals[i];
+    if (!p.settled) {
+      p.alpha = Math.min(1, p.alpha + dt * 1.2);
+      const flutter = Math.sin(time * 1.7 + p.phase) * 10;
+      p.vx += (wind[0] + flutter * 0.4 - p.vx) * dt * 0.9;
+      p.vy += (wind[1] + Math.cos(time * 1.3 + p.phase) * 7 - p.vy) * dt * 0.9;
+      p.x += p.vx * dt * (reduceMotion ? 0.5 : 1);
+      p.y += p.vy * dt * (reduceMotion ? 0.5 : 1);
+      p.z -= p.fall * dt * (0.65 + 0.35 * Math.sin(p.flip)) * (reduceMotion ? 0.5 : 1);
+      p.rot += p.spin * dt;
+      p.flip += p.flipS * dt;
+      if (p.z <= 0) {
+        p.z = 0; p.settled = true;
+        const c = Math.cos(p.flip); if (Math.abs(c) < 0.45) p.flip = c < 0 ? Math.PI - 1.0 : 1.0;
+      }
+    } else {
+      p.age += dt;
+      if (p.buried) p.alpha -= dt * 1.6;
+      else if (p.age > 120) p.alpha -= dt * 0.05;
+    }
+    const sx = L.x + p.x * L.cell, sy = L.y + p.y * L.cell;
+    const off = sx > L.vw + 60 || sy > L.vh + 60 || sy < -80 || sx < -L.vw;
+    if (p.alpha <= 0 && (p.settled || p.buried) || off) petals.splice(i, 1);
+  }
+  let settled = 0;
+  for (let i = petals.length - 1; i >= 0; i--) if (petals[i].settled && !petals[i].buried) { settled++; if (settled > 48) petals[i].buried = true; }
+}
+function petalPath(ctx, maple) {
+  ctx.beginPath();
+  if (!maple) {
+    ctx.moveTo(0, 1);
+    ctx.bezierCurveTo(-0.95, 0.55, -0.85, -0.75, -0.2, -0.98);
+    ctx.lineTo(0, -0.78);
+    ctx.lineTo(0.2, -0.98);
+    ctx.bezierCurveTo(0.85, -0.75, 0.95, 0.55, 0, 1);
+  } else {
+    const n = 5;
+    for (let k = 0; k <= 60; k++) {
+      const a = -Math.PI / 2 + (k / 60) * TAU;
+      const lobe = Math.pow(Math.abs(Math.cos((a + Math.PI / 2) * n / 2)), 0.6);
+      const r = (0.45 + 0.55 * lobe) * (a > 0.6 && a < 2.54 ? 0.75 : 1);
+      const x = Math.cos(a) * r, y = Math.sin(a) * r;
+      if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+  }
+}
+function tintColor(rgb, tint) {
+  return `rgb(${Math.round(clamp(rgb[0] * tint[0], 0, 255))},${Math.round(clamp(rgb[1] * tint[1], 0, 255))},${Math.round(clamp(rgb[2] * tint[2], 0, 255))})`;
+}
+let pointer = { x: 0, y: 0, over: false, touch: false };
+let lastDir = [1, 0];
+function drawFX(dt, time) {
+  const d = L.dpr;
+  fx.setTransform(1, 0, 0, 1, 0, 0);
+  fx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+  // light tint for petals
+  const se = Math.sin(sun.el);
+  const tint = [0, 1, 2].map(i => clamp((sun.col[i] * (0.18 + 0.35 * se) + sun.sky[i] * 0.85) * sun.expo * 0.78, 0.18, 1.12));
+  const shadowK = clamp(se * 4, 0.15, 1) * (1 - sun.dusk * 0.7);
+  const hl = Math.hypot(sun.dir[0], sun.dir[1]) || 1;
+  const sdx = -sun.dir[0] / hl, sdy = -sun.dir[1] / hl;
+  const shLen = Math.min(5, 1 / Math.max(0.05, Math.tan(sun.el)));
+  const ox = L.x * d, oy = L.y * d, cs = L.cell * d;
+  const cSak = tintColor([250, 214, 220], tint), cSak2 = tintColor([228, 150, 168], tint);
+  const cMap = tintColor([196, 76, 42], tint), cMap2 = tintColor([150, 50, 30], tint);
+  for (const p of petals) {
+    if (p.alpha <= 0) continue;
+    const sx = ox + p.x * cs, sy = oy + p.y * cs;
+    const sc = p.size * d * (1 + p.z * 0.45);
+    const fl = Math.max(0.22, Math.abs(Math.cos(p.flip)));
+    // shadow
+    const so = (1.2 + p.z * 26 * shLen) * d;
+    fx.save();
+    fx.globalAlpha = p.alpha * shadowK * (p.settled ? 0.32 : 0.2 * (1 - p.z * 0.5));
+    fx.translate(sx + sdx * so, sy + sdy * so);
+    fx.rotate(p.rot);
+    fx.scale(sc * fl * (1 + p.z * 0.3), sc * (1 + p.z * 0.3));
+    fx.fillStyle = '#1e140e';
+    petalPath(fx, p.maple);
+    fx.fill();
+    fx.restore();
+    // petal
+    fx.save();
+    fx.globalAlpha = p.alpha;
+    fx.translate(sx, sy);
+    fx.rotate(p.rot);
+    fx.scale(sc * fl, sc);
+    petalPath(fx, p.maple);
+    fx.fillStyle = p.maple ? cMap : cSak;
+    fx.fill();
+    if (!p.maple) {
+      fx.globalAlpha = p.alpha * 0.55;
+      fx.beginPath(); fx.ellipse(0, 0.62, 0.3, 0.34, 0, 0, TAU); fx.fillStyle = cSak2; fx.fill();
+    } else {
+      fx.globalAlpha = p.alpha * 0.6;
+      fx.strokeStyle = cMap2; fx.lineWidth = 0.08;
+      fx.beginPath(); fx.moveTo(0, 1.25); fx.lineTo(0, -0.3); fx.stroke();
+    }
+    fx.restore();
+  }
+  // fireflies at dusk
+  const ff = sun.dusk;
+  if (ff > 0.01) {
+    const want = reduceMotion ? 6 : 14;
+    while (fireflies.length < want) fireflies.push({ x: rand(0, W), y: rand(0, H), a: rand(0, TAU), s: rand(3, 8), ph: rand(0, TAU), bl: rand(0.5, 1.2) });
+    fx.globalCompositeOperation = 'lighter';
+    for (const f of fireflies) {
+      f.a += (vnoise(time * 0.3 + f.ph, 0, 3) - 0.5) * dt * 3;
+      const sp = reduceMotion ? f.s * 0.4 : f.s;
+      f.x += Math.cos(f.a) * sp * dt; f.y += Math.sin(f.a) * sp * dt;
+      if (f.x < -10 || f.x > W + 10 || f.y < -10 || f.y > H + 10) { f.x = rand(0, W); f.y = rand(0, H); }
+      const blink = Math.pow(Math.max(0, Math.sin(time * f.bl + f.ph)), 4);
+      const a = ff * (0.15 + 0.85 * blink);
+      if (a < 0.02) continue;
+      const x = ox + f.x * cs, y = oy + f.y * cs, r = 12 * d;
+      const g = fx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, `rgba(235,255,170,${0.9 * a})`);
+      g.addColorStop(0.15, `rgba(210,240,120,${0.45 * a})`);
+      g.addColorStop(1, 'rgba(160,200,80,0)');
+      fx.fillStyle = g;
+      fx.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    fx.globalCompositeOperation = 'source-over';
+  }
+  // tool cursor
+  if ((pointer.over && !pointer.touch) || stroke) {
+    const gx = (pointer.x - L.x) / L.cell, gy = (pointer.y - L.y) / L.cell;
+    if (gx > -4 && gy > -4 && gx < W + 4 && gy < H + 4) {
+      const x = pointer.x * d, y = pointer.y * d;
+      fx.save();
+      fx.strokeStyle = 'rgba(48,36,26,0.42)';
+      fx.fillStyle = 'rgba(48,36,26,0.42)';
+      fx.lineWidth = 1 * d;
+      if (tool === 'rake' || tool === 'wide') {
+        const t = TOOLS[tool];
+        const nx = -lastDir[1], ny = lastDir[0];
+        const half = (t.tines - 1) / 2;
+        const sp = t.sp * L.cell * d;
+        fx.beginPath();
+        fx.moveTo(x - nx * (half + 0.5) * sp, y - ny * (half + 0.5) * sp);
+        fx.lineTo(x + nx * (half + 0.5) * sp, y + ny * (half + 0.5) * sp);
+        fx.globalAlpha = 0.5; fx.stroke(); fx.globalAlpha = 1;
+        for (let k = 0; k < t.tines; k++) {
+          const o = (k - half) * sp;
+          fx.beginPath(); fx.arc(x + nx * o, y + ny * o, 1.6 * d, 0, TAU); fx.fill();
+        }
+      } else if (tool === 'smooth') {
+        fx.beginPath(); fx.arc(x, y, TOOLS.smooth.r * 0.75 * L.cell * d, 0, TAU); fx.setLineDash([3 * d, 4 * d]); fx.stroke();
+      } else if (tool === 'stone') {
+        fx.beginPath(); fx.ellipse(x, y, 0.045 * S * L.cell * d, 0.033 * S * L.cell * d, 0.3, 0, TAU); fx.setLineDash([2 * d, 3 * d]); fx.stroke();
+      }
+      fx.restore();
+    }
+  }
+}
+
+/* ---------------------------------------------------------------- sound */
+const Sound = {
+  ctx: null, master: null, wet: null, started: false, muted: false, scr: null,
+  start() {
+    if (this.started) { if (this.ctx && this.ctx.state === 'suspended' && !document.hidden) this.ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try { this.ctx = new AC(); } catch (e) { return; }
+    this.started = true;
+    const c = this.ctx;
+    const comp = c.createDynamicsCompressor();
+    comp.threshold.value = -20; comp.ratio.value = 3; comp.attack.value = 0.01; comp.release.value = 0.3;
+    comp.connect(c.destination);
+    this.master = c.createGain();
+    this.master.gain.value = 0;
+    this.master.connect(comp);
+    this.master.gain.setTargetAtTime(this.muted ? 0 : 0.8, c.currentTime, 0.9);
+    const conv = c.createConvolver();
+    conv.buffer = this.impulse(3.4);
+    this.wet = c.createGain(); this.wet.gain.value = 0.55;
+    this.wet.connect(conv); conv.connect(this.master);
+    // noise buffers
+    const len = c.sampleRate * 2;
+    const wb = c.createBuffer(1, len, c.sampleRate), wd = wb.getChannelData(0);
+    for (let i = 0; i < len; i++) wd[i] = Math.random() * 2 - 1;
+    this.white = wb;
+    const bb = c.createBuffer(1, len, c.sampleRate), bd = bb.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; bd[i] = last * 3.2; }
+    // scrape chain
+    const s = c.createBufferSource(); s.buffer = wb; s.loop = true;
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1200; bp.Q.value = 0.7;
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 4200;
+    const g = c.createGain(); g.gain.value = 0;
+    s.connect(bp); bp.connect(lp); lp.connect(g); g.connect(this.master);
+    const gw = c.createGain(); gw.gain.value = 0.18; g.connect(gw); gw.connect(this.wet);
+    s.start();
+    this.scr = { bp, lp, g };
+    // wind
+    const ws = c.createBufferSource(); ws.buffer = bb; ws.loop = true;
+    const wl = c.createBiquadFilter(); wl.type = 'lowpass'; wl.frequency.value = 360; wl.Q.value = 0.5;
+    const wg = c.createGain(); wg.gain.value = 0.05;
+    const lfo = c.createOscillator(); lfo.frequency.value = 0.06;
+    const lfoG = c.createGain(); lfoG.gain.value = 170; lfo.connect(lfoG); lfoG.connect(wl.frequency);
+    const lfo2 = c.createOscillator(); lfo2.frequency.value = 0.037;
+    const lfo2G = c.createGain(); lfo2G.gain.value = 0.028; lfo2.connect(lfo2G); lfo2G.connect(wg.gain);
+    ws.connect(wl); wl.connect(wg); wg.connect(this.master);
+    ws.start(); lfo.start(); lfo2.start();
+    // ambient events
+    this.every(() => this.tok(), 20, 40, rand(5, 9));
+    this.every(() => this.bird(), 16, 42, rand(8, 16));
+    this.every(() => this.drip(), 7, 16, rand(3, 6));
+    this.every(() => this.pluck(), 70, 150, rand(28, 45));
+  },
+  every(fn, min, max, first) {
+    const run = () => {
+      if (this.ctx && this.ctx.state === 'running' && !document.hidden && !this.muted) { try { fn(); } catch (e) { /* ignore */ } }
+      setTimeout(run, rand(min, max) * 1000);
+    };
+    setTimeout(run, first * 1000);
+  },
+  impulse(sec) {
+    const c = this.ctx, len = Math.floor(c.sampleRate * sec);
+    const b = c.createBuffer(2, len, c.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = b.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2);
+    }
+    return b;
+  },
+  out(dry, wet, pan) {
+    const c = this.ctx;
+    const g = c.createGain();
+    let node = g;
+    if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = pan || 0; g.connect(p); node = p; }
+    const d = c.createGain(); d.gain.value = dry; node.connect(d); d.connect(this.master);
+    const w = c.createGain(); w.gain.value = wet; node.connect(w); w.connect(this.wet);
+    return g;
+  },
+  env(g, t, peak, att, dec) {
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + att);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + att + dec);
+  },
+  tok() {
+    const c = this.ctx, t0 = c.currentTime + 0.03;
+    const out = this.out(0.55, 0.7, -0.35);
+    const hit = (t, v) => {
+      const o = c.createOscillator(); o.type = 'sine';
+      o.frequency.setValueAtTime(540, t); o.frequency.exponentialRampToValueAtTime(330, t + 0.07);
+      const g = c.createGain(); this.env(g, t, v, 0.003, 0.22); o.connect(g); g.connect(out);
+      const o2 = c.createOscillator(); o2.type = 'triangle'; o2.frequency.setValueAtTime(1240, t);
+      const g2 = c.createGain(); this.env(g2, t, v * 0.25, 0.002, 0.06); o2.connect(g2); g2.connect(out);
+      const n = c.createBufferSource(); n.buffer = this.white;
+      const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2200; bp.Q.value = 2.5;
+      const g3 = c.createGain(); this.env(g3, t, v * 0.5, 0.001, 0.035);
+      n.connect(bp); bp.connect(g3); g3.connect(out);
+      o.start(t); o.stop(t + 0.35); o2.start(t); o2.stop(t + 0.12); n.start(t, rand(0, 1.5)); n.stop(t + 0.06);
+    };
+    hit(t0, 0.2); hit(t0 + 0.24, 0.06);
+  },
+  drip() {
+    const c = this.ctx, t = c.currentTime + 0.02;
+    const out = this.out(0.25, 0.8, rand(-0.6, 0.2));
+    const o = c.createOscillator(); o.type = 'sine';
+    const f = rand(800, 1100);
+    o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 2.4, t + 0.04);
+    const g = c.createGain(); this.env(g, t, 0.035, 0.004, 0.1);
+    o.connect(g); g.connect(out); o.start(t); o.stop(t + 0.2);
+  },
+  bird() {
+    const c = this.ctx; let t = c.currentTime + 0.05;
+    const out = this.out(0.18, 0.9, rand(-0.9, 0.9));
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200; lp.connect(out);
+    const n = 2 + Math.floor(Math.random() * 4), f0 = rand(2600, 4000);
+    for (let k = 0; k < n; k++) {
+      const o = c.createOscillator(); o.type = 'sine';
+      const f = f0 * rand(0.92, 1.08), dur = rand(0.07, 0.13);
+      o.frequency.setValueAtTime(f, t);
+      o.frequency.exponentialRampToValueAtTime(f * rand(1.2, 1.45), t + dur * 0.4);
+      o.frequency.exponentialRampToValueAtTime(f * rand(0.8, 0.95), t + dur);
+      const g = c.createGain(); this.env(g, t, 0.014, 0.01, dur);
+      o.connect(g); g.connect(lp); o.start(t); o.stop(t + dur + 0.05);
+      t += dur + rand(0.06, 0.2);
+    }
+  },
+  pluck() {
+    const c = this.ctx, t = c.currentTime + 0.05;
+    const notes = [293.66, 311.13, 392.0, 440.0, 466.16, 587.33];
+    const f = notes[Math.floor(Math.random() * notes.length)];
+    const out = this.out(0.35, 0.9, rand(-0.3, 0.3));
+    const parts = [[1, 1], [2.0, 0.45], [3.01, 0.2], [4.2, 0.08]];
+    for (const [m, a] of parts) {
+      const o = c.createOscillator(); o.type = 'sine';
+      o.frequency.setValueAtTime(f * m * 1.008, t); o.frequency.exponentialRampToValueAtTime(f * m, t + 0.09);
+      const g = c.createGain(); this.env(g, t, 0.045 * a, 0.005, 3.2 / m);
+      o.connect(g); g.connect(out); o.start(t); o.stop(t + 3.6 / m + 0.1);
+    }
+  },
+  thud() {
+    if (!this.ctx || this.muted) return;
+    const c = this.ctx, t = c.currentTime + 0.01;
+    const out = this.out(0.7, 0.35, 0);
+    const o = c.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(52, t + 0.18);
+    const g = c.createGain(); this.env(g, t, 0.28, 0.004, 0.32);
+    o.connect(g); g.connect(out); o.start(t); o.stop(t + 0.45);
+    const n = c.createBufferSource(); n.buffer = this.white;
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700;
+    const g2 = c.createGain(); this.env(g2, t, 0.12, 0.002, 0.12);
+    n.connect(lp); lp.connect(g2); g2.connect(out); n.start(t); n.stop(t + 0.2);
+  },
+  sweep(dur) {
+    if (!this.ctx || this.muted) return;
+    const c = this.ctx, t = c.currentTime + 0.01;
+    const out = this.out(0.8, 0.25, 0);
+    const n = c.createBufferSource(); n.buffer = this.white; n.loop = true;
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.6;
+    bp.frequency.setValueAtTime(500, t); bp.frequency.linearRampToValueAtTime(2000, t + dur * 0.5); bp.frequency.linearRampToValueAtTime(700, t + dur);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.09, t + dur * 0.3); g.gain.linearRampToValueAtTime(0.07, t + dur * 0.75); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    n.connect(bp); bp.connect(g); g.connect(out); n.start(t); n.stop(t + dur + 0.05);
+  },
+  update(speed, raking) {
+    if (!this.ctx || !this.scr) return;
+    const c = this.ctx, t = c.currentTime;
+    const v = clamp(speed / 260, 0, 1);
+    let target = 0;
+    if (raking && speed > 2) target = (tool === 'smooth' ? 0.03 + 0.1 * v : 0.025 + 0.2 * Math.pow(v, 0.8)) * (0.8 + 0.4 * Math.random());
+    this.scr.g.gain.setTargetAtTime(target, t, raking ? 0.04 : 0.09);
+    this.scr.bp.frequency.setTargetAtTime((tool === 'smooth' ? 420 : 750) + 1700 * v, t, 0.06);
+    this.scr.lp.frequency.setTargetAtTime(tool === 'wide' ? 5200 : 4000, t, 0.1);
+  },
+  setMuted(m) {
+    this.muted = m;
+    if (this.ctx) this.master.gain.setTargetAtTime(m ? 0 : 0.8, this.ctx.currentTime, 0.15);
+  }
+};
+document.addEventListener('visibilitychange', () => {
+  if (!Sound.ctx) return;
+  if (document.hidden) Sound.ctx.suspend(); else Sound.ctx.resume();
+});
+
+/* ---------------------------------------------------------------- input */
+let stroke = null;
+function toGrid(cx, cy) { return [(cx - L.x) / L.cell, (cy - L.y) / L.cell]; }
+function hideHint() { $('#hint').classList.add('gone'); }
+
+glCanvas.addEventListener('pointerdown', (e) => {
+  Sound.start();
+  if (e.button > 0) return;
+  pointer.x = e.clientX; pointer.y = e.clientY; pointer.touch = e.pointerType !== 'mouse';
+  try { glCanvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  const g = toGrid(e.clientX, e.clientY);
+  if (tool === 'stone') { placeStone(g[0], g[1]); hideHint(); return; }
+  stroke = { id: e.pointerId, last: g, dir: null, acc: 0 };
+  if (tool === 'smooth') smoothStamp(g[0], g[1]);
+  e.preventDefault();
+});
+glCanvas.addEventListener('pointermove', (e) => {
+  pointer.x = e.clientX; pointer.y = e.clientY; pointer.over = true; pointer.touch = e.pointerType !== 'mouse';
+  if (!stroke || e.pointerId !== stroke.id) return;
+  let evs = e.getCoalescedEvents ? e.getCoalescedEvents() : null;
+  if (!evs || !evs.length) evs = [e];
+  for (const ev of evs) moveStroke(toGrid(ev.clientX, ev.clientY));
+});
+function endStroke(e) { if (stroke && (!e || e.pointerId === stroke.id)) stroke = null; }
+glCanvas.addEventListener('pointerup', endStroke);
+glCanvas.addEventListener('pointercancel', endStroke);
+glCanvas.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') pointer.over = false; });
+
+function moveStroke(g) {
+  const dx = g[0] - stroke.last[0], dy = g[1] - stroke.last[1];
+  const len = Math.hypot(dx, dy);
+  if (len < 0.35) return;
+  let mx = dx / len, my = dy / len;
+  if (!stroke.dir) stroke.dir = [mx, my];
+  else {
+    if (mx * stroke.dir[0] + my * stroke.dir[1] < 0) { mx = -mx; my = -my; }
+    const k = 1 - Math.exp(-len / 4.5);
+    let nx = stroke.dir[0] + (mx - stroke.dir[0]) * k, ny = stroke.dir[1] + (my - stroke.dir[1]) * k;
+    const nl = Math.hypot(nx, ny) || 1;
+    stroke.dir = [nx / nl, ny / nl];
+  }
+  lastDir = stroke.dir;
+  const step = tool === 'smooth' ? 2.2 : 0.6;
+  let t = stroke.acc;
+  while (t <= len) {
+    const px = stroke.last[0] + dx * (t / len), py = stroke.last[1] + dy * (t / len);
+    if (tool === 'smooth') smoothStamp(px, py);
+    else rakeStamp(px, py, stroke.dir[0], stroke.dir[1], TOOLS[tool]);
+    t += step;
+  }
+  stroke.acc = t - len;
+  stroke.last = g;
+  rakeDist += len; rakeAcc += len;
+  if (rakeDist > 24) hideHint();
+}
+
+function setTool(t) {
+  tool = t;
+  document.querySelectorAll('.tool').forEach(b => b.setAttribute('aria-pressed', b.dataset.tool === t ? 'true' : 'false'));
+  glCanvas.style.cursor = t === 'stone' ? 'copy' : 'crosshair';
+}
+document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
+window.addEventListener('keydown', (e) => {
+  if (e.target && e.target.tagName === 'INPUT') return;
+  const map = { '1': 'rake', '2': 'wide', '3': 'smooth', '4': 'stone' };
+  if (map[e.key]) setTool(map[e.key]);
+});
+
+const sunInput = $('#sun'), sunNameEl = $('#sun-name'), driftBtn = $('#btn-drift');
+function syncSunUI() {
+  sunInput.value = Math.round(tSun * 1000);
+  sunNameEl.textContent = sunName(tSun);
+}
+sunInput.addEventListener('input', () => {
+  tSun = sunInput.value / 1000;
+  computeSun(); sunNameEl.textContent = sunName(tSun); needsGL = true;
+});
+sunInput.addEventListener('pointerdown', () => { Sound.start(); if (drift) toggleDrift(false); });
+function toggleDrift(v) {
+  drift = v == null ? !drift : v;
+  driftBtn.setAttribute('aria-pressed', drift ? 'true' : 'false');
+  driftBtn.setAttribute('aria-label', drift ? 'Pause the sun' : 'Let the sun drift');
+}
+driftBtn.addEventListener('click', () => { Sound.start(); toggleDrift(); });
+toggleDrift(drift);
+
+const soundBtn = $('#btn-sound');
+soundBtn.addEventListener('click', () => {
+  const on = soundBtn.getAttribute('aria-pressed') !== 'true';
+  soundBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  Sound.setMuted(!on);
+  if (on) Sound.start();
+});
+$('#btn-clear').addEventListener('click', () => { Sound.start(); startSweep(base, 1.6); });
+$('#btn-restore').addEventListener('click', () => {
+  Sound.start();
+  const target = new Float32Array(W * H);
+  computePristine(target);
+  startSweep(target, 1.9);
+});
+$('#btn-save').addEventListener('click', () => {
+  if (texturesStale || dirty || matDirty) uploadTextures();
+  renderGL();
+  drawFX(0, performance.now() / 1000);
+  const out = document.createElement('canvas');
+  out.width = glCanvas.width; out.height = glCanvas.height;
+  const c = out.getContext('2d');
+  c.drawImage(glCanvas, 0, 0);
+  c.drawImage(fxCanvas, 0, 0);
+  const a = document.createElement('a');
+  a.download = 'karesansui.png';
+  a.href = out.toDataURL('image/png');
+  document.body.appendChild(a); a.click(); a.remove();
+});
+
+let resizeT = 0;
+window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => onResize(false), 60); });
+
+/* ---------------------------------------------------------------- loop */
+computeSun();
+onResize(true);
+syncSunUI();
+
+let lastT = performance.now(), frame = 0, speedS = 0, sunDirty = false;
+function loop(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000);
+  lastT = now; frame++;
+  const time = now / 1000;
+  if (drift) {
+    tSun += driftDir * dt * 0.0026;
+    if (tSun > 0.995) { tSun = 0.995; driftDir = -1; }
+    if (tSun < 0.06) { tSun = 0.06; driftDir = 1; }
+    computeSun();
+    sunDirty = true;
+    if (frame % 20 === 0) syncSunUI();
+  }
+  if (sweep) stepSweep(dt);
+  if (uploadTextures()) needsGL = true;
+  if (sunDirty && frame % 3 === 0) { needsGL = true; sunDirty = false; }
+  if (fade < 1) { fade = Math.min(1, fade + dt * 1.4); needsGL = true; }
+  if (needsGL) { renderGL(); needsGL = false; }
+  updatePetals(dt, time);
+  drawFX(dt, time);
+  const inst = dt > 0 ? rakeAcc / dt : 0;
+  speedS += (inst - speedS) * Math.min(1, dt * 14);
+  rakeAcc = 0;
+  Sound.update(speedS, !!stroke && tool !== 'stone');
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// debug / testing hook
+window.__karesansui = { rakeLine(x0, y0, x1, y1, t) { const prev = tool; if (t) tool = t; stroke = { id: -1, last: toGrid(x0, y0), dir: null, acc: 0 }; const n = 40; for (let i = 1; i <= n; i++) moveStroke(toGrid(lerp(x0, x1, i / n), lerp(y0, y1, i / n))); stroke = null; tool = prev; }, setSun(t) { tSun = t; computeSun(); syncSunUI(); needsGL = true; }, drift: toggleDrift, get layout() { return { ...L, W, H }; } };
+})();
+</script>
+</body>
+</html>

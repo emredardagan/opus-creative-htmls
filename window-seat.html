@@ -1,0 +1,1391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Window Seat</title>
+<meta name="description" content="A rainy night seen from a window seat: refracting raindrops on glass, an out-of-focus city in bokeh, fog you can wipe away, and a generative lo-fi soundtrack.">
+<meta name="theme-color" content="#070a12">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --ink: #070a12;
+    --paper: #f3e9dc;
+    --amber: #ffb35c;
+    --teal: #5fe0d2;
+    --pink: #ff6fae;
+    --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+    --sans: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --sill: 96px;
+    --fw: clamp(10px, 1.5vw, 24px);
+    --flash: 0;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--ink); }
+  body { color: var(--paper); font-family: var(--sans); font-size: 14px; line-height: 1.5; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+  #gl.wiping { cursor: grabbing; }
+  .fallback-bg { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+  /* ---------- the room ---------- */
+  .room { position: fixed; inset: 0; pointer-events: none; }
+  .lampglow { position: absolute; inset: 0; background:
+      radial-gradient(60% 55% at 104% 22%, rgba(255, 168, 92, .17), transparent 70%),
+      radial-gradient(40% 30% at 100% 100%, rgba(255, 150, 80, .10), transparent 70%);
+    mix-blend-mode: screen; }
+  .frame { position: absolute; inset: 0;
+    box-shadow:
+      inset 0 0 0 var(--fw) #120d0b,
+      inset 0 0 0 calc(var(--fw) + 1px) rgba(255, 196, 140, .10),
+      inset 0 0 0 calc(var(--fw) + 3px) rgba(0, 0, 0, .55),
+      inset 0 0 80px calc(var(--fw) + 6px) rgba(0, 0, 0, .45); }
+  .frame::after { content: ""; position: absolute; inset: 0; box-shadow: inset calc(-1 * var(--fw)) 0 0 0 rgba(255, 170, 100, .06); }
+  .mullion { position: absolute; top: 0; bottom: 0; left: 64%; width: clamp(10px, 1.05vw, 17px);
+    background: linear-gradient(90deg, #0a0706 0%, #1a1310 30%, #2c1f18 70%, #3a281d 88%, #120d0b 100%);
+    box-shadow: 0 0 34px rgba(0, 0, 0, .55), 8px 0 22px rgba(0, 0, 0, .25); }
+  .mullion::after, .sill::after { content: ""; position: absolute; inset: 0; background: rgba(150, 170, 220, .5); opacity: calc(var(--flash) * .35); }
+  .sill { position: absolute; left: 0; right: 0; bottom: 0; height: var(--sill);
+    background:
+      linear-gradient(90deg, rgba(0,0,0,.35), transparent 30%, transparent 70%, rgba(255, 160, 90, .08)),
+      linear-gradient(180deg, #4a3325 0, #2a1c14 3px, #20150f 34%, #140d09 36%, #0d0806 100%);
+    box-shadow: 0 -18px 40px -10px rgba(0, 0, 0, .55); }
+  .sill::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 205, 160, .35) 60%, rgba(255, 190, 130, .55)); }
+  .mug { position: absolute; left: clamp(28px, 8vw, 150px); bottom: calc(var(--sill) * .68); width: clamp(56px, 6.2vw, 96px); height: auto; overflow: visible; filter: drop-shadow(0 6px 10px rgba(0,0,0,.5)); }
+  .steam path { fill: none; stroke: rgba(255, 238, 222, .2); stroke-width: 3.2; stroke-linecap: round; filter: url(#steamBlur); opacity: 0; animation: steam 7s ease-in-out infinite; }
+  .steam path:nth-child(2) { animation-delay: 2.3s; }
+  .steam path:nth-child(3) { animation-delay: 4.6s; }
+  @keyframes steam {
+    0% { opacity: 0; transform: translateY(10px) scaleX(.9); }
+    25% { opacity: .9; }
+    70% { opacity: .35; }
+    100% { opacity: 0; transform: translateY(-26px) scaleX(1.25); }
+  }
+
+  /* ---------- intro ---------- */
+  .intro { position: fixed; left: clamp(16px, 7vw, 120px); top: 46%; transform: translateY(-50%); width: min(540px, calc(100% - 32px)); pointer-events: none; transition: opacity 1.4s ease, transform 1.6s cubic-bezier(.2,.7,.2,1); z-index: 3; }
+  .intro::before { content: ""; position: absolute; inset: -30% -30% -30% -40%; background: radial-gradient(closest-side, rgba(4, 6, 12, .55), rgba(4, 6, 12, 0)); z-index: -1; }
+  .intro.gone { opacity: 0; transform: translateY(-54%); }
+  .intro.gone * { pointer-events: none !important; }
+  .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: rgba(243, 233, 220, .62); display: flex; gap: 10px; align-items: center; }
+  .eyebrow i { display: inline-block; width: 22px; height: 1px; background: rgba(255, 179, 92, .7); }
+  .intro h1 { margin: 12px 0 0; font-family: var(--serif); font-weight: 400; font-style: italic; font-size: clamp(64px, 10.5vw, 164px); line-height: .84; letter-spacing: -.015em; color: #f6ecdf; text-shadow: 0 2px 50px rgba(0, 0, 0, .6); }
+  .intro h1 span { display: block; padding-left: .55em; color: #ffd9ab; }
+  .intro p { margin: 22px 0 0; max-width: 36ch; font-size: 15px; color: rgba(243, 233, 220, .78); text-shadow: 0 1px 12px rgba(0,0,0,.6); }
+  .actions { margin-top: 26px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; }
+  .sit { pointer-events: auto; font: 500 15px/1 var(--sans); letter-spacing: .02em; color: #1a120c; background: linear-gradient(180deg, #ffd7a3, #f4b673); border: 0; border-radius: 999px; padding: 14px 24px 14px 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 10px 30px -10px rgba(255, 170, 90, .7), inset 0 1px 0 rgba(255,255,255,.5); transition: transform .2s ease, box-shadow .2s ease; }
+  .sit:hover { transform: translateY(-1px); box-shadow: 0 14px 34px -10px rgba(255, 170, 90, .85), inset 0 1px 0 rgba(255,255,255,.5); }
+  .sit:focus-visible, .quiet:focus-visible, .panel button:focus-visible, .panel input:focus-visible { outline: 2px solid rgba(255, 215, 163, .9); outline-offset: 3px; }
+  .sit svg { width: 18px; height: 18px; }
+  .quiet { pointer-events: auto; font: 500 13px/1 var(--sans); color: rgba(243, 233, 220, .7); background: none; border: 0; padding: 6px 0; cursor: pointer; border-bottom: 1px solid rgba(243, 233, 220, .25); }
+  .quiet:hover { color: #fff; border-color: rgba(243, 233, 220, .6); }
+  .hint { margin-top: 18px; font-size: 12px; letter-spacing: .06em; color: rgba(243, 233, 220, .5); }
+  .nogl { margin-top: 18px; padding: 12px 14px; border-radius: 10px; background: rgba(255, 120, 120, .1); border: 1px solid rgba(255, 150, 150, .25); font-size: 13px; color: #ffd8d0; }
+
+  .caption { position: fixed; left: 50%; bottom: calc(var(--sill) + 22px); transform: translate(-50%, 8px); font-family: var(--serif); font-style: italic; font-size: clamp(18px, 2vw, 22px); color: rgba(246, 236, 223, .85); text-shadow: 0 2px 16px rgba(0,0,0,.7); opacity: 0; pointer-events: none; transition: opacity 1.2s ease, transform 1.2s ease; white-space: nowrap; z-index: 2; }
+  .caption.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ---------- panel ---------- */
+  .panel { position: fixed; right: max(16px, calc(var(--fw) + 14px)); bottom: max(16px, calc(var(--sill) * .5 - 20px)); width: min(272px, calc(100% - 32px)); padding: 16px 16px 14px; border-radius: 16px; background: rgba(12, 14, 22, .52); -webkit-backdrop-filter: blur(18px) saturate(1.2); backdrop-filter: blur(18px) saturate(1.2); border: 1px solid rgba(255, 255, 255, .08); box-shadow: 0 24px 50px -24px rgba(0, 0, 0, .8), inset 0 1px 0 rgba(255,255,255,.05); display: grid; gap: 12px; opacity: 0; transform: translateY(10px); pointer-events: none; transition: opacity 1s ease .6s, transform 1s ease .6s; z-index: 4; }
+  .panel.show { opacity: 1; transform: none; pointer-events: auto; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .lbl { font-size: 10.5px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: rgba(243, 233, 220, .55); }
+  .val { font-family: var(--serif); font-style: italic; font-size: 19px; line-height: 1; color: #ffd9ab; }
+  .rain-field { display: grid; gap: 6px; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; margin: 0; cursor: pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height: 3px; border-radius: 3px; background: linear-gradient(90deg, rgba(255, 179, 92, .9) 0 var(--p, 55%), rgba(255, 255, 255, .14) var(--p, 55%)); }
+  input[type=range]::-moz-range-track { height: 3px; border-radius: 3px; background: rgba(255,255,255,.14); }
+  input[type=range]::-moz-range-progress { height: 3px; border-radius: 3px; background: rgba(255, 179, 92, .9); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -6.5px; border-radius: 50%; background: #ffe3bf; border: 0; box-shadow: 0 0 0 4px rgba(255, 179, 92, .18), 0 2px 8px rgba(0,0,0,.5); }
+  input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #ffe3bf; border: 0; box-shadow: 0 0 0 4px rgba(255, 179, 92, .18); }
+  .ends { display: flex; justify-content: space-between; font-size: 11px; color: rgba(243, 233, 220, .42); margin-top: -4px; }
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 3px; border-radius: 11px; background: rgba(255, 255, 255, .05); }
+  .seg button { font: 500 12px/1 var(--sans); color: rgba(243, 233, 220, .7); background: none; border: 0; border-radius: 8px; padding: 9px 4px; cursor: pointer; transition: background .25s, color .25s; white-space: nowrap; }
+  .seg button:hover { color: #fff; }
+  .seg button[aria-checked="true"] { background: rgba(255, 215, 163, .16); color: #ffe3bf; box-shadow: inset 0 0 0 1px rgba(255, 215, 163, .22); }
+  .chips { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .chip { font: 500 12px/1 var(--sans); color: rgba(243, 233, 220, .8); background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .08); border-radius: 9px; padding: 9px 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 7px; transition: background .25s, color .25s; }
+  .chip:hover { background: rgba(255, 255, 255, .09); color: #fff; }
+  .chip svg { width: 14px; height: 14px; flex: none; }
+  .chip[aria-pressed="false"] { color: rgba(243, 233, 220, .5); }
+  .keys { margin: 0; font-size: 10.5px; letter-spacing: .04em; color: rgba(243, 233, 220, .38); text-align: center; }
+  .keys b { font-weight: 600; color: rgba(243, 233, 220, .6); }
+
+  @media (max-width: 640px) {
+    .mullion { display: none; }
+    .intro { top: 40%; }
+    .intro p { font-size: 14px; }
+    .panel { left: 16px; right: 16px; width: auto; bottom: 16px; padding: 12px 14px; gap: 9px; }
+    .keys { display: none; }
+    .caption { bottom: 250px; }
+    .mug { left: auto; right: 22px; }
+  }
+  @media (max-height: 520px) {
+    .intro h1 { font-size: clamp(48px, 9vw, 100px); }
+    .intro p { margin-top: 12px; }
+    .keys { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .steam path { animation: none; opacity: .35; }
+    .intro, .caption, .panel { transition-duration: .3s; }
+  }
+</style>
+</head>
+<body>
+<canvas id="gl" aria-label="A rainy window at night. Drag to wipe the fog from the glass."></canvas>
+
+<div class="room" aria-hidden="true">
+  <div class="lampglow"></div>
+  <div class="mullion"></div>
+  <div class="sill">
+    <svg class="mug" viewBox="0 0 100 124" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="steamBlur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.8"/></filter>
+        <linearGradient id="mugBody" x1="0" x2="1">
+          <stop offset="0" stop-color="#0c0806"/>
+          <stop offset=".55" stop-color="#1e1510"/>
+          <stop offset=".86" stop-color="#4a3122"/>
+          <stop offset="1" stop-color="#1a110c"/>
+        </linearGradient>
+      </defs>
+      <g class="steam">
+        <path d="M40 58 C33 46 48 38 40 26 S45 10 39 0"/>
+        <path d="M50 58 C57 46 44 36 52 24 S47 8 53 -2"/>
+        <path d="M45 58 C39 48 52 40 45 30 S50 14 44 4"/>
+      </g>
+      <path d="M76 72 c15 -1 17 25 -1 26" fill="none" stroke="#1b120d" stroke-width="7" stroke-linecap="round"/>
+      <path d="M78 74 c10 1 11 18 -1 20" fill="none" stroke="rgba(255,180,110,.22)" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M18 64 h60 v32 a22 22 0 0 1 -22 22 h-16 a22 22 0 0 1 -22 -22 z" fill="url(#mugBody)"/>
+      <path d="M74 68 v28 a20 20 0 0 1 -9 16" fill="none" stroke="rgba(255,190,120,.32)" stroke-width="1.3" stroke-linecap="round"/>
+      <ellipse cx="48" cy="64" rx="30" ry="4.2" fill="#2d2019"/>
+      <ellipse cx="48" cy="64.6" rx="26.5" ry="2.8" fill="#3a2212"/>
+      <ellipse cx="48" cy="120" rx="30" ry="3" fill="rgba(0,0,0,.45)"/>
+    </svg>
+  </div>
+  <div class="frame"></div>
+</div>
+
+<section class="intro" id="intro">
+  <div class="eyebrow"><i></i><span id="clock">late, raining</span></div>
+  <h1>Window <span>Seat</span></h1>
+  <p>Rain on the glass, the city gone soft behind it. Pull up a chair. The tea is still warm and there is nowhere you need to be.</p>
+  <div class="actions">
+    <button class="sit" id="sit" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>
+      Sit down
+    </button>
+    <button class="quiet" id="quiet" type="button">watch in silence</button>
+  </div>
+  <div class="hint">Sound on. Drag across the glass to wipe the fog.</div>
+  <div class="nogl" id="nogl" hidden>This browser could not open WebGL, so the rain is sitting still tonight. The city is still here though.</div>
+</section>
+
+<div class="caption" id="caption">drag to wipe the glass</div>
+
+<aside class="panel" id="panel" aria-label="Window controls">
+  <div class="rain-field">
+    <div class="row"><span class="lbl">Rain</span><span class="val" id="rainVal">Steady</span></div>
+    <input type="range" id="rain" min="0" max="100" value="55" aria-label="Rain intensity">
+    <div class="ends"><span>drizzle</span><span>downpour</span></div>
+  </div>
+  <div class="row"><span class="lbl">Hour</span><span class="val" id="moodVal">Blue hour</span></div>
+  <div class="seg" role="radiogroup" aria-label="Hour">
+    <button type="button" role="radio" data-mood="0" aria-checked="true">Blue hour</button>
+    <button type="button" role="radio" data-mood="1" aria-checked="false">Midnight</button>
+    <button type="button" role="radio" data-mood="2" aria-checked="false">Neon</button>
+  </div>
+  <div class="chips">
+    <button type="button" class="chip" id="sound" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path id="waves" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+      <span id="soundLbl">Sound off</span>
+    </button>
+    <button type="button" class="chip" id="bolt">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3 5 14h6l-1 7 8-11h-6z"/></svg>
+      Lightning
+    </button>
+  </div>
+  <p class="keys"><b>&uarr;&darr;</b> rain &middot; <b>1 2 3</b> hour &middot; <b>M</b> sound &middot; <b>L</b> lightning</p>
+</aside>
+
+<script>
+(() => {
+'use strict';
+
+/* =========================================================
+   Setup & helpers
+   ========================================================= */
+const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const canvas = document.getElementById('gl');
+const $ = (id) => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function hex(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+function rgba(h, a) { const c = hex(h); return `rgba(${c[0]},${c[1]},${c[2]},${a})`; }
+function pick(rng, list) { let tot = 0; for (const it of list) tot += it[1]; let r = rng() * tot; for (const it of list) { r -= it[1]; if (r <= 0) return it[0]; } return list[0][0]; }
+
+// clock in the eyebrow
+try {
+  const d = new Date();
+  const t = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+  const day = d.toLocaleDateString([], { weekday: 'long' });
+  $('clock').textContent = `${day}, ${t} · raining`;
+} catch (e) { /* keep default */ }
+
+// does ctx.filter blur actually work?
+const FILTER_OK = (() => {
+  try {
+    const c = mk(9, 9), x = c.getContext('2d');
+    if (!('filter' in x)) return false;
+    x.filter = 'blur(2px)'; x.fillStyle = '#fff'; x.fillRect(4, 4, 1, 1); x.filter = 'none';
+    return x.getImageData(2, 4, 1, 1).data[3] > 0;
+  } catch (e) { return false; }
+})();
+function blurCanvas(src, px) {
+  const out = mk(src.width, src.height), o = out.getContext('2d');
+  const pad = px * 2.2;
+  if (FILTER_OK) {
+    o.filter = `blur(${px}px)`;
+    o.drawImage(src, -pad, -pad, src.width + pad * 2, src.height + pad * 2);
+    o.filter = 'none';
+    return out;
+  }
+  const f = Math.max(1, px / 1.6);
+  const a = mk(src.width / f, src.height / f), ac = a.getContext('2d');
+  ac.imageSmoothingQuality = 'high';
+  ac.drawImage(src, 0, 0, a.width, a.height);
+  const b = mk(a.width / 2, a.height / 2), bc = b.getContext('2d');
+  bc.imageSmoothingQuality = 'high';
+  bc.drawImage(a, 0, 0, b.width, b.height);
+  ac.clearRect(0, 0, a.width, a.height);
+  ac.drawImage(b, 0, 0, a.width, a.height);
+  o.imageSmoothingQuality = 'high';
+  o.drawImage(a, 0, 0, out.width, out.height);
+  return out;
+}
+
+/* =========================================================
+   Palettes (the hour)
+   ========================================================= */
+const PALETTES = [
+  { name: 'Blue hour',
+    sky: ['#0c1630', '#1c2f55', '#3d4a74', '#8f6c78'], haze: '#ff9a6a', cloud: '#6d6f97',
+    far: '#1b2440', near: '#0a0e1a', street: '#0e1220',
+    win: [['#ffc97e', 6], ['#ffe2b0', 3], ['#a4e6ff', 1.3], ['#ff9f62', 2]], lit: .34,
+    lamp: '#ffb05a', neon: [['#ff5fa8', 1], ['#48e0d6', 1]], neonCount: 3,
+    fog: [.42, .47, .6], room: [1.0, .66, .38], exposure: 1.12 },
+  { name: 'Midnight',
+    sky: ['#02040a', '#060b18', '#0f1830', '#29283b'], haze: '#ff8c3a', cloud: '#2a3048',
+    far: '#0b111f', near: '#03050a', street: '#070a12',
+    win: [['#ffb45e', 7], ['#ffd89c', 3], ['#86cbff', 1]], lit: .2,
+    lamp: '#ff9a38', neon: [['#ff4f8b', 1], ['#35d0c8', 1]], neonCount: 2,
+    fog: [.26, .3, .4], room: [1.0, .6, .3], exposure: 1.22 },
+  { name: 'Neon',
+    sky: ['#0a0616', '#1c0b33', '#43175a', '#8c2c6c'], haze: '#ff4fb2', cloud: '#5a2a78',
+    far: '#1d1030', near: '#08050f', street: '#0c0716',
+    win: [['#ff7ac8', 3], ['#6ff0ff', 3], ['#b18cff', 2], ['#ffcf8a', 2]], lit: .3,
+    lamp: '#ff8c64', neon: [['#ff3fa4', 3], ['#2ef2e0', 3], ['#9d6bff', 2], ['#ffd166', 1]], neonCount: 7,
+    fog: [.5, .36, .62], room: [1.0, .55, .5], exposure: 1.1 },
+];
+
+/* =========================================================
+   State
+   ========================================================= */
+let W = 0, H = 0, PR = 1, K = 1, SILL = 96;
+let prCap = Math.min(window.devicePixelRatio || 1, 2);
+let rain = 0.55;
+let mood = 0;
+let started = false;
+const scene = { sharp: null, bokeh: null, fog: null, sky: null, neonSpots: [], streetY: 0, viewH: 0 };
+
+/* =========================================================
+   WebGL
+   ========================================================= */
+const gl = canvas.getContext('webgl', { antialias: false, alpha: false, depth: false, stencil: false, premultipliedAlpha: false, powerPreference: 'high-performance' });
+const MAXL = 20;
+
+const VS = `attribute vec2 aPos; varying vec2 vUv; void main(){ vUv = aPos*0.5+0.5; gl_Position = vec4(aPos,0.0,1.0); }`;
+const FS = `
+precision highp float;
+varying vec2 vUv;
+uniform sampler2D uSharp, uBokeh, uFogTex, uDrops, uMask, uSky;
+uniform vec2 uRes;
+uniform float uTime, uFlash, uExposure, uRefr, uPR;
+uniform vec3 uFogCol, uRoomCol;
+uniform vec2 uLamp;
+uniform vec4 uL[${MAXL}];
+uniform vec4 uC[${MAXL}];
+uniform int uN;
+
+float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453); }
+
+// dynamic lights as out-of-focus discs (plus a wide soft glow for the fog)
+void bokehLights(vec2 p, out vec3 disc, out vec3 glow){
+  disc = vec3(0.0); glow = vec3(0.0);
+  for (int i = 0; i < ${MAXL}; i++){
+    if (i >= uN) break;
+    vec4 L = uL[i]; vec3 C = uC[i].rgb;
+    vec2 d = p - L.xy; d.y /= L.w;
+    float dist = length(d);
+    float R = L.z;
+    float m = smoothstep(R, R*0.86, dist);
+    float rim = 0.78 + 0.32*smoothstep(R*0.35, R*0.95, dist);
+    disc += C * m * rim;
+    float g = dist / (R*1.9);
+    glow += C * exp(-g*g) * 0.9;
+  }
+}
+// dynamic lights in focus (seen through the drop lenses)
+vec3 sharpLights(vec2 p){
+  vec3 c = vec3(0.0);
+  for (int i = 0; i < ${MAXL}; i++){
+    if (i >= uN) break;
+    vec4 L = uL[i]; vec3 C = uC[i].rgb;
+    vec2 d = p - L.xy; d.y /= L.w;
+    float dist = length(d);
+    float r = L.z*0.07 + 0.8;
+    c += C * (exp(-dist*dist/(r*r))*2.2 + exp(-dist/(r*5.0))*0.25);
+  }
+  return c;
+}
+
+void main(){
+  vec2 uv = vUv;
+  vec2 p = vec2(uv.x, 1.0 - uv.y) * uRes;            // css px, y down
+
+  vec4 dm = texture2D(uDrops, uv);
+  float a = dm.a;
+  float mask = smoothstep(0.44, 0.6, a);
+  vec2 n = dm.rg * 2.0 - 1.0;                        // y-down normal
+  float thick = dm.b;
+  float nl = length(n);
+
+  // condensation
+  float fm = smoothstep(0.03, 0.9, texture2D(uMask, uv).r);
+  float bottom = smoothstep(0.45, 1.0, p.y / uRes.y);
+  float fog = fm * (0.66 + 0.34 * bottom);
+
+  float sky = texture2D(uSky, uv).r;
+  vec3 flashCol = vec3(0.55, 0.62, 0.9) * uFlash;
+
+  // ----- behind the glass: out of focus city -----
+  vec3 disc, glow;
+  bokehLights(p, disc, glow);
+  vec3 clear = texture2D(uBokeh, uv).rgb + disc;
+  clear += flashCol * (sky * 0.9 + 0.08);
+  vec3 fogged = texture2D(uFogTex, uv).rgb * 0.92 + glow * 0.55;
+  fogged += flashCol * (sky * 0.7 + 0.12);
+  float lum = dot(fogged, vec3(0.3, 0.55, 0.15));
+  fogged = fogged * 0.9 + uFogCol * (0.1 + lum * 0.5);
+
+  // the room lamp scatters warmly in the fog
+  vec2 lp = (p - uLamp) / uRes.y;
+  float lampD = dot(lp * vec2(1.0, 0.85), lp * vec2(1.0, 0.85));
+  fogged += uRoomCol * exp(-lampD * 5.0) * 0.08;
+  vec3 bg = mix(clear, fogged, fog);
+
+  // soft contact shadow around each drop
+  float shadow = (1.0 - mask) * smoothstep(0.02, 0.44, a) * 0.32;
+  bg *= 1.0 - shadow;
+
+  // ----- inside the drops: a sharp, inverted little world -----
+  vec3 col = bg;
+  if (mask > 0.001) {
+    vec2 off = -n * uRefr * (0.75 + 0.5 * (1.0 - thick));
+    vec2 sp = p + off;
+    vec2 suv = clamp(vec2(sp.x / uRes.x, 1.0 - sp.y / uRes.y), 0.001, 0.999);
+    vec3 dc = texture2D(uSharp, suv).rgb * 1.2 + texture2D(uBokeh, suv).rgb * 0.5 + sharpLights(sp) * 1.2;
+    dc += flashCol * (texture2D(uSky, suv).r * 1.1 + 0.1);
+    dc += 0.025;
+    // darker rim, slightly brighter belly where light focuses
+    dc *= 1.0 - 0.6 * smoothstep(0.72, 1.0, nl);
+    dc += vec3(0.03, 0.035, 0.045) * smoothstep(0.2, 0.9, n.y) * (1.0 - smoothstep(0.85, 1.0, nl));
+    // highlights: warm from the room lamp, cool from the sky
+    vec3 N = normalize(vec3(n.x, -n.y, max(thick, 0.08) * 1.25));
+    vec2 tl = normalize(uLamp - p);
+    vec3 Lw = normalize(vec3(tl.x * 0.85, -tl.y * 0.85, 0.75));
+    vec3 Hw = normalize(Lw + vec3(0.0, 0.0, 1.0));
+    float sw = pow(max(dot(N, Hw), 0.0), 70.0);
+    vec3 Lc = normalize(vec3(-0.3, 0.75, 0.6));
+    vec3 Hc = normalize(Lc + vec3(0.0, 0.0, 1.0));
+    float sc = pow(max(dot(N, Hc), 0.0), 40.0);
+    dc += uRoomCol * sw * 0.85 + vec3(0.75, 0.82, 1.0) * sc * 0.22 + flashCol * sc * 0.8;
+    // drops sitting in fog read a touch milky too
+    dc = mix(dc, dc + uFogCol * 0.05, fog * 0.4);
+    col = mix(bg, dc, mask);
+  }
+
+  // faint reflection of the room lamp on the glass
+  col += uRoomCol * (exp(-lampD * 7.0) * 0.05 + exp(-lampD * 70.0) * 0.035);
+
+  // grade
+  col *= uExposure;
+  col = col / (1.0 + max(col - 0.75, 0.0) * 0.9);
+  col = pow(col, vec3(0.96, 0.98, 1.0));
+  vec2 q = uv - 0.5;
+  float vig = smoothstep(1.05, 0.25, length(q * vec2(1.25, 1.0)) * 1.25);
+  col *= mix(0.62, 1.0, vig);
+  col += (hash(p * uPR + fract(uTime) * 91.7) - 0.5) * 0.028;
+  gl_FragColor = vec4(max(col, 0.0), 1.0);
+}`;
+
+let prog = null, U = {}, TEX = {};
+function initGL() {
+  if (!gl) return false;
+  const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { throw new Error(gl.getShaderInfoLog(s)); } return s; };
+  try {
+    prog = gl.createProgram();
+    gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS));
+    gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  } catch (e) { console.warn('Window Seat: shader failed', e); return false; }
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, 'aPos');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  ['uSharp', 'uBokeh', 'uFogTex', 'uDrops', 'uMask', 'uSky', 'uRes', 'uTime', 'uFlash', 'uExposure', 'uRefr', 'uPR', 'uFogCol', 'uRoomCol', 'uLamp', 'uL', 'uC', 'uN']
+    .forEach(n => U[n] = gl.getUniformLocation(prog, n));
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+  ['uSharp', 'uBokeh', 'uFogTex', 'uDrops', 'uMask', 'uSky'].forEach((n, i) => {
+    const t = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + i);
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
+    gl.uniform1i(U[n], i);
+    TEX[n] = { t, unit: i };
+  });
+  return true;
+}
+function upload(name, src) {
+  if (!prog) return;
+  const T = TEX[name];
+  gl.activeTexture(gl.TEXTURE0 + T.unit);
+  gl.bindTexture(gl.TEXTURE_2D, T.t);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+}
+
+/* =========================================================
+   The city (drawn once per size / hour)
+   ========================================================= */
+function buildScene() {
+  const pal = PALETTES[mood];
+  const rng = mulberry32(90210 + mood * 7919);
+  const viewH = H - SILL;
+  const streetY = viewH * 0.8;
+  const horizon = streetY - viewH * 0.08;
+  scene.streetY = streetY; scene.viewH = viewH;
+  const k = K;
+
+  let ss = Math.min(PR, 1.5);
+  if (W * ss > 2400) ss = 2400 / W;
+  if (H * ss > 2400) ss = Math.min(ss, 2400 / H);
+  const base = mk(W * ss, H * ss), b = base.getContext('2d');
+  b.setTransform(ss, 0, 0, ss, 0, 0);
+
+  // sky
+  const g = b.createLinearGradient(0, 0, 0, streetY);
+  g.addColorStop(0, pal.sky[0]); g.addColorStop(.45, pal.sky[1]); g.addColorStop(.8, pal.sky[2]); g.addColorStop(1, pal.sky[3]);
+  b.fillStyle = g; b.fillRect(0, 0, W, H);
+  // clouds lit from below by the city
+  for (let i = 0; i < 9; i++) {
+    const cx = rng() * W, cy = rng() * horizon * 0.7, rx = (180 + rng() * 360) * k, ry = rx * (.25 + rng() * .2);
+    const cg = b.createRadialGradient(cx, cy, 0, cx, cy, rx);
+    cg.addColorStop(0, rgba(pal.cloud, .16)); cg.addColorStop(1, rgba(pal.cloud, 0));
+    b.save(); b.translate(cx, cy); b.scale(1, ry / rx); b.translate(-cx, -cy);
+    b.fillStyle = cg; b.beginPath(); b.arc(cx, cy, rx, 0, Math.PI * 2); b.fill(); b.restore();
+  }
+  // horizon haze
+  for (let i = 0; i < 4; i++) {
+    const cx = (i + .3 + rng() * .4) * W / 4, cy = horizon, rx = W * (.25 + rng() * .2);
+    const hg = b.createRadialGradient(cx, cy, 0, cx, cy, rx);
+    hg.addColorStop(0, rgba(pal.haze, .28)); hg.addColorStop(1, rgba(pal.haze, 0));
+    b.save(); b.translate(cx, cy); b.scale(1, .45); b.translate(-cx, -cy);
+    b.fillStyle = hg; b.beginPath(); b.arc(cx, cy, rx, 0, Math.PI * 2); b.fill(); b.restore();
+  }
+
+  const lights = []; // {x,y,r,R,c,a,st}
+  const buildings = [];
+  const winLights = [];
+
+  function drawWindows(bx, by, bw, bh, cell, layer) {
+    const ww = cell * .56, wh = cell * .62;
+    const rows = Math.floor(bh / cell) - 1, cols = Math.floor((bw - cell * .4) / cell);
+    const ox = bx + (bw - cols * cell) / 2 + (cell - ww) / 2;
+    const litBase = pal.lit * (0.55 + rng() * 0.9);
+    const tint = pick(rng, pal.win);
+    for (let r = 0; r < rows; r++) {
+      const rowLit = rng() < .18 ? litBase * 2.4 : litBase * (rng() < .3 ? .25 : 1);
+      for (let c = 0; c < cols; c++) {
+        if (rng() > rowLit) continue;
+        const col = rng() < .7 ? tint : pick(rng, pal.win);
+        const x = ox + c * cell, y = by + cell * .7 + r * cell;
+        if (y > streetY - 4) continue;
+        b.fillStyle = rgba(col, (layer ? .55 : .35) + rng() * .45);
+        b.fillRect(x, y, ww, wh);
+        if (layer && rng() < .07) winLights.push({ x: x + ww / 2, y: y + wh / 2, c: col });
+        else if (!layer && rng() < .02) winLights.push({ x: x + ww / 2, y: y + wh / 2, c: col, far: true });
+      }
+    }
+  }
+
+  // far layer
+  let x = -rng() * 40 * k;
+  while (x < W) {
+    const w = (34 + rng() * 90) * k, h = viewH * (.1 + rng() * .26);
+    const y = streetY - h;
+    b.fillStyle = pal.far; b.fillRect(x, y, w, h + 4);
+    buildings.push({ x, y, w, h });
+    drawWindows(x, y, w, h, 5.2 * k, 0);
+    if (rng() < .12) lights.push({ x: x + w / 2, y: y - 2, r: 1.2, R: 11 * k, c: '#ff3b2f', a: .45 });
+    x += w + (rng() < .25 ? rng() * 26 * k : -rng() * 6 * k);
+  }
+  // near layer
+  x = -rng() * 80 * k;
+  while (x < W) {
+    const w = (70 + rng() * 170) * k, h = viewH * (.22 + rng() * .5);
+    const y = Math.max(-20, streetY - h);
+    b.fillStyle = pal.near; b.fillRect(x, y, w, streetY - y + 4);
+    // a little roof step
+    if (rng() < .5) { b.fillRect(x + w * .2, y - 14 * k, w * .5, 14 * k); }
+    buildings.push({ x, y: y - 14 * k, w, h });
+    drawWindows(x, y, w, streetY - y, (7.5 + rng() * 2.5) * k, 1);
+    if (h > viewH * .5 && rng() < .6) lights.push({ x: x + w * .5, y: y - 18 * k, r: 1.4, R: 14 * k, c: '#ff3b2f', a: .55 });
+    // shopfront glow at street level
+    if (rng() < .6) {
+      const sc = pick(rng, pal.win);
+      const sw = w * (.4 + rng() * .4), sx = x + (w - sw) * rng();
+      const sg = b.createLinearGradient(0, streetY - 26 * k, 0, streetY);
+      sg.addColorStop(0, rgba(sc, .05)); sg.addColorStop(1, rgba(sc, .55));
+      b.fillStyle = sg; b.fillRect(sx, streetY - 26 * k, sw, 26 * k);
+      lights.push({ x: sx + sw * .5, y: streetY - 12 * k, r: 2, R: 30 * k, c: sc, a: .22 });
+    }
+    x += w + rng() * 70 * k;
+  }
+
+  // neon signs
+  scene.neonSpots = [];
+  for (let i = 0; i < pal.neonCount; i++) {
+    const bd = buildings[Math.floor(rng() * buildings.length)];
+    const nc = pick(rng, pal.neon);
+    const vertical = rng() < .5;
+    const nw = vertical ? 9 * k : (40 + rng() * 50) * k, nh = vertical ? (40 + rng() * 50) * k : 10 * k;
+    const nx = clamp(bd.x + rng() * Math.max(10, bd.w - nw), 10, W - 10), ny = clamp(bd.y + 30 * k + rng() * Math.max(10, bd.h * .5), 20, streetY - nh - 30 * k);
+    b.save();
+    b.shadowColor = nc; b.shadowBlur = 14 * k;
+    b.strokeStyle = rgba(nc, .95); b.lineWidth = 2.2 * k;
+    b.strokeRect(nx, ny, nw, nh);
+    b.fillStyle = rgba(nc, .35); b.fillRect(nx + 2, ny + 2, nw - 4, nh - 4);
+    b.restore();
+    const steps = 3;
+    for (let s = 0; s < steps; s++) {
+      const t = (s + .5) / steps;
+      lights.push({ x: nx + (vertical ? nw / 2 : nw * t), y: ny + (vertical ? nh * t : nh / 2), r: 2, R: (20 + rng() * 10) * k, c: nc, a: .3 });
+    }
+    scene.neonSpots.push({ x: nx + nw / 2, y: ny + nh / 2, c: nc });
+  }
+
+  // street
+  const stg = b.createLinearGradient(0, streetY, 0, H);
+  stg.addColorStop(0, pal.street); stg.addColorStop(1, '#030407');
+  b.fillStyle = stg; b.fillRect(0, streetY, W, H - streetY);
+  // wet reflections of the shopfronts
+  for (const L of lights) {
+    if (L.y < streetY - 40 * k) continue;
+    const rg = b.createLinearGradient(0, streetY, 0, streetY + 60 * k);
+    rg.addColorStop(0, rgba(L.c, .25)); rg.addColorStop(1, rgba(L.c, 0));
+    b.fillStyle = rg; b.fillRect(L.x - L.R * .5, streetY, L.R, 60 * k);
+  }
+
+  // street lamps (sodium)
+  let lx = rng() * 140 * k;
+  while (lx < W) {
+    const ly = streetY - (48 + rng() * 22) * k;
+    b.strokeStyle = 'rgba(0,0,0,.6)'; b.lineWidth = 2 * k;
+    b.beginPath(); b.moveTo(lx, streetY + 2); b.lineTo(lx, ly); b.lineTo(lx + 8 * k, ly); b.stroke();
+    lights.push({ x: lx + 8 * k, y: ly + 2 * k, r: 2.6, R: (30 + rng() * 18) * k, c: pal.lamp, a: .5 });
+    // reflection streak
+    lights.push({ x: lx + 8 * k, y: streetY + (ly - streetY) * -.55 + 10 * k, r: 2, R: (22 + rng() * 10) * k, c: pal.lamp, a: .2, st: 2.4 });
+    // pool of light on the road
+    const pg = b.createRadialGradient(lx, streetY + 8 * k, 0, lx, streetY + 8 * k, 60 * k);
+    pg.addColorStop(0, rgba(pal.lamp, .22)); pg.addColorStop(1, rgba(pal.lamp, 0));
+    b.fillStyle = pg; b.fillRect(lx - 60 * k, streetY - 10 * k, 120 * k, 80 * k);
+    lx += (150 + rng() * 130) * k;
+  }
+
+  // a sprinkle of window bokeh
+  winLights.sort(() => rng() - .5);
+  for (let i = 0; i < Math.min(winLights.length, 170); i++) {
+    const wl = winLights[i];
+    lights.push({ x: wl.x, y: wl.y, r: 1.2, R: (wl.far ? 7 : 9) * k + rng() * 12 * k, c: wl.c, a: .13 + rng() * .18 });
+  }
+
+  // ---- sharp version (for inside the drops) ----
+  const sharp = mk(base.width, base.height), sc = sharp.getContext('2d');
+  sc.drawImage(base, 0, 0);
+  sc.setTransform(ss, 0, 0, ss, 0, 0);
+  sc.globalCompositeOperation = 'lighter';
+  for (const L of lights) {
+    const st = L.st || 1;
+    sc.save(); sc.translate(L.x, L.y); sc.scale(1, st);
+    const gr = sc.createRadialGradient(0, 0, 0, 0, 0, L.r * 9);
+    gr.addColorStop(0, rgba(L.c, Math.min(1, L.a * 2.2)));
+    gr.addColorStop(.14, rgba(L.c, L.a * 1.2));
+    gr.addColorStop(1, rgba(L.c, 0));
+    sc.fillStyle = gr; sc.beginPath(); sc.arc(0, 0, L.r * 9, 0, Math.PI * 2); sc.fill();
+    sc.fillStyle = `rgba(255,248,235,${Math.min(1, L.a * 1.6)})`;
+    sc.beginPath(); sc.arc(0, 0, L.r * .6, 0, Math.PI * 2); sc.fill();
+    sc.restore();
+  }
+
+  // ---- bokeh version (what your eye sees behind the glass) ----
+  const bs = ss * .6;
+  const bsrc = mk(W * bs, H * bs);
+  bsrc.getContext('2d').drawImage(base, 0, 0, bsrc.width, bsrc.height);
+  const bokeh = blurCanvas(bsrc, 7 * k * bs);
+  const bc = bokeh.getContext('2d');
+  bc.setTransform(bs, 0, 0, bs, 0, 0);
+  bc.globalCompositeOperation = 'lighter';
+  for (const L of lights) {
+    const st = L.st || 1;
+    bc.save(); bc.translate(L.x, L.y); bc.scale(1, st);
+    const gr = bc.createRadialGradient(0, 0, 0, 0, 0, L.R);
+    const c = L.c, a = L.a;
+    gr.addColorStop(0, rgba(c, a * .72));
+    gr.addColorStop(.62, rgba(c, a * .8));
+    gr.addColorStop(.86, rgba(c, a * 1.0));
+    gr.addColorStop(.95, rgba(c, a * .55));
+    gr.addColorStop(1, rgba(c, 0));
+    bc.fillStyle = gr; bc.beginPath(); bc.arc(0, 0, L.R, 0, Math.PI * 2); bc.fill();
+    // soft halo
+    const hg = bc.createRadialGradient(0, 0, L.R * .5, 0, 0, L.R * 2.4);
+    hg.addColorStop(0, rgba(c, a * .18)); hg.addColorStop(1, rgba(c, 0));
+    bc.fillStyle = hg; bc.beginPath(); bc.arc(0, 0, L.R * 2.4, 0, Math.PI * 2); bc.fill();
+    bc.restore();
+  }
+
+  // ---- heavy blur for the condensation ----
+  const fsm = mk(Math.max(64, W * .1), Math.max(40, H * .1));
+  fsm.getContext('2d').drawImage(bokeh, 0, 0, fsm.width, fsm.height);
+  const fog = blurCanvas(fsm, 3.2);
+
+  // ---- sky mask (what lightning lights up) ----
+  const sky = mk(Math.max(48, W * .08), Math.max(32, H * .08)), kc = sky.getContext('2d');
+  const s8 = sky.width / W;
+  kc.setTransform(s8, 0, 0, s8, 0, 0);
+  const kg = kc.createLinearGradient(0, 0, 0, streetY);
+  kg.addColorStop(0, '#fff'); kg.addColorStop(1, '#8a8a8a');
+  kc.fillStyle = kg; kc.fillRect(0, 0, W, streetY);
+  kc.fillStyle = '#000';
+  for (const bd of buildings) kc.fillRect(bd.x, bd.y, bd.w, H);
+  kc.fillRect(0, streetY, W, H);
+  const skyB = blurCanvas(sky, 1.2);
+
+  scene.sharp = sharp; scene.bokeh = bokeh; scene.fog = fog; scene.sky = skyB;
+  upload('uSharp', sharp); upload('uBokeh', bokeh); upload('uFogTex', fog); upload('uSky', skyB);
+  if (!prog) showFallbackImage();
+}
+
+let fallbackEl = null;
+function showFallbackImage() {
+  if (!fallbackEl) { fallbackEl = scene.bokeh; fallbackEl.className = 'fallback-bg'; canvas.replaceWith(fallbackEl); }
+  else if (fallbackEl !== scene.bokeh) { scene.bokeh.className = 'fallback-bg'; fallbackEl.replaceWith(scene.bokeh); fallbackEl = scene.bokeh; }
+}
+
+/* =========================================================
+   Rain on the glass: the drop map
+   ========================================================= */
+const SPR = (() => {
+  const S = 64, c = mk(S, S), x = c.getContext('2d');
+  const img = x.createImageData(S, S), R = S / 2 / 1.15;
+  for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) {
+    const u = (i + .5 - S / 2) / R, v = (j + .5 - S / 2) / R;
+    const r = Math.hypot(u, v);
+    let a;
+    if (r < .9) a = 1; else if (r < 1) a = 1 - (r - .9) / .1 * .5; else if (r < 1.15) a = .5 * Math.pow(1 - (r - 1) / .15, 1.6); else a = 0;
+    const rc = Math.min(r, 1);
+    // slightly flattened sphere: normals steepen toward the rim
+    const e = Math.pow(rc, 1.25);
+    const nx = r > 0 ? u / r * e : 0, ny = r > 0 ? v / r * e : 0;
+    const z = Math.sqrt(Math.max(0, 1 - rc * rc));
+    const o = (j * S + i) * 4;
+    img.data[o] = (0.5 + 0.5 * nx) * 255;
+    img.data[o + 1] = (0.5 + 0.5 * ny) * 255;
+    img.data[o + 2] = z * 255;
+    img.data[o + 3] = a * 255;
+  }
+  x.putImageData(img, 0, 0);
+  return c;
+})();
+
+let DS = .5;
+let dropCv = mk(2, 2), dctx = dropCv.getContext('2d');
+let dropletCv = mk(2, 2), lctx = dropletCv.getContext('2d');
+let maskCv = mk(2, 2), mctx = maskCv.getContext('2d');
+let MS = .2;
+let drops = [];
+let spawnAcc = 0, dropletAcc = 0, evapAcc = 0, creepAcc = 0, maskDirty = true;
+
+function stamp(ctx, x, y, r, sx, sy, yoff) {
+  const w = 2.3 * r * sx, h = 2.3 * r * sy;
+  ctx.drawImage(SPR, (x - w / 2) * DS, (y - h / 2 + (yoff || 0)) * DS, w * DS, h * DS);
+}
+
+function resizeDropCanvases(oldW, oldH) {
+  DS = Math.min(Math.max(PR * .5, .6), 1000 / W, 1000 / H, 1);
+  const nd = mk(W * DS, H * DS);
+  const nl = mk(W * DS, H * DS);
+  if (dropletCv.width > 2) nl.getContext('2d').drawImage(dropletCv, 0, 0, nl.width, nl.height);
+  dropCv = nd; dctx = nd.getContext('2d');
+  dropletCv = nl; lctx = nl.getContext('2d');
+  if (oldW && oldH) { const fx = W / oldW, fy = H / oldH; for (const d of drops) { d.x *= fx; d.y *= fy; } }
+  MS = clamp(260 / Math.max(W, H), .12, .3);
+  const nm = mk(W * MS, H * MS), nmc = nm.getContext('2d');
+  nmc.fillStyle = '#fff'; nmc.fillRect(0, 0, nm.width, nm.height);
+  if (maskCv.width > 2) nmc.drawImage(maskCv, 0, 0, nm.width, nm.height);
+  maskCv = nm; mctx = nmc; maskDirty = true;
+}
+
+function maxDrops() { return Math.round(clamp(W * H / 5200, 90, 320)); }
+function slideR() { return 11 * K; }
+function spawnDrop(x, y, r) {
+  for (const o of drops) {
+    const dx = o.x - x, dy = o.y - y, rr = (o.r + r) * .7;
+    if (dx * dx + dy * dy < rr * rr) { o.r = Math.min(Math.sqrt(o.r * o.r + r * r), 26 * K); return; }
+  }
+  drops.push({ x, y, r, v: 0, vx: 0, moving: false, trail: 0, nextTrail: r, sy: 1, dead: false });
+}
+
+function stepRain(dt) {
+  const I = rain, mk2 = reduceMotion ? .45 : 1, area = W * H / (1440 * 900);
+  const SR = slideR();
+  // new drops landing
+  spawnAcc += dt * (1.5 + 26 * Math.pow(I, 1.4)) * area * mk2;
+  while (spawnAcc > 1) {
+    spawnAcc -= 1;
+    if (drops.length < maxDrops()) {
+      const r = (3 + Math.pow(Math.random(), 1.7) * 13) * K * (.85 + I * .3);
+      spawnDrop(Math.random() * W, Math.random() * H * 1.02 - 20, r);
+    }
+  }
+  // mist of tiny droplets
+  dropletAcc += dt * (25 + 300 * Math.pow(I, 1.2)) * area * mk2;
+  let nD = 0;
+  while (dropletAcc > 1 && nD < 90) {
+    dropletAcc -= 1; nD++;
+    const r = (.8 + Math.pow(Math.random(), 2.4) * 3.4) * K;
+    stamp(lctx, Math.random() * W, Math.random() * H, r, 1, 1, 0);
+  }
+  if (nD >= 90) dropletAcc = 0;
+  // slow evaporation keeps the mist from saturating
+  evapAcc += dt;
+  if (evapAcc > 1.5) {
+    evapAcc = 0;
+    lctx.globalCompositeOperation = 'destination-out';
+    lctx.fillStyle = `rgba(0,0,0,${.03 + .03 * (1 - I)})`;
+    lctx.fillRect(0, 0, dropletCv.width, dropletCv.height);
+    lctx.globalCompositeOperation = 'source-over';
+  }
+
+  // drops: stick, slip, slide, merge, leave trails
+  const movers = [];
+  for (const d of drops) {
+    if (d.dead) continue;
+    if (!d.moving) {
+      if (d.r > SR && Math.random() < dt * (d.r - SR) / K * .22 * (.35 + I) * mk2) d.moving = true;
+    }
+    if (d.moving) {
+      const vmax = (26 + (d.r / K) * 13) * K * mk2;
+      d.v += (vmax - d.v) * Math.min(1, dt * 2.2);
+      if (Math.random() < dt * .45) d.v *= .12;                    // catches on the glass
+      if (d.r < SR * .8 && Math.random() < dt * .6) { d.moving = false; }
+      d.vx += (Math.random() - .5) * 90 * K * dt;
+      d.vx *= Math.pow(.02, dt);
+      d.x += d.vx * dt * .6;
+      const dy = d.v * dt;
+      d.y += dy;
+      d.trail += dy;
+      if (d.trail > d.nextTrail) {
+        d.trail = 0;
+        d.nextTrail = d.r * (.8 + Math.random() * 1.6);
+        const tr = d.r * (.12 + Math.random() * .16);
+        stamp(lctx, d.x + (Math.random() - .5) * d.r * .4, d.y - d.r * (1.0 + Math.random() * .5), tr, 1, 1, 0);
+        d.r = Math.sqrt(Math.max(d.r * d.r - tr * tr * .9, 0));
+      }
+      movers.push(d);
+    } else {
+      d.v = 0;
+    }
+    const tsy = 1 + Math.min(d.v / (420 * K), .38);
+    d.sy += (tsy - d.sy) * Math.min(1, dt * 8);
+    if (d.y - d.r * 3 > H || d.r < .9 * K) d.dead = true;
+  }
+  // moving drops sweep away the mist and swallow what they touch
+  if (movers.length) {
+    lctx.globalCompositeOperation = 'destination-out';
+    lctx.fillStyle = '#000';
+    lctx.beginPath();
+    for (const d of movers) { lctx.moveTo(d.x * DS + d.r * .95 * DS, d.y * DS); lctx.arc(d.x * DS, d.y * DS, d.r * .95 * DS, 0, Math.PI * 2); }
+    lctx.fill();
+    lctx.globalCompositeOperation = 'source-over';
+    for (const a of movers) {
+      if (a.dead) continue;
+      for (const o of drops) {
+        if (o === a || o.dead) continue;
+        const dx = o.x - a.x, dy = o.y - a.y, rr = (a.r + o.r) * .78;
+        if (dx * dx + dy * dy < rr * rr) {
+          const t = o.r * o.r / (a.r * a.r + o.r * o.r);
+          a.x = lerp(a.x, o.x, t * .5);
+          a.r = Math.min(Math.sqrt(a.r * a.r + o.r * o.r), 28 * K);
+          a.v *= .85;
+          o.dead = true;
+        }
+      }
+    }
+  }
+  drops = drops.filter(d => !d.dead);
+}
+
+function renderDropMap() {
+  dctx.clearRect(0, 0, dropCv.width, dropCv.height);
+  dctx.drawImage(dropletCv, 0, 0);
+  for (const d of drops) {
+    const sy = d.sy, sx = 1 - (sy - 1) * .35;
+    stamp(dctx, d.x, d.y, d.r, sx, sy, -(sy - 1) * d.r * 1.1);
+  }
+  upload('uDrops', dropCv);
+}
+
+/* =========================================================
+   Wiping the fog
+   ========================================================= */
+let wiping = false, lastWipe = null;
+function dab(x, y, r) {
+  const g = mctx.createRadialGradient(x * MS, y * MS, 0, x * MS, y * MS, r * MS);
+  g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(.55, 'rgba(0,0,0,.9)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  mctx.fillStyle = g;
+  mctx.beginPath(); mctx.arc(x * MS, y * MS, r * MS, 0, Math.PI * 2); mctx.fill();
+}
+function wipeTo(x, y) {
+  const r = clamp(Math.min(W, H) * .055, 28, 56);
+  if (!lastWipe) { dab(x, y, r); }
+  else {
+    const dx = x - lastWipe.x, dy = y - lastWipe.y, dist = Math.hypot(dx, dy);
+    const n = Math.max(1, Math.ceil(dist / (r * .25)));
+    for (let i = 1; i <= n; i++) dab(lastWipe.x + dx * i / n, lastWipe.y + dy * i / n, r);
+  }
+  lastWipe = { x, y };
+  maskDirty = true;
+}
+function creepFog(dt) {
+  creepAcc += dt;
+  if (creepAcc > .25) {
+    creepAcc = 0;
+    mctx.fillStyle = 'rgba(255,255,255,.028)';
+    mctx.fillRect(0, 0, maskCv.width, maskCv.height);
+    maskDirty = true;
+  }
+}
+canvas.addEventListener('pointerdown', (e) => {
+  wiping = true; lastWipe = null;
+  canvas.classList.add('wiping');
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  wipeTo(e.clientX, e.clientY);
+  hideCaptionSoon();
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!wiping) return;
+  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  for (const ev of (evs.length ? evs : [e])) wipeTo(ev.clientX, ev.clientY);
+});
+const endWipe = () => { wiping = false; lastWipe = null; canvas.classList.remove('wiping'); };
+canvas.addEventListener('pointerup', endWipe);
+canvas.addEventListener('pointercancel', endWipe);
+canvas.addEventListener('lostpointercapture', endWipe);
+
+/* =========================================================
+   Moving lights: cars, traffic lights, a flickering sign
+   ========================================================= */
+const cars = [];
+let carTimer = 1.2;
+const LBuf = new Float32Array(MAXL * 4), CBuf = new Float32Array(MAXL * 4);
+let nL = 0;
+function pushLight(x, y, R, st, c, a) {
+  if (nL >= MAXL) return;
+  const i = nL * 4;
+  LBuf[i] = x; LBuf[i + 1] = y; LBuf[i + 2] = R; LBuf[i + 3] = st;
+  CBuf[i] = c[0] * a; CBuf[i + 1] = c[1] * a; CBuf[i + 2] = c[2] * a; CBuf[i + 3] = 0;
+  nL++;
+}
+const HEAD = [1, .9, .74], TAIL = [1, .1, .07];
+function updateLights(dt, t) {
+  nL = 0;
+  const sY = scene.streetY, vH = scene.viewH, k = K;
+  const lane0 = sY + (vH - sY) * .6, lane1 = sY + (vH - sY) * .28;
+  carTimer -= dt;
+  if (carTimer <= 0) {
+    carTimer = (2.5 + Math.random() * 6) * (reduceMotion ? 1.6 : 1);
+    if (cars.length < 3) {
+      const lane = Math.random() < .55 ? 0 : 1;
+      const dir = lane ? -1 : 1;
+      cars.push({ lane, dir, x: dir > 0 ? -90 * k : W + 90 * k, speed: (120 + Math.random() * 120) * k * (reduceMotion ? .5 : 1) });
+    }
+  }
+  for (let i = cars.length - 1; i >= 0; i--) {
+    const c = cars[i];
+    c.x += c.dir * c.speed * dt;
+    if (c.x < -140 * k || c.x > W + 140 * k) { cars.splice(i, 1); continue; }
+    const y = c.lane ? lane1 : lane0, s = c.lane ? .72 : 1, half = 34 * k * s;
+    const hx = c.x + c.dir * half, tx = c.x - c.dir * half;
+    pushLight(hx, y, 30 * k * s, 1, HEAD, .5);
+    pushLight(tx, y, 20 * k * s, 1, TAIL, .42);
+    pushLight(hx, y + 30 * k * s, 26 * k * s, 2.4, HEAD, .16);
+    pushLight(tx, y + 24 * k * s, 17 * k * s, 2.4, TAIL, .14);
+  }
+  // traffic lights
+  const tls = [[W * .3, .0], [W * .83, 5.2]];
+  for (const [tx, ph] of tls) {
+    const cyc = (t + ph) % 12;
+    let col, off;
+    if (cyc < 5.5) { col = [.25, 1, .6]; off = 12; } else if (cyc < 7) { col = [1, .66, .12]; off = 0; } else { col = [1, .12, .08]; off = -12; }
+    const ty = sY - 58 * k + off * k;
+    pushLight(tx, ty, 17 * k, 1, col, .5);
+    pushLight(tx, sY + 36 * k, 17 * k, 2.8, col, .14);
+  }
+  // a sign with a loose wire
+  if (scene.neonSpots.length) {
+    const ns = scene.neonSpots[0];
+    const f = Math.sin(t * 1.3) > .82 ? (Math.random() < .5 ? 0 : 1) : 1;
+    const c = hex(ns.c).map(v => v / 255);
+    pushLight(ns.x, ns.y, 26 * k, 1, c, .26 * f);
+  }
+}
+
+/* =========================================================
+   Lightning
+   ========================================================= */
+let flashes = [];
+let nextLightning = Infinity;
+function scheduleLightning(first) {
+  const base = first ? 9 + Math.random() * 9 : 22 + Math.random() * 45;
+  nextLightning = performance.now() / 1000 + base * (1.3 - rain * .6);
+}
+function lightning(strength) {
+  const now = performance.now() / 1000;
+  const s = strength || (.6 + Math.random() * .4);
+  if (!reduceMotion) {
+    flashes.push({ t: now, a: s * .9 });
+    flashes.push({ t: now + .14 + Math.random() * .08, a: s * .5 });
+    if (Math.random() < .7) flashes.push({ t: now + .35 + Math.random() * .2, a: s * .35 });
+  }
+  Sound.thunder(1.4 + Math.random() * 3.2, s);
+}
+function flashValue(now) {
+  let f = 0;
+  for (const e of flashes) {
+    if (now < e.t) continue;
+    const dtt = now - e.t;
+    f += e.a * (Math.exp(-dtt / .07) + .18 * Math.exp(-dtt / .7));
+  }
+  flashes = flashes.filter(e => now - e.t < 4);
+  return f;
+}
+
+/* =========================================================
+   Sound: rain, thunder, vinyl, a slow Rhodes
+   ========================================================= */
+const Sound = (() => {
+  let ctx = null, master, rainLo, rainHi, rainLP, musicBus, verbIn, flutter, tapsBus;
+  let muted = false, on = false;
+  let nextBar = 0, bar = 0, nextTap = 0, timer = null;
+  const BPM = 66, BEAT = 60 / BPM, BARD = BEAT * 4;
+  // [bass, voicing]
+  const CHORDS = [
+    [41, [57, 64, 67, 72]],  // Fmaj9
+    [40, [55, 62, 66, 71]],  // Em9
+    [38, [53, 60, 64, 69]],  // Dm9
+    [36, [52, 59, 62, 67]],  // Cmaj9
+    [34, [57, 62, 64, 69]],  // Bbmaj9#11
+    [45, [60, 64, 67, 71]],  // Am9
+    [43, [58, 62, 65, 69]],  // Gm9
+    [36, [58, 62, 65, 67]],  // C9sus
+  ];
+  const SCALE = [65, 67, 69, 72, 74, 77, 79, 81];
+  const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+
+  function noiseBuffer(type, secs) {
+    const len = Math.floor(ctx.sampleRate * secs), buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, last = 0;
+      for (let i = 0; i < len; i++) {
+        const w = Math.random() * 2 - 1;
+        if (type === 'pink') {
+          b0 = .99886 * b0 + w * .0555179; b1 = .99332 * b1 + w * .0750759; b2 = .969 * b2 + w * .153852;
+          b3 = .8665 * b3 + w * .3104856; b4 = .55 * b4 + w * .5329522; b5 = -.7616 * b5 - w * .016898;
+          d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * .5362) * .11; b6 = w * .115926;
+        } else if (type === 'brown') {
+          last = (last + .02 * w) / 1.02; d[i] = last * 3.5;
+        } else d[i] = w;
+      }
+    }
+    return buf;
+  }
+  function crackleBuffer() {
+    const len = ctx.sampleRate * 5, buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      d[i] = (Math.random() * 2 - 1) * .006;
+      if (Math.random() < .00035) { const a = (Math.random() * 2 - 1) * (.3 + Math.random() * .5); for (let j = 0; j < 30 && i + j < len; j++) d[i + j] += a * Math.exp(-j / 4); }
+    }
+    return buf;
+  }
+  function impulse(secs) {
+    const len = Math.floor(ctx.sampleRate * secs), buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+    return buf;
+  }
+  function loop(buf) { const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.start(); return s; }
+
+  function start() {
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    ctx = new AC();
+    master = ctx.createGain(); master.gain.value = 0;
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -20; comp.ratio.value = 3; comp.attack.value = .01; comp.release.value = .3;
+    const warm = ctx.createBiquadFilter(); warm.type = 'lowpass'; warm.frequency.value = 9000;
+    master.connect(warm); warm.connect(comp); comp.connect(ctx.destination);
+
+    // reverb
+    const verb = ctx.createConvolver(); verb.buffer = impulse(3.2);
+    verbIn = ctx.createGain(); verbIn.gain.value = 1;
+    const verbOut = ctx.createGain(); verbOut.gain.value = .32;
+    verbIn.connect(verb); verb.connect(verbOut); verbOut.connect(master);
+
+    // rain
+    const pink = noiseBuffer('pink', 4), white = noiseBuffer('white', 3);
+    rainLP = ctx.createBiquadFilter(); rainLP.type = 'lowpass'; rainLP.frequency.value = 1600; rainLP.Q.value = .3;
+    rainLo = ctx.createGain(); rainLo.gain.value = 0;
+    loop(pink).connect(rainLP); rainLP.connect(rainLo); rainLo.connect(master);
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3200;
+    const lp2 = ctx.createBiquadFilter(); lp2.type = 'lowpass'; lp2.frequency.value = 8500;
+    rainHi = ctx.createGain(); rainHi.gain.value = 0;
+    loop(white).connect(hp); hp.connect(lp2); lp2.connect(rainHi); rainHi.connect(master);
+    // gusts
+    const gust = ctx.createOscillator(); gust.frequency.value = .07;
+    const gustG = ctx.createGain(); gustG.gain.value = .05;
+    gust.connect(gustG); gustG.connect(rainLo.gain); gust.start();
+    tapsBus = ctx.createGain(); tapsBus.gain.value = 1; tapsBus.connect(master);
+
+    // vinyl
+    const cr = loop(crackleBuffer());
+    const crHP = ctx.createBiquadFilter(); crHP.type = 'highpass'; crHP.frequency.value = 1200;
+    const crG = ctx.createGain(); crG.gain.value = .07;
+    cr.connect(crHP); crHP.connect(crG); crG.connect(master);
+
+    // music bus: lowpass warmth -> tremolo -> master + reverb
+    musicBus = ctx.createGain(); musicBus.gain.value = .9;
+    const mLP = ctx.createBiquadFilter(); mLP.type = 'lowpass'; mLP.frequency.value = 2300; mLP.Q.value = .5;
+    const trem = ctx.createGain(); trem.gain.value = .85;
+    const tremLfo = ctx.createOscillator(); tremLfo.frequency.value = 4.3;
+    const tremDepth = ctx.createGain(); tremDepth.gain.value = .13;
+    tremLfo.connect(tremDepth); tremDepth.connect(trem.gain); tremLfo.start();
+    musicBus.connect(mLP); mLP.connect(trem); trem.connect(master); trem.connect(verbIn);
+    // tape flutter (in cents)
+    const fl = ctx.createOscillator(); fl.frequency.value = .55;
+    flutter = ctx.createGain(); flutter.gain.value = 7;
+    fl.connect(flutter); fl.start();
+
+    on = true;
+    setRain(rain);
+    master.gain.setTargetAtTime(muted ? 0 : .85, ctx.currentTime, 1.5);
+    nextBar = ctx.currentTime + .6; nextTap = ctx.currentTime + .2;
+    timer = setInterval(tick, 90);
+  }
+
+  function setRain(I) {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    rainLo.gain.setTargetAtTime(.1 + .34 * I, t, .6);
+    rainHi.gain.setTargetAtTime(.015 + .09 * I * I, t, .6);
+    rainLP.frequency.setTargetAtTime(900 + 1700 * I, t, .6);
+  }
+
+  function rhodes(m, t, vel, dur, pan) {
+    const f = mtof(m);
+    const car = ctx.createOscillator(); car.frequency.value = f;
+    const mod = ctx.createOscillator(); mod.frequency.value = f;
+    const modG = ctx.createGain();
+    modG.gain.setValueAtTime(f * (1.1 + 1.6 * vel), t);
+    modG.gain.exponentialRampToValueAtTime(f * .18, t + 1.6);
+    mod.connect(modG); modG.connect(car.frequency);
+    const tine = ctx.createOscillator(); tine.frequency.value = f * 14;
+    const tineG = ctx.createGain();
+    tineG.gain.setValueAtTime(f * .7 * vel, t);
+    tineG.gain.exponentialRampToValueAtTime(.01, t + .07);
+    tine.connect(tineG); tineG.connect(car.frequency);
+    flutter.connect(car.detune); flutter.connect(mod.detune);
+    const amp = ctx.createGain();
+    amp.gain.setValueAtTime(0, t);
+    amp.gain.linearRampToValueAtTime(vel * .16, t + .008);
+    amp.gain.setTargetAtTime(vel * .06, t + .01, .5);
+    amp.gain.setTargetAtTime(0, t + dur, .35);
+    let out = amp;
+    if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = pan || 0; amp.connect(p); out = p; }
+    car.connect(amp); out.connect(musicBus);
+    const end = t + dur + 1.8;
+    [car, mod, tine].forEach(o => { o.start(t); o.stop(end); });
+    car.onended = () => { try { flutter.disconnect(car.detune); flutter.disconnect(mod.detune); } catch (e) { /* noop */ } amp.disconnect(); out.disconnect(); };
+  }
+
+  function scheduleBar(t0) {
+    const [bass, voicing] = CHORDS[bar % CHORDS.length];
+    const sw = () => (Math.random() - .5) * .025;
+    rhodes(bass, t0 + .01, .42, BARD * .95, -.1);
+    voicing.forEach((m, i) => rhodes(m, t0 + .03 + i * (.022 + Math.random() * .02), .3 + Math.random() * .12, BARD * .9, (i / 3 - .5) * .5));
+    if (Math.random() < .4) {
+      const hit = t0 + BEAT * 2.5 + BEAT * .1 + sw();
+      voicing.slice(1).forEach((m, i) => rhodes(m, hit + i * .018, .16 + Math.random() * .06, BEAT * 1.2, (i / 2 - .5) * .4));
+    }
+    // sparse melody, every other phrase
+    if ((bar % 4) < 2 || Math.random() < .2) {
+      let last = null;
+      for (let s = 0; s < 8; s++) {
+        if (Math.random() > .16) continue;
+        const swing = (s % 2) ? BEAT * .16 : 0;
+        const pool = SCALE.filter(n => voicing.some(v => (v - n) % 12 === 0) || Math.random() < .35);
+        let m = pool[Math.floor(Math.random() * pool.length)] || 72;
+        if (last !== null && Math.abs(m - last) > 7) m = last + Math.sign(m - last) * (2 + Math.floor(Math.random() * 3));
+        last = m;
+        rhodes(m, t0 + s * BEAT / 2 + swing + sw(), .18 + Math.random() * .1, BEAT * (1 + Math.random()), .25);
+      }
+    }
+    bar++;
+  }
+
+  function tap(t) {
+    const src = ctx.createBufferSource();
+    src.buffer = tapBuf || (tapBuf = noiseBuffer('white', .1));
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1800 + Math.random() * 4200; bp.Q.value = 6 + Math.random() * 6;
+    const g = ctx.createGain(); const a = (.03 + Math.random() * .06) * (.3 + rain);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(a, t + .002); g.gain.exponentialRampToValueAtTime(.0005, t + .04 + Math.random() * .05);
+    let out = g;
+    if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = Math.random() * 1.6 - .8; g.connect(p); out = p; }
+    src.connect(bp); bp.connect(g); out.connect(tapsBus);
+    src.start(t, Math.random() * .05, .1);
+  }
+  let tapBuf = null;
+
+  function tick() {
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    if (nextBar < now) nextBar = now + .1;
+    while (nextBar < now + .4) { scheduleBar(nextBar); nextBar += BARD; }
+    if (nextTap < now) nextTap = now + .05;
+    while (nextTap < now + .3) { tap(nextTap); nextTap += (.04 + Math.random() * .35) / (.25 + rain * 1.6); }
+  }
+
+  function thunder(delay, strength) {
+    if (!ctx || !on) return;
+    const t = ctx.currentTime + delay;
+    const s = strength * (.7 + Math.random() * .3);
+    const src = ctx.createBufferSource(); src.buffer = thunderBuf || (thunderBuf = noiseBuffer('brown', 9));
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = .8;
+    lp.frequency.setValueAtTime(90 + s * 380, t);
+    lp.frequency.exponentialRampToValueAtTime(70, t + 7);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(.55 * s, t + .25 + Math.random() * .4);
+    g.gain.setTargetAtTime(.25 * s, t + .9, .6);
+    g.gain.setTargetAtTime(0, t + 2.2, 1.6);
+    // rolling amplitude
+    const roll = ctx.createOscillator(); roll.frequency.value = 1.2 + Math.random() * 1.5;
+    const rollG = ctx.createGain(); rollG.gain.value = .12 * s;
+    roll.connect(rollG); rollG.connect(g.gain);
+    src.connect(lp); lp.connect(g); g.connect(master); g.connect(verbIn);
+    src.start(t, Math.random() * 2); src.stop(t + 9);
+    roll.start(t); roll.stop(t + 9);
+  }
+  let thunderBuf = null;
+
+  function setMuted(m) {
+    muted = m;
+    if (ctx) master.gain.setTargetAtTime(m ? 0 : .85, ctx.currentTime, .35);
+  }
+  return { start, setRain, thunder, setMuted, get on() { return on; }, get muted() { return muted; } };
+})();
+
+/* =========================================================
+   UI
+   ========================================================= */
+const intro = $('intro'), panel = $('panel'), caption = $('caption');
+const rainInput = $('rain'), rainVal = $('rainVal'), moodVal = $('moodVal');
+const soundBtn = $('sound'), soundLbl = $('soundLbl');
+function rainWord(v) { return v < .18 ? 'Drizzle' : v < .45 ? 'Soft rain' : v < .7 ? 'Steady' : v < .88 ? 'Pouring' : 'Downpour'; }
+function setRain(v) {
+  rain = clamp(v, 0, 1);
+  rainInput.value = Math.round(rain * 100);
+  rainInput.style.setProperty('--p', `${rain * 100}%`);
+  rainVal.textContent = rainWord(rain);
+  Sound.setRain(rain);
+}
+rainInput.addEventListener('input', () => setRain(rainInput.value / 100));
+function updateSoundUI() {
+  const onNow = Sound.on && !Sound.muted;
+  soundBtn.setAttribute('aria-pressed', String(onNow));
+  soundLbl.textContent = onNow ? 'Sound on' : 'Sound off';
+  $('waves').style.opacity = onNow ? 1 : .2;
+}
+function toggleSound() {
+  if (!Sound.on) { Sound.setMuted(false); Sound.start(); }
+  else Sound.setMuted(!Sound.muted);
+  updateSoundUI();
+}
+soundBtn.addEventListener('click', toggleSound);
+$('bolt').addEventListener('click', () => lightning(1));
+
+let fade = null; // {dir, t}
+let pendingMood = null;
+function setMood(i) {
+  if (i === mood && !fade) return;
+  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-checked', String(+b.dataset.mood === i)));
+  moodVal.textContent = PALETTES[i].name;
+  pendingMood = i;
+  if (!fade) fade = { dir: -1, t: 1 };
+}
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setMood(+b.dataset.mood)));
+
+let captionTimer = null;
+function hideCaptionSoon() { if (started && caption.classList.contains('show')) { clearTimeout(captionTimer); captionTimer = setTimeout(() => caption.classList.remove('show'), 1200); } }
+function begin(withSound) {
+  if (started) return;
+  started = true;
+  intro.classList.add('gone');
+  panel.classList.add('show');
+  setTimeout(() => caption.classList.add('show'), 900);
+  captionTimer = setTimeout(() => caption.classList.remove('show'), 7500);
+  if (withSound) { Sound.setMuted(false); Sound.start(); }
+  updateSoundUI();
+  scheduleLightning(true); // reduced motion: thunder only, no flashes
+  setTimeout(() => { if (document.activeElement && intro.contains(document.activeElement)) document.activeElement.blur(); }, 50);
+}
+$('sit').addEventListener('click', () => begin(true));
+$('quiet').addEventListener('click', () => begin(false));
+window.addEventListener('keydown', (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const tag = (e.target && e.target.tagName) || '';
+  if (!started && (e.key === 'Enter') && tag !== 'BUTTON') { begin(true); return; }
+  if (e.key === 'ArrowUp' && tag !== 'INPUT') { setRain(rain + .1); e.preventDefault(); }
+  else if (e.key === 'ArrowDown' && tag !== 'INPUT') { setRain(rain - .1); e.preventDefault(); }
+  else if (e.key === '1' || e.key === '2' || e.key === '3') setMood(+e.key - 1);
+  else if (e.key === 'm' || e.key === 'M') toggleSound();
+  else if (e.key === 'l' || e.key === 'L') lightning(1);
+});
+
+/* =========================================================
+   Size
+   ========================================================= */
+function measure() {
+  const oldW = W, oldH = H;
+  W = Math.max(1, window.innerWidth); H = Math.max(1, window.innerHeight);
+  PR = prCap;
+  K = clamp(Math.sqrt(W * H) / 1260, .55, 1.4);
+  SILL = Math.round(clamp(H * .1, 56, 104));
+  document.documentElement.style.setProperty('--sill', SILL + 'px');
+  canvas.width = Math.round(W * PR); canvas.height = Math.round(H * PR);
+  if (prog) gl.viewport(0, 0, canvas.width, canvas.height);
+  resizeDropCanvases(oldW, oldH);
+}
+let resizeT = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeT);
+  resizeT = setTimeout(() => { measure(); buildScene(); }, 140);
+});
+
+/* =========================================================
+   Loop
+   ========================================================= */
+let last = performance.now(), frameAvg = 16, frames = 0, sinceTune = 0;
+function frame(nowMs) {
+  const dt = Math.min(.05, Math.max(0, (nowMs - last) / 1000));
+  last = nowMs;
+  const now = nowMs / 1000;
+
+  // mood blink
+  let fadeMul = 1;
+  if (fade) {
+    fade.t += fade.dir * dt / .45;
+    if (fade.dir < 0 && fade.t <= 0) { fade.t = 0; fade.dir = 1; mood = pendingMood; buildScene(); }
+    if (fade.dir > 0 && fade.t >= 1) { fade = null; }
+    fadeMul = fade ? .18 + .82 * fade.t * fade.t : 1;
+  }
+
+  stepRain(dt);
+  creepFog(dt);
+  updateLights(dt, now);
+  if (started && now > nextLightning) { lightning(); scheduleLightning(false); }
+
+  const fl = flashValue(now);
+  document.documentElement.style.setProperty('--flash', fl > .002 ? fl.toFixed(3) : '0');
+
+  if (prog) {
+    renderDropMap();
+    if (maskDirty) { upload('uMask', maskCv); maskDirty = false; }
+    const pal = PALETTES[mood];
+    gl.uniform2f(U.uRes, W, H);
+    gl.uniform1f(U.uTime, now % 1000);
+    gl.uniform1f(U.uFlash, fl);
+    gl.uniform1f(U.uExposure, pal.exposure * fadeMul);
+    gl.uniform1f(U.uRefr, 70 * K);
+    gl.uniform1f(U.uPR, PR);
+    gl.uniform3f(U.uFogCol, pal.fog[0], pal.fog[1], pal.fog[2]);
+    gl.uniform3f(U.uRoomCol, pal.room[0], pal.room[1], pal.room[2]);
+    gl.uniform2f(U.uLamp, W * .9, H * .24);
+    gl.uniform4fv(U.uL, LBuf);
+    gl.uniform4fv(U.uC, CBuf);
+    gl.uniform1i(U.uN, nL);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+    // adaptive resolution if the machine is struggling
+    frameAvg = lerp(frameAvg, dt * 1000, .05);
+    frames++; sinceTune += dt;
+    if (frames > 90 && sinceTune > 3 && frameAvg > 26 && prCap > 1) {
+      prCap = Math.max(1, prCap - .5); sinceTune = 0; frames = 0;
+      measure(); buildScene();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+/* =========================================================
+   Go
+   ========================================================= */
+const glOK = initGL();
+if (!glOK) $('nogl').hidden = false;
+measure();
+buildScene();
+setRain(rain);
+updateSoundUI();
+// pre-warm: a few seconds of rain have already fallen before you arrive
+for (let i = 0; i < 180; i++) stepRain(1 / 30);
+if (glOK) {
+  canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); }, false);
+  requestAnimationFrame((t) => { last = t; frame(t); });
+}
+})();
+</script>
+</body>
+</html>

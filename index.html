@@ -295,6 +295,7 @@
   .toy .thumb::after { display: none; }
   .toy h3 { margin: 0 0 2px; font-size: 19px; font-stretch: 88%; line-height: 1.15; }
   .toy .kind { color: var(--cyan); font-size: 11px; }
+  .toy .new { font: inherit; margin-left: 8px; padding: 2px 6px; border-radius: 4px; background: var(--coral); color: var(--bg); }
   .toy p { margin: 4px 0 0; color: var(--dim); font-size: 14px; line-height: 1.4; }
 
   /* ---------- footer ---------- */
@@ -444,7 +445,7 @@
         <span class="eyebrow mono" style="color:var(--cyan)">03 / Poke</span>
         <h2 id="toys-title">Toys <span class="out">&amp;</span> experiments</h2>
       </div>
-      <p>Nothing to win. Drum machines, flocking birds, a cyanotype bench and other things to fiddle with.</p>
+      <p>Nothing to win. A rainy window, a sand garden, drum machines, flocking birds and other things to fiddle with.</p>
     </div>
     <div class="toys-grid" id="toys-grid"></div>
   </section>
@@ -495,6 +496,10 @@
   ];
 
   const toys = [
+    { file: "window-seat", title: "Window Seat", kind: "Ambient", fresh: true,
+      text: "A rainy night seen from a window seat. Wipe the fogged glass, watch the drops slide, and let the lo-fi piano play." },
+    { file: "karesansui", title: "Karesansui", kind: "Zen garden", fresh: true,
+      text: "Rake grooves into a dry sand garden, place stones, and watch the light move from morning to dusk." },
     { file: "split-flap", title: "Halvøy Departures", kind: "Display",
       text: "A clacking split-flap departures board. Type a passenger notice and watch it flip into place." },
     { file: "murmuration", title: "Murmuration", kind: "Simulation",
@@ -560,7 +565,9 @@
     const thumb = el("div", "thumb");
     thumb.append(img(t.file, 800, 500));
     const body = el("div");
-    body.append(el("span", "kind mono", t.kind), el("h3", null, t.title), el("p", null, t.text));
+    const kind = el("span", "kind mono", t.kind);
+    if (t.fresh) kind.append(el("b", "new", "New"));
+    body.append(kind, el("h3", null, t.title), el("p", null, t.text));
     a.append(thumb, body);
     card.append(a);
     return card;
@@ -680,7 +687,7 @@
   });
 
   // Blinking coin label cycles
-  const coinWords = ["Insert coin", "Credits 23", "Player 1 ready", "High score ∞"];
+  const coinWords = ["Insert coin", `Credits ${games.length + toys.length}`, "Player 1 ready", "High score ∞"];
   let ci = 0;
   if (!reduced) setInterval(() => { document.getElementById("coin").textContent = coinWords[++ci % coinWords.length]; }, 2600);
 
