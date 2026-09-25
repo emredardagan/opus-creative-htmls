@@ -475,6 +475,8 @@
       text: "Build a town on the back of a giant sea turtle and keep her happy on the long swim to the Great Reef." },
     { file: "mixtape-commando", title: "Mixtape Commando", kind: "Run and gun", featured: true,
       text: "A pixel run-and-gun set to a synth mixtape. Fire on the beat to turn your shots gold." },
+    { file: "harborlight", href: "harborlight/", title: "Harborlight", kind: "City builder",
+      text: "Grow an island town into a harbour city: zone streets, power and water, run trains and an airport, and watch the lights come on at dusk." },
     { file: "mega-mittens", title: "Mega Mittens", kind: "Rampage",
       text: "Be a giant pet loose in a tiny town. Swat cars, pounce on houses, chase the red dot and shake off the fire trucks before the owner gets home." },
     { file: "paw-crossing", title: "Paw Crossing", kind: "Arcade",
@@ -535,7 +537,7 @@
     All: null,
     Arcade: ["Arcade", "Action", "Run and gun", "Racing", "Rampage"],
     Puzzle: ["Puzzle", "Physics", "Gravity golf", "Roguelike"],
-    Chill: ["Train sim", "Town builder", "3D adventure"],
+    Chill: ["Train sim", "Town builder", "City builder", "3D adventure"],
   };
 
   const el = (tag, cls, text) => {
@@ -556,7 +558,7 @@
     card.dataset.kind = g.kind;
     if (g.featured) card.dataset.featured = "1";
     card.style.setProperty("--d", `${(i % 3) * 0.07}s`);
-    const a = el("a"); a.href = `${g.file}.html`;
+    const a = el("a"); a.href = g.href || `${g.file}.html`;
     const thumb = el("div", "thumb");
     thumb.append(img(g.file, 800, 500), el("span", "idx mono", String(i + 1).padStart(2, "0")), el("span", "play", "▶"));
     const body = el("div", "body");
@@ -571,7 +573,7 @@
   function toyCard(t, i) {
     const card = el("article", "toy rv");
     card.style.setProperty("--d", `${(i % 3) * 0.06}s`);
-    const a = el("a"); a.href = `${t.file}.html`;
+    const a = el("a"); a.href = t.href || `${t.file}.html`;
     const thumb = el("div", "thumb");
     thumb.append(img(t.file, 800, 500));
     const body = el("div");
@@ -601,7 +603,7 @@
   function fillTrack(id, list) {
     const track = document.getElementById(id);
     const make = () => list.map(x => {
-      const s = el("span"); const a = el("a", null, x.title); a.href = `${x.file}.html`; a.tabIndex = -1; s.append(a); return s;
+      const s = el("span"); const a = el("a", null, x.title); a.href = x.href || `${x.file}.html`; a.tabIndex = -1; s.append(a); return s;
     });
     track.append(...make(), ...make());
   }
@@ -684,7 +686,7 @@
   function spin() {
     if (spinning) return;
     const pick = games[Math.floor(Math.random() * games.length)];
-    if (reduced) { location.href = `${pick.file}.html`; return; }
+    if (reduced) { location.href = pick.href || `${pick.file}.html`; return; }
     spinning = true;
     randomBtn.classList.add("spinning");
     let delay = 40, n = 0;
@@ -695,7 +697,7 @@
       else {
         slot.textContent = pick.title;
         randomBtn.classList.remove("spinning");
-        setTimeout(() => { location.href = `${pick.file}.html`; }, 650);
+        setTimeout(() => { location.href = pick.href || `${pick.file}.html`; }, 650);
       }
     };
     tick();
