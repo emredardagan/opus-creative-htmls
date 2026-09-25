@@ -300,8 +300,6 @@
   .toy .thumb::after { display: none; }
   .toy h3 { margin: 0 0 2px; font-size: 19px; font-stretch: 88%; line-height: 1.15; }
   .toy .kind { color: var(--cyan); font-size: 11px; }
-  .card .new { font: inherit; margin-right: 8px; padding: 2px 6px; border-radius: 4px; background: var(--coral); color: var(--bg); }
-  .toy .new { font: inherit; margin-left: 8px; padding: 2px 6px; border-radius: 4px; background: var(--coral); color: var(--bg); }
   .toy p { margin: 4px 0 0; color: var(--dim); font-size: 14px; line-height: 1.4; }
 
   /* ---------- footer ---------- */
@@ -477,7 +475,7 @@
       text: "Build a town on the back of a giant sea turtle and keep her happy on the long swim to the Great Reef." },
     { file: "mixtape-commando", title: "Mixtape Commando", kind: "Run and gun", featured: true,
       text: "A pixel run-and-gun set to a synth mixtape. Fire on the beat to turn your shots gold." },
-    { file: "paw-crossing", title: "Paw Crossing", kind: "Arcade", fresh: true,
+    { file: "paw-crossing", title: "Paw Crossing", kind: "Arcade",
       text: "Hop one of 24 little animals across busy roads and log-strewn rivers. Built with Kenney's 3D models, soft shadows and ambient occlusion." },
     { file: "sunchaser", title: "Sunchaser", kind: "Racing",
       text: "Drive west toward the last sunset. Rebuild your scrap car, drift for nitro, and ram a boss at the end of every tenth road." },
@@ -506,9 +504,9 @@
   ];
 
   const toys = [
-    { file: "window-seat", title: "Window Seat", kind: "Ambient", fresh: true,
+    { file: "window-seat", title: "Window Seat", kind: "Ambient",
       text: "A rainy night seen from a window seat. Wipe the fogged glass, watch the drops slide, and let the lo-fi piano play." },
-    { file: "karesansui", title: "Karesansui", kind: "Zen garden", fresh: true,
+    { file: "karesansui", title: "Karesansui", kind: "Zen garden",
       text: "Rake grooves into a dry sand garden, place stones, and watch the light move from morning to dusk." },
     { file: "split-flap", title: "Halvøy Departures", kind: "Display",
       text: "A clacking split-flap departures board. Type a passenger notice and watch it flip into place." },
@@ -561,9 +559,7 @@
     thumb.append(img(g.file, 800, 500), el("span", "idx mono", String(i + 1).padStart(2, "0")), el("span", "play", "▶"));
     const body = el("div", "body");
     const row = el("div", "row");
-    const kind = el("span", "kind mono", g.kind);
-    if (g.fresh) kind.prepend(el("b", "new", "New"));
-    row.append(el("h3", null, g.title), kind);
+    row.append(el("h3", null, g.title), el("span", "kind mono", g.kind));
     body.append(row, el("p", null, g.text));
     a.append(thumb, body);
     card.append(a);
@@ -577,9 +573,7 @@
     const thumb = el("div", "thumb");
     thumb.append(img(t.file, 800, 500));
     const body = el("div");
-    const kind = el("span", "kind mono", t.kind);
-    if (t.fresh) kind.append(el("b", "new", "New"));
-    body.append(kind, el("h3", null, t.title), el("p", null, t.text));
+    body.append(el("span", "kind mono", t.kind), el("h3", null, t.title), el("p", null, t.text));
     a.append(thumb, body);
     card.append(a);
     return card;
