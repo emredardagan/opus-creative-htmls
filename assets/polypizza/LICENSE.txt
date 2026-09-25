@@ -8,3 +8,16 @@ Models downloaded from Poly Pizza (https://poly.pizza). Every model in this fold
 | sea-urchin-open.glb  | Sea Urchin Open  | Quaternius  | https://poly.pizza/m/LdYoJyw4pQ       |
 | coral-reef-set.glb   | Coral Reef Set   | MiniPoly    | https://poly.pizza/m/74GL45Fvdh       |
 | seaweed.glb          | Seaweed          | Mohabins    | https://poly.pizza/m/oYxUdpyc4u       |
+| ferris-wheel.glb         | Ferris Wheel       | CreativeTrio  | https://poly.pizza/m/6CepsZjXBw |
+| lighthouse.glb           | Light House        | MaverickFX    | https://poly.pizza/m/KRebJXIRb8 |
+| helicopter.glb           | Helicopter         | kazuma        | https://poly.pizza/m/EQJ2MECUbx |
+| church.glb               | Church             | CreativeTrio  | https://poly.pizza/m/GHzPfvoyzX |
+| sail-boat.glb            | Sail Boat          | Quaternius    | https://poly.pizza/m/BgSZXwmm7k |
+| fountain.glb             | Fountain           | Isa Lousberg  | https://poly.pizza/m/WHc7dwttlk |
+| horse-statue.glb         | Horse Statue       | Quaternius    | https://poly.pizza/m/AK9CmjFnL6 |
+| dock-long.glb            | Dock Long          | Quaternius    | https://poly.pizza/m/bN9Oz3niNm |
+| bench.glb                | Bench              | Quaternius    | https://poly.pizza/m/jLxjFxFRpw |
+| satellite-dish.glb       | Satellite Dish     | Kenney        | https://poly.pizza/m/IDRrztoAMB |
+| sign-hospital.glb        | Sign Hospital      | Kenney        | https://poly.pizza/m/PeM20xAT0V |
+| fire-hydrant.glb         | Fire Hydrant       | Kay Lousberg  | https://poly.pizza/m/thffn9bO75 |
+| tent.glb                 | Tent               | Kenney        | https://poly.pizza/m/LrTs3hVGXv |
