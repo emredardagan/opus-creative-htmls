@@ -8,8 +8,9 @@ const ROAD = {
   straight: K('city-kit-roads/road-straight'), bend: K('city-kit-roads/road-bend'), tee: K('city-kit-roads/road-intersection'),
   cross: K('city-kit-roads/road-crossroad'), end: K('city-kit-roads/road-end'), square: K('city-kit-roads/road-square'),
 };
-// masks: 1 = north (z-1), 2 = east (x+1), 4 = south (z+1), 8 = west (x-1). Base mask of each piece at yaw 0.
-const BASE = { straight: 5, bend: 6, tee: 7, end: 4 };
+// masks: 1 = north (z-1), 2 = east (x+1), 4 = south (z+1), 8 = west (x-1). Open edges of each Kenney piece at yaw 0
+// (checked top-down: the straight runs east-west, the bend joins south and west, the tee opens east, south and west).
+const BASE = { straight: 10, bend: 12, tee: 14, end: 2 };
 const rotMask = m => ((m & 1) ? 8 : 0) | ((m & 2) ? 1 : 0) | ((m & 4) ? 2 : 0) | ((m & 8) ? 4 : 0);
 function roadPiece(m) {
   const bits = [1, 2, 4, 8].filter(b => m & b).length;

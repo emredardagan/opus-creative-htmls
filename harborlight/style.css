@@ -111,7 +111,7 @@ body.night .tool .thumb { background: linear-gradient(180deg, #34406a, #26304f);
 @keyframes toastIn { from { transform: translateX(-16px); opacity: 0; } }
 @keyframes toastOut { to { transform: translateX(-16px); opacity: 0; } }
 .minimap { position: absolute; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); padding: 8px; }
-.minimap canvas { display: block; width: 132px; height: 132px; border-radius: 11px; image-rendering: pixelated; cursor: pointer; }
+.minimap canvas { display: block; width: 150px; height: 92px; border-radius: 11px; cursor: pointer; }
 .minimap .rot { display: flex; gap: 6px; margin-top: 6px; }
 .minimap .rot button { flex: 1; border: 0; background: var(--line); border-radius: 9px; padding: 5px; font-size: 16px; }
 

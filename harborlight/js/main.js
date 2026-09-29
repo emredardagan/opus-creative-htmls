@@ -35,10 +35,19 @@ const MODELS = [
 // ---------------------------------------------------------------- boot instruction (survives a reload)
 let boot = null; try { boot = JSON.parse(sessionStorage.getItem('hl-boot') || 'null'); sessionStorage.removeItem('hl-boot'); } catch {}
 const slots = store.get('hl-slots', []);
+// drop city data that no slot points at any more (older builds made a new slot every session)
+try { for (const k of Object.keys(localStorage)) if (k.startsWith('hl-city-') && !slots.some(s => 'hl-city-' + s.id === k)) localStorage.removeItem(k); } catch {}
+// a plain visit reopens the city you played last
+if (!boot && slots.length && store.get('hl-city-' + slots[0].id)) boot = { mode: 'load', id: slots[0].id, resume: true };
 const lastSeed = boot?.seed ?? Math.floor(Math.random() * 999999);
 $('newSeed').value = lastSeed;
 $('shuffle').onclick = () => { $('newSeed').value = Math.floor(Math.random() * 999999); };
-if (slots.length) { $('continueBtn').hidden = false; $('continueBtn').textContent = `Continue ${slots[0].name}`; }
+if (boot?.resume) {
+  // your city is the backdrop: continuing is the main action, founding a new one the second
+  $('continueBtn').hidden = false; $('continueBtn').textContent = `Continue ${slots[0].name}`;
+  $('continueBtn').className = 'primary big'; $('startBtn').className = 'ghost wide';
+  $('startBtn').before($('continueBtn'));
+}
 
 const quality = store.get('hl-low', false) ? 'low' : 'high';
 const stage = createStage($('stage'), { quality });
@@ -47,8 +56,8 @@ await loadAll([...new Set(MODELS)], p => { $('loadBar').style.width = `${Math.ro
 await stage.envReady;
 
 // ---------------------------------------------------------------- world
-let world;
-if (boot?.mode === 'load' && store.get('hl-city-' + boot.id)) { world = World.load(store.get('hl-city-' + boot.id)); world.slotId = boot.id; }
+let world, saved = null;
+if (boot?.mode === 'load' && (saved = store.get('hl-city-' + boot.id))) { world = World.load(saved); world.slotId = boot.id; }
 else {
   world = new World(); world.generate(lastSeed);
   world.name = boot?.name || 'Harborlight'; world.slotId = Date.now().toString(36);
@@ -74,8 +83,11 @@ world.on((type, d) => {
   if (type === 'building+' && d.lvl && Math.random() < 0.3) sfx.grow();
 });
 
-// frame the town
-{
+// frame the town, or go back to where you were looking
+if (saved?.view) {
+  const v = saved.view; stage.view.target.set(v.x, 0, v.z); stage.view.yaw = stage.view.yawTo = v.yaw; stage.view.zoom = stage.view.zoomTo = v.zoom;
+  if (typeof v.time === 'number') stage.state.time = v.time;
+} else {
   let sx = 0, sz = 0, n = 0; for (const b of world.buildings.values()) { sx += b.x; sz += b.z; n++; }
   if (n) stage.view.target.set(sx / n - N / 2, 0, sz / n - N / 2);
   stage.view.zoom = stage.view.zoomTo = 13;
@@ -88,35 +100,43 @@ function begin() {
   $('title').classList.add('gone'); setTimeout(() => $('title').hidden = true, 800);
   $('hud').hidden = false;
   world.name = $('newName').value.trim() || world.name;
-  stage.view.zoomTo = 11;
+  if (!saved?.view) stage.view.zoomTo = 11;
   ui.update(0, true);
-  setTimeout(() => ui.toast(`Welcome to ${world.name}. Zone land next to roads and give it power, then watch it grow.`, 'tip'), 900);
+  if (saved) setTimeout(() => ui.toast(`Welcome back to ${world.name}.`, 'info'), 900);
+  else setTimeout(() => ui.toast(`Welcome to ${world.name}. Zone land next to roads and give it power, then watch it grow.`, 'tip'), 900);
+  save(true);
 }
-$('startBtn').disabled = false; $('startBtn').textContent = 'Found the city';
+$('startBtn').disabled = false; $('startBtn').textContent = saved ? 'Found a new city' : 'Found the city';
 $('startBtn').onclick = () => {
   const seed = +$('newSeed').value || 1, village = $('village').checked;
-  if (boot?.mode !== 'load' && seed === lastSeed && village === (boot?.village !== false)) { begin(); return; }
+  if (!saved && seed === lastSeed && village === (boot?.village !== false)) { begin(); return; }
   sessionStorage.setItem('hl-boot', JSON.stringify({ mode: 'new', seed, village, name: $('newName').value.trim(), start: true }));
   location.reload();
 };
-$('continueBtn').onclick = () => { sessionStorage.setItem('hl-boot', JSON.stringify({ mode: 'load', id: slots[0].id, start: true })); location.reload(); };
+$('continueBtn').onclick = () => { if (saved && world.slotId === slots[0]?.id) { $('newName').value = world.name; begin(); return; } sessionStorage.setItem('hl-boot', JSON.stringify({ mode: 'load', id: slots[0].id, start: true })); location.reload(); };
 if (boot?.start) { $('title').hidden = true; if (boot.name) $('newName').value = boot.name; else $('newName').value = world.name; begin(); }
-else if (boot?.mode === 'load') begin();
+else if (boot?.mode === 'load' && !boot.resume) begin();
 
 // ---------------------------------------------------------------- saves
 function save(silent) {
-  const data = world.serialize();
-  const ok = store.set('hl-city-' + world.slotId, data);
+  const data = world.serialize(), v = stage.view;
+  data.view = { x: v.target.x, z: v.target.z, yaw: v.yawTo, zoom: v.zoomTo, time: stage.state.time };
   const list = store.get('hl-slots', []).filter(s => s.id !== world.slotId);
   list.unshift({ id: world.slotId, name: world.name, pop: Math.round(world.stats.pop), t: Date.now() });
-  store.set('hl-slots', list.slice(0, 8));
+  for (const old of list.slice(8)) store.del('hl-city-' + old.id);
+  const ok = store.set('hl-city-' + world.slotId, data) && store.set('hl-slots', list.slice(0, 8));
   if (!silent) ui.toast(ok ? `${world.name} saved.` : 'Could not save (storage full?).', ok ? 'info' : 'warn');
+  return ok;
 }
 $('saveBtn').onclick = () => { save(); ui.renderSlots(); };
 $('newBtn').onclick = () => { save(true); sessionStorage.setItem('hl-boot', JSON.stringify({ mode: 'new', seed: Math.floor(Math.random() * 999999), village: true })); location.reload(); };
 ui.onLoad = id => { save(true); sessionStorage.setItem('hl-boot', JSON.stringify({ mode: 'load', id, start: true })); location.reload(); };
-setInterval(() => { if (playing) save(true); }, 90000);
+// autosave: a few seconds after anything is built, every 20 seconds of play, and when the tab is hidden or closed
+let saveSoon = 0;
+world.on(type => { if (playing && type !== 'stats') saveSoon = saveSoon || setTimeout(() => { saveSoon = 0; save(true); }, 2500); });
+setInterval(() => { if (playing) save(true); }, 20000);
 addEventListener('pagehide', () => { if (playing) save(true); });
+document.addEventListener('visibilitychange', () => { if (playing && document.hidden) save(true); });
 
 // graphics options
 $('optTilt').checked = store.get('hl-tilt', true); stage.state.tilt = $('optTilt').checked;

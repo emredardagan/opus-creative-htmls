@@ -62,8 +62,10 @@ export class UI {
     $('rotL').onclick = () => this.stage.view.yawTo += Math.PI / 2;
     $('rotR').onclick = () => this.stage.view.yawTo -= Math.PI / 2;
     $('minimap').addEventListener('pointerdown', e => {
-      const r = e.target.getBoundingClientRect(); const u = (e.clientX - r.left) / r.width, v = (e.clientY - r.top) / r.height;
-      this.stage.view.target.set(u * N - N / 2, 0, v * N - N / 2);
+      const c = e.target, r = c.getBoundingClientRect(), m = this.miniMatrix(); if (!m) return;
+      const p = m.inverse().transformPoint(new DOMPoint((e.clientX - r.left) / r.width * c.width, (e.clientY - r.top) / r.height * c.height));
+      this.stage.view.target.set(clamp(p.x, 0, N) - N / 2, 0, clamp(p.y, 0, N) - N / 2);
+      this.drawMinimap();
     });
     // tooltips
     const tip = $('tip');
@@ -266,6 +268,13 @@ export class UI {
     }
   }
   // ---------------------------------------------------------------- minimap
+  // tile (x, z) -> minimap pixel, matching the camera: screen right is (cos yaw, -sin yaw), screen up is (-sin yaw, -cos yaw)
+  miniMatrix() {
+    const c = $('minimap'), v = this.stage.view, sp = Math.sin(v.pitch), cy = Math.cos(v.yaw), sy = Math.sin(v.yaw);
+    const s = this._miniS = Math.min(c.width / (N * Math.SQRT2), c.height / (N * Math.SQRT2 * sp)) * 0.97;
+    const a = s * cy, cc = -s * sy, b = s * sp * sy, d = s * sp * cy;
+    return new DOMMatrix([a, b, cc, d, c.width / 2 - (a + cc) * N / 2, c.height / 2 - (b + d) * N / 2]);
+  }
   drawMinimap() {
     const c = $('minimap'), g = c.getContext('2d'), w = this.w, img = g.createImageData(N, N), d = img.data;
     for (let i = 0; i < N * N; i++) {
@@ -281,10 +290,15 @@ export class UI {
     }
     const tmp = this._mini || (this._mini = Object.assign(document.createElement('canvas'), { width: N, height: N }));
     tmp.getContext('2d').putImageData(img, 0, 0);
-    g.imageSmoothingEnabled = false; g.clearRect(0, 0, c.width, c.height); g.drawImage(tmp, 0, 0, c.width, c.height);
-    // view marker
-    const v = this.stage.view, k = c.width / N;
-    g.strokeStyle = '#fff'; g.lineWidth = 2; const zx = v.zoom * (innerWidth / innerHeight) * 0.7 * k, zy = v.zoom * 0.9 * k;
-    g.save(); g.translate((v.target.x + N / 2) * k, (v.target.z + N / 2) * k); g.rotate(-v.yaw + Math.PI / 4); g.strokeRect(-zx, -zy, zx * 2, zy * 2); g.restore();
+    // draw the grid the way the camera sees it: turned by the view yaw and squashed by the pitch
+    const m = this.miniMatrix();
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height);
+    g.fillStyle = '#4aaacd'; g.fillRect(0, 0, c.width, c.height);
+    g.imageSmoothingEnabled = false; g.setTransform(m); g.drawImage(tmp, 0, 0);
+    // view marker: the visible screen area, which stays upright in this frame
+    const v = this.stage.view, s = this._miniS, t = m.transformPoint(new DOMPoint(v.target.x + N / 2, v.target.z + N / 2));
+    const hw = v.zoom * (innerWidth / innerHeight) * s, hh = v.zoom * s;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.strokeStyle = '#fff'; g.lineWidth = 3; g.lineJoin = 'round';
+    g.strokeRect(t.x - hw, t.y - hh, hw * 2, hh * 2);
   }
 }
