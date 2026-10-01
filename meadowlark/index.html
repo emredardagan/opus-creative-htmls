@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Meadowlark</title>
+<meta name="description" content="Wander a sunlit island, help its animals with small favours, and collect golden feathers to glide further.">
+<meta name="theme-color" content="#f3d9a8">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/",
+    "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/",
+    "postprocessing": "https://cdn.jsdelivr.net/npm/postprocessing@6.39.5/build/index.js",
+    "n8ao": "https://cdn.jsdelivr.net/npm/n8ao@2.0.1/dist/N8AO.js"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="stage"></canvas>
+
+<div class="hud" id="hud" hidden>
+  <div class="quest card" id="quest">
+    <div class="quest-head"><i class="ph-fill ph-scroll" aria-hidden="true"></i><span id="questTitle">Explore</span></div>
+    <div class="quest-body" id="questBody">Wander around and say hello.</div>
+  </div>
+  <div class="compass" id="compass" aria-hidden="true"><div class="compass-strip" id="compassStrip"></div><i class="compass-pin" id="compassPin"></i></div>
+  <div class="tray">
+    <div class="feathers card" id="feathers" data-tip="Golden feathers: each one lets you glide for longer">
+      <div class="feather-row" id="featherRow"></div>
+      <b id="featherCount">0 / 12</b>
+    </div>
+    <button class="ic card" id="logBtn" aria-label="Journal"><i class="ph-bold ph-book-open-text"></i></button>
+    <button class="ic card" id="soundBtn" aria-label="Sound"><i class="ph-bold ph-speaker-high" id="soundIcon"></i></button>
+  </div>
+  <div class="prompt" id="prompt" hidden><kbd id="promptKey">E</kbd><span id="promptText">Talk</span></div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <div class="glide" id="glide" hidden><i id="glideBar"></i></div>
+  <!-- touch controls -->
+  <div class="touch" id="touch" hidden>
+    <div class="stick" id="stick"><i id="knob"></i></div>
+    <button class="tbtn jump" id="tJump" aria-label="Jump"><i class="ph-bold ph-arrow-fat-up"></i></button>
+    <button class="tbtn act" id="tAct" aria-label="Interact"><i class="ph-bold ph-hand-pointing"></i></button>
+    <button class="tbtn run" id="tRun" aria-label="Run"><i class="ph-bold ph-sneaker-move"></i></button>
+  </div>
+</div>
+
+<div class="dialog" id="dialog" hidden>
+  <div class="dialog-card">
+    <div class="dialog-name" id="dlgName">Pip</div>
+    <p class="dialog-text" id="dlgText"></p>
+    <div class="dialog-choices" id="dlgChoices"></div>
+    <div class="dialog-next" id="dlgNext"><i class="ph-bold ph-caret-down"></i></div>
+  </div>
+</div>
+
+<div class="journal" id="journal" hidden>
+  <div class="journal-card">
+    <button class="x" id="journalClose" aria-label="Close"><i class="ph-bold ph-x"></i></button>
+    <h2>Journal</h2>
+    <div class="journal-cols">
+      <div><h4>Favours</h4><ul id="journalList"></ul></div>
+      <div><h4>Island</h4><canvas id="map" width="512" height="512"></canvas></div>
+    </div>
+    <p class="keys">WASD or arrows to walk · Shift to run · Space to jump, hold it in the air to glide · E to talk · drag to look around · J journal</p>
+    <div class="journal-actions"><button id="resetBtn" class="ghost">Start over</button><a class="home" href="../index.html">← All games</a></div>
+  </div>
+</div>
+
+<div class="title" id="title">
+  <div class="title-inner">
+    <div class="logo">
+      <svg viewBox="0 0 64 64" class="mark" aria-hidden="true"><path d="M8 40c10-14 22-20 40-20-6 4-9 8-10 12 6-1 11 0 18 3-12 4-24 10-36 10-5 0-9-2-12-5z" fill="#ffd36a"/><path d="M14 41c8-6 17-10 28-11" stroke="#b07a1e" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="46" cy="27" r="1.8" fill="#3b2a12"/></svg>
+      <h1>Meadowlark</h1>
+      <p>A little island, a lot of favours.</p>
+    </div>
+    <button class="primary" id="startBtn" disabled><span id="startLabel">Loading the island…</span></button>
+    <div class="load"><i id="loadBar"></i></div>
+    <p class="hint-keys">WASD to walk · Space to jump and glide · E to talk</p>
+    <div class="credits">3D models by <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> and creators on <a href="https://poly.pizza" target="_blank" rel="noopener">Poly Pizza</a> (CC0). Icons by <a href="https://phosphoricons.com" target="_blank" rel="noopener">Phosphor</a>.</div>
+  </div>
+</div>
+<div class="fade" id="fade"></div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

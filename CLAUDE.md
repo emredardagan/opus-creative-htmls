@@ -14,7 +14,7 @@ A static site of browser games and interactive toys, deployed on Vercel from `ma
 - **Look in the free asset sources below before building something from primitives.** Real models, textures and sounds beat hand-made shapes.
 - **Site identity:** the site is named **Emre Dardagan** (not "creative"), with the ED monogram logo (`favicon.svg` and the inline SVG in `index.html`).
 - **The index keeps Emre's GitFut card** (`thumbs/fut-card.webp`, links to https://gitfut.com/emredardagan).
-- **Featured games** (the two large cards at the top of Games): **Shellburg** and **Mixtape Commando**.
+- **Featured games** (the two large cards at the top of Games): **Shellburg** and **Meadowlark**, in that order. Mixtape Commando follows as the first regular card.
 - **Only commit and push when Emre asks.**
 
 ## Free asset sources
@@ -42,7 +42,7 @@ Check the license of every file before using it. CC0 needs no credit, but we sti
 
 - `index.html`: landing page. Game and toy data live in the `games` and `toys` arrays in its script.
 - `<name>.html`: one page per game or toy, at the repo root.
-- Bigger games get their own folder (`harborlight/` with `index.html`, `style.css` and ES modules in `js/`). Their index entry sets `href: "<folder>/"`; `file` still names the thumbnail.
+- Bigger games get their own folder (`harborlight/`, `meadowlark/`, each with `index.html`, `style.css` and ES modules in `js/`). Their index entry sets `href: "<folder>/"`; `file` still names the thumbnail.
 - `thumbs/`: index thumbnails (800×500 JPEG) and the GitFut card.
 - `assets/kenney/…`: CC0 model packs (`.glb`), each with its `License.txt`.
 - `assets/hdri/`: CC0 sky for image-based lighting.

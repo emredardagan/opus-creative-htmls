@@ -375,7 +375,7 @@
     </div>
 
     <div class="hero-foot">
-      <h1><em id="game-count">14</em> tiny games, <em id="toy-count">9</em> toys <span class="tag">1 file each</span> and zero installs.</h1>
+      <h1><em id="game-count">14</em> tiny games, <em id="toy-count">9</em> toys <span class="tag">all free</span> and zero installs.</h1>
       <div class="hero-side">
         <p>Racing, puzzles, a town on a turtle, a train through the northern lights. Everything runs right here in the browser. No sign-up.</p>
         <div class="actions">
@@ -473,7 +473,9 @@
   const games = [
     { file: "shellburg", title: "Shellburg", kind: "Town builder", featured: true,
       text: "Build a town on the back of a giant sea turtle and keep her happy on the long swim to the Great Reef." },
-    { file: "mixtape-commando", title: "Mixtape Commando", kind: "Run and gun", featured: true,
+    { file: "meadowlark", href: "meadowlark/", title: "Meadowlark", kind: "Adventure", featured: true,
+      text: "Wander a sunlit island, help seven animals with small favours, and collect golden feathers so your parasol carries you further on the wind." },
+    { file: "mixtape-commando", title: "Mixtape Commando", kind: "Run and gun",
       text: "A pixel run-and-gun set to a synth mixtape. Fire on the beat to turn your shots gold." },
     { file: "harborlight", href: "harborlight/", title: "Harborlight", kind: "City builder",
       text: "Grow an island town into a harbour city: zone streets, power and water, run trains and an airport, and watch the lights come on at dusk." },
@@ -537,7 +539,7 @@
     All: null,
     Arcade: ["Arcade", "Action", "Run and gun", "Racing", "Rampage"],
     Puzzle: ["Puzzle", "Physics", "Gravity golf", "Roguelike"],
-    Chill: ["Train sim", "Town builder", "City builder", "3D adventure"],
+    Chill: ["Train sim", "Town builder", "City builder", "3D adventure", "Adventure"],
   };
 
   const el = (tag, cls, text) => {
