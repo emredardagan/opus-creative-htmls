@@ -10,14 +10,17 @@ Everything in this folder is free to use in commercial and personal projects. Ea
 | `kenney/city-kit-roads` | Road tiles, street lights, signs, traffic lights | [Kenney · City Kit (Roads)](https://kenney.nl/assets/city-kit-roads) | CC0 |
 | `kenney/city-kit-suburban` | Houses, fences, paths, planters | [Kenney · City Kit (Suburban)](https://kenney.nl/assets/city-kit-suburban) | CC0 |
 | `kenney/cube-pets` | 24 animals **with animations** (idle, walk, run, dance, eat, gestures) | [Kenney · Cube Pets](https://kenney.nl/assets/cube-pets) | CC0 |
+| `kenney/mini-characters` | 12 chunky people **with animations** (walk, sprint, jump, fall, pick-up, emotes…), plus mobility aids and wheelchairs | [Kenney · Mini Characters](https://kenney.nl/assets/mini-characters) | CC0 |
 | `kenney/nature-kit` | 329 trees, rocks, flowers, logs, cliffs, water pieces | [Kenney · Nature Kit](https://kenney.nl/assets/nature-kit) | CC0 |
 | `kenney/platformer-kit` | Grass/snow blocks, coins, chests, flags, characters, traps | [Kenney · Platformer Kit](https://kenney.nl/assets/platformer-kit) | CC0 |
 | `kenney/particles` | 9 sprites picked from the Particle Pack (stars, sparks, smoke, circles…), downscaled to 128px | [Kenney · Particle Pack](https://kenney.nl/assets/particle-pack) | CC0 |
-| `polypizza/` | Sea life for Shellburg (starfish, urchins, coral, seaweed) and Harborlight's landmarks (Ferris wheel, lighthouse, helicopter, chapel, fountain, statue, dock, bench, dish, tents, sailboat) | [Poly Pizza](https://poly.pizza), creators listed in `polypizza/LICENSE.txt` | CC0 |
+| `polypizza/` | Sea life for Shellburg (starfish, urchins, coral, seaweed) and Harborlight's landmarks (Ferris wheel, lighthouse, helicopter, chapel, fountain, statue, dock, bench, dish, tents, sailboat), also reused in Meadowlark | [Poly Pizza](https://poly.pizza), creators listed in `polypizza/LICENSE.txt` | CC0 |
 | `ambientcg/` | Reptile-scale skin (Leather008) and bark ridges (Bark014) for the turtle, downscaled to 512px | [ambientCG](https://ambientcg.com), see `ambientcg/LICENSE.txt` | CC0 |
 | `kenney/city-kit-commercial` | Shops, offices and five skyscrapers | [Kenney · City Kit (Commercial)](https://kenney.nl/assets/city-kit-commercial) | CC0 |
 | `kenney/city-kit-industrial` | Factories, chimneys, tanks, a windmill, a water tower, solar panels, containers | [Kenney · City Kit (Industrial)](https://kenney.nl/assets/city-kit-industrial) | CC0 |
 | `kenney/train-kit` | Locomotives, carriages, trams (track pieces kept for reference) | [Kenney · Train Kit](https://kenney.nl/assets/train-kit) | CC0 |
+| `kenney/fantasy-town-kit` | Modular cottage walls and roofs, windmill, watermill, fences, hedges, stalls, lanterns, fountains | [Kenney · Fantasy Town Kit](https://kenney.nl/assets/fantasy-town-kit) | CC0 |
+| `kenney/survival-kit` | Campfires, tents, barrels, crates, tools, fish, signposts, autumn trees, rocks | [Kenney · Survival Kit](https://kenney.nl/assets/survival-kit) | CC0 |
 | `hdri/kloofendal_puresky_1k.hdr` | Sunny sky used for soft image-based lighting | [Poly Haven](https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky) | CC0 |
 
 All models are `.glb` (glTF binary). Most Kenney kits share a single `Textures/colormap.png` palette texture next to the models.
@@ -29,6 +32,7 @@ All models are `.glb` (glTF binary). Most Kenney kits share a single `Textures/c
 | [three.js](https://threejs.org) 0.186 | Rendering, glTF loading, HDR loading, post-processing | MIT |
 | [N8AO](https://github.com/N8python/n8ao) 2.0 | Ambient occlusion (the soft contact shadows in every crease) | ISC |
 | [postprocessing](https://github.com/pmndrs/postprocessing) 6.39 | Dependency of N8AO | Zlib |
+| [Phosphor Icons](https://phosphoricons.com) 2.1 | HUD icons in Meadowlark (icon font) | MIT |
 
 ## The Toybox kit (`kit/`)
 
