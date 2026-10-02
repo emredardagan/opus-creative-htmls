@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Paw Crossing</title>
-<meta name="description" content="Hop a little animal across busy roads and rivers. A 3D arcade game built with Kenney's CC0 models.">
+<meta name="description" content="Hop a little animal through six seasons of roads, rivers, railways, frozen lakes, stampedes and storms. A 3D arcade game built with Kenney's CC0 models.">
 <meta name="theme-color" content="#bfe7ff">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/kit/toybox.css">
@@ -80,6 +80,9 @@
   .toast.show { transform: translate(-50%, 0); opacity: 1; }
   .toast i { color: var(--tb-good); font-size: 20px; }
   .toast em { font-style: normal; color: #c07a00; }
+  .flash { position: fixed; inset: 0; background: #eef3ff; opacity: 0; pointer-events: none; z-index: 3; }
+  .flash.on { animation: flash .6s ease-out; }
+  @keyframes flash { 0% { opacity: .55; } 15% { opacity: .1; } 25% { opacity: .4; } 100% { opacity: 0; } }
   .zone { position: fixed; left: 50%; top: 30%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; z-index: 14; opacity: 0; }
   .zone.show { animation: zone 2.6s ease forwards; }
   .zone b { display: block; font-size: clamp(34px, 8vw, 60px); color: #fff; -webkit-text-stroke: 8px var(--tb-ink); paint-order: stroke fill; transform: rotate(-3deg); white-space: nowrap; }
@@ -160,6 +163,7 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="flash" id="flash"></div>
 <div class="zone" id="zone"><b id="zoneName"></b><small id="zoneSub"></small></div>
 
 <div class="tb-loading" id="loading"><div class="bar"><i id="loadBar"></i></div></div>
@@ -188,7 +192,7 @@ const PETS = ['dog', 'cat', 'bunny', 'chick',
 const STARTERS = PETS.slice(0, 4);
 const RARE = ['lion', 'tiger', 'polar', 'parrot', 'elephant', 'giraffe', 'bee', 'crab'];
 const LEGEND = ['caterpillar', 'fish'];
-const price = n => STARTERS.includes(n) ? 0 : LEGEND.includes(n) ? 300 : RARE.includes(n) ? 150 : 50;
+const price = n => STARTERS.includes(n) ? 0 : LEGEND.includes(n) ? 500 : RARE.includes(n) ? 250 : 100;
 const owned = new Set(store.get('paw.owned', STARTERS));
 const CARS = ['sedan', 'taxi', 'police', 'van', 'suv', 'hatchback-sports', 'sedan-sports', 'suv-luxury', 'delivery', 'truck', 'ambulance', 'firetruck', 'garbage-truck'];
 const TREES = ['tree_default', 'tree_oak', 'tree_pineRoundA', 'tree_pineRoundC', 'tree_detailed', 'tree_fat', 'tree_simple', 'tree_cone', 'tree_blocks'];
@@ -208,25 +212,60 @@ const P = {
   train: n => kenney(`train-kit/${n}`),
   track: kenney('train-kit/track-single-detailed'),
   plat: n => kenney(`platformer-kit/${n}`),
+  boat: n => kenney(`watercraft-kit/${n}`),
+  city: n => kenney(`city-kit-commercial/${n}`),
+  surv: n => kenney(`survival-kit/${n}`),
 };
-// seasons: the land changes every ZONE_LEN rows
-const ZONE_LEN = 50;
+const BOATS = ['boat-row-small', 'boat-fishing-small', 'boat-speed-a', 'boat-speed-e'];
+// seasons: the land changes every ZONE_LEN rows. Each one has its own look, hazards and stampede.
+//   water: what river rows become · herd: animals in the mid-season stampede · roads: vehicle mix
+const ZONE_LEN = 40;
+const CITY_CARS = ['taxi', 'taxi', 'police', 'sedan-sports', 'hatchback-sports', 'suv-luxury', 'van', 'race', 'race-future'];
 const ZONES = [
   { name: 'Sunny Meadow', sub: 'Back where it all began', sky: 0xbfe7ff,
     grass: [0x9bd46a, 0x8cc75d, 0x86bd58, 0x7cb150],
-    trees: TREES.map(P.nat), rocks: ROCKS.map(P.nat), flowers: FLOWERS.map(P.nat) },
+    trees: TREES.map(P.nat), rocks: ROCKS.map(P.nat), flowers: FLOWERS.map(P.nat),
+    water: 'logs', herd: ['cow', 'pig', 'cow', 'hog'], herdName: 'Stampede!', herdSub: 'The cows broke out of the farm',
+    weather: ['night', 'storm'] },
   { name: 'Autumn Woods', sub: 'Mind the falling leaves', sky: 0xffe3c2,
     grass: [0xe2b04f, 0xd8a346, 0xcb9641, 0xbf8a3b],
     trees: ['tree_default_fall', 'tree_oak_fall', 'tree_detailed_fall', 'tree_fat_fall', 'tree_simple_fall', 'tree_cone_fall', 'tree_blocks_fall', 'tree_tall_fall'].map(P.nat),
-    rocks: ['rock_largeA', 'stump_round', 'stump_roundDetailed', 'stump_old', 'log'].map(P.nat),
-    flowers: ['mushroom_red', 'mushroom_redGroup', 'mushroom_tanGroup', 'mushroom_tan', 'plant_bushSmall', 'flower_yellowB'].map(P.nat) },
-  { name: 'Snowy Pass', sub: 'Brr! Keep hopping', sky: 0xdfeaf6,
+    rocks: ['rock_largeA', 'stump_round', 'stump_roundDetailed', 'stump_old', 'log', 'crop_pumpkin'].map(P.nat),
+    flowers: ['mushroom_red', 'mushroom_redGroup', 'mushroom_tanGroup', 'mushroom_tan', 'plant_bushSmall', 'flower_yellowB', 'crop_pumpkin'].map(P.nat),
+    water: 'logs', farm: true, herd: ['deer', 'deer', 'fox', 'beaver'], herdName: 'Deer crossing!', herdSub: 'The whole forest is on the move',
+    weather: ['night', 'storm'] },
+  { name: 'Snowy Pass', sub: 'Brr! The lakes are frozen', sky: 0xdfeaf6,
     grass: [0xf2f6fb, 0xe6edf6, 0xdbe4ef, 0xcfd9e6],
     trees: ['tree-pine-snow', 'tree-snow', 'tree-pine-snow-small'].map(P.plat).concat(['tree_pineRoundA', 'tree_pineTallA'].map(P.nat)),
-    rocks: ['rock_largeA', 'rock_largeC', 'rock_tallA'].map(P.nat),
-    flowers: ['rock_smallA', 'rock_smallC', 'rock_smallFlatA'].map(P.nat) },
+    rocks: ['rock-a', 'rock-b', 'rock-c'].map(P.surv).concat([P.plat('rocks')]),
+    flowers: [P.plat('stones'), P.plat('tree-pine-snow-small')],
+    water: 'ice', herd: ['penguin', 'polar', 'penguin', 'penguin'], herdName: 'Penguin parade!', herdSub: 'They waddle faster than you think',
+    weather: ['night', 'blizzard'] },
+  { name: 'Sandy Beach', sub: 'Watch out for crabs', sky: 0xc4f0ff,
+    grass: [0xf6e2a8, 0xf0d99a, 0xe9cf8c, 0xe1c47f],
+    trees: ['tree_palm', 'tree_palmBend', 'tree_palmTall', 'tree_palmShort', 'tree_palmDetailedTall'].map(P.nat),
+    rocks: ['rock-sand-a', 'rock-sand-b', 'rock-sand-c'].map(P.surv).concat([P.city('detail-parasol-a'), P.city('detail-parasol-b')]),
+    flowers: ['rock_smallFlatA', 'plant_bushSmall', 'grass'].map(P.nat),
+    water: 'boats', hazard: 'crabs', herd: ['crab', 'crab', 'crab'], herdName: 'Crab rave!', herdSub: 'Sideways and very fast',
+    weather: ['night', 'storm'] },
+  { name: 'Cactus Canyon', sub: 'Tumbleweeds ahead', sky: 0xffd9a8,
+    grass: [0xe9a86a, 0xe09d5f, 0xd28f55, 0xc6834c],
+    trees: ['cactus_tall', 'cactus_short', 'rock_tallB', 'rock_tallE', 'rock_tallG'].map(P.nat),
+    rocks: ['cactus_short', 'rock_tallA', 'rock_largeB', 'tent_smallOpen'].map(P.nat),
+    flowers: ['rock_smallB', 'rock_smallE', 'plant_bushSmall', 'cactus_short'].map(P.nat),
+    water: 'weeds', dirt: true, herd: ['elephant', 'giraffe', 'lion', 'elephant'], herdName: 'Safari rush!', herdSub: 'Elephants have right of way',
+    weather: ['night'] },
+  { name: 'Neon City', sub: 'The city never sleeps', sky: 0x2a2f5c, night: true,
+    grass: [0xb6bac6, 0xadb1be, 0x9ea2af, 0x959aa7],
+    trees: ['low-detail-building-a', 'low-detail-building-b', 'low-detail-building-c', 'low-detail-building-d', 'low-detail-building-e', 'low-detail-building-f', 'low-detail-building-g', 'low-detail-building-h'].map(P.city),
+    rocks: ['tree_default', 'tree_simple', 'plant_bushLarge'].map(P.nat),
+    flowers: ['plant_bushSmall', 'flower_redA', 'flower_yellowA'].map(P.nat),
+    water: 'boats', city: true, herd: null, herdName: 'Rush hour!', herdSub: 'Everyone is late for something',
+    weather: ['storm'] },
 ];
+const NIGHT_SKY = 0x1b2246, STORM_SKY = 0x8794a8;
 const zoneOf = i => i < 0 ? 0 : Math.floor(i / ZONE_LEN) % ZONES.length;
+const phaseOf = i => i < 0 ? -1 : i % ZONE_LEN;
 for (const z of ZONES) z.mats = z.grass.map(c => new THREE.MeshStandardMaterial({ color: c, roughness: .95 }));
 const allPaths = [
   ...PETS.map(P.pet), ...CARS.map(P.car), ...TREES.map(P.nat), ...ROCKS.map(P.nat), ...FLOWERS.map(P.nat),
@@ -234,6 +273,9 @@ const allPaths = [
   ...LOCOS.map(P.train), ...WAGONS.map(P.train),
   ...['heart', 'jewel', 'star', 'flag'].map(P.plat),
   ...ZONES.flatMap(z => [...z.trees, ...z.rocks, ...z.flowers]),
+  ...['fence_simple', 'plant_bush', 'plant_bushDetailed', 'rock_largeA', 'rock_largeC'].map(P.nat),
+  ...BOATS.map(P.boat), ...['tractor', 'tractor-shovel', 'truck-flat', 'delivery-flat', 'race', 'race-future'].map(P.car),
+  ...['train-electric-city-a', 'train-electric-city-b', 'train-electric-city-c', 'train-electric-subway-a', 'train-electric-subway-b', 'train-electric-subway-c'].map(P.train),
 ];
 
 const bursts = new Bursts(scene);
@@ -258,7 +300,37 @@ const mats = {
   bank: new THREE.MeshStandardMaterial({ color: PALETTE.sand, roughness: 1 }),
   gravel: new THREE.MeshStandardMaterial({ color: 0x9c9183, roughness: 1 }),
   pole: new THREE.MeshStandardMaterial({ color: 0x3a3d4f, roughness: .6 }),
+  dirt: new THREE.MeshStandardMaterial({ color: 0x7c5a43, roughness: 1 }),
+  rut: new THREE.MeshStandardMaterial({ color: 0x664834, roughness: 1 }),
+  windLane: new THREE.MeshStandardMaterial({ color: 0xcf8c55, roughness: 1 }),
+  dust: new THREE.MeshStandardMaterial({ color: 0xc9a77a, roughness: 1 }),
+  ice: new THREE.MeshStandardMaterial({ color: 0x8fd3f2, roughness: .08, metalness: .1 }),
+  iceCrack: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .3, transparent: true, opacity: .7 }),
+  snowBank: new THREE.MeshStandardMaterial({ color: 0xf4f8fc, roughness: .9 }),
+  window: new THREE.MeshBasicMaterial({ color: 0xffe9a8 }),
 };
+// soft glows for night: car beams, lamp pools, neon (opacity follows the darkness)
+function glowTexture(kind) {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d');
+  const g = kind === 'beam' ? x.createLinearGradient(0, 64, 0, 0) : x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(kind === 'beam' ? .25 : .35, 'rgba(255,255,255,.55)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  if (kind === 'beam') { // fade the sides too
+    const s = x.createLinearGradient(0, 0, 64, 0); s.addColorStop(0, 'rgba(0,0,0,1)'); s.addColorStop(.3, 'rgba(0,0,0,0)'); s.addColorStop(.7, 'rgba(0,0,0,0)'); s.addColorStop(1, 'rgba(0,0,0,1)');
+    x.globalCompositeOperation = 'destination-out'; x.fillStyle = s; x.fillRect(0, 0, 64, 64);
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const glowMat = (tex, color) => new THREE.MeshBasicMaterial({ map: tex, color, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+const beamTex = glowTexture('beam'), dotTex = glowTexture('dot');
+const nightMats = {
+  beam: glowMat(beamTex, 0xffd98a), pool: glowMat(dotTex, 0xffd98a), bulb: glowMat(dotTex, 0xfff4d0),
+  tail: glowMat(dotTex, 0xff3b3b),
+};
+const neonColors = [0xff3df2, 0x3df2ff, 0xffd23d, 0x7cff6b, 0xff6b3d];
+const neonMats = neonColors.map(c => new THREE.MeshBasicMaterial({ color: c, toneMapped: false }));
+const planeGeo = new THREE.PlaneGeometry(1, 1);
 const ringGeo = new THREE.RingGeometry(0.28, 0.42, 32);
 const lampGeo = new THREE.SphereGeometry(0.09, 16, 12);
 // soft soap-bubble shield (fresnel rim)
@@ -272,6 +344,7 @@ const box = new THREE.BoxGeometry(1, 1, 1);
 // lily pad: a notched disc (Kenney's lily flower sits on top)
 const padGeo = new THREE.CylinderGeometry(0.44, 0.44, 0.08, 24, 1, false, 0.35, Math.PI * 2 - 0.7);
 const padMat = new THREE.MeshStandardMaterial({ color: 0x5fbf5a, roughness: .8 });
+const padMatDark = new THREE.MeshStandardMaterial({ color: 0x4fa86a, roughness: .8 });
 
 // stylised water: toon ripples + drifting foam, still tone-mapped with the scene
 const waterMat = new THREE.ShaderMaterial({
@@ -311,7 +384,8 @@ let player, petIndex = store.get('paw.pet', 0) % PETS.length;
 let state = 'loading';      // loading | title | play | dead
 let score = 0, coins = 0, best = store.get('paw.best', 0), bank = store.get('paw.coins', 0);
 let camZ = 0, camX = 0, lastForward = 0, speedy = 0;
-let magnetT = 0, invuln = 0, lastZone = 0;
+let magnetT = 0, invuln = 0, lastZone = 0, idleT = 0;
+let nightF = 0, rainF = 0, snowF = 0, flash = 0, lightningT = 4, weatherPlan = [], weatherSaid = 'clear';
 
 // scale a loaded model so its largest side is `size`
 const fitSize = new Map();
@@ -326,10 +400,16 @@ function ground(o) { o.updateMatrixWorld(true); o.position.y -= new THREE.Box3()
 const world = new THREE.Group(); scene.add(world);
 
 // ---------- row construction ----------
-function makeRow(i) {
+let waterKind = 'logs';
+function pickType(i) {
+  const ph = phaseOf(i), zone = ZONES[zoneOf(i)];
+  if (i < 4 || ph === 0) { lastType = 'grass'; return 'grass'; }
+  // the mid-season set piece: a safe row, two (three in the city) wild rows, a safe row
+  const bossLen = zone.city ? 3 : 2;
+  if (i > 10 && (ph === 21 || ph === 22 + bossLen)) { lastType = 'grass'; streak = 1; return 'grass'; }
+  if (i > 10 && ph >= 22 && ph < 22 + bossLen) { lastType = 'road'; return zone.city ? 'rush' : 'herd'; }
   let type;
-  if (i < 4 || i % ZONE_LEN === 0) type = 'grass';
-  else if (lastType === 'rail') type = Math.random() < 0.6 ? 'grass' : 'road';
+  if (lastType === 'rail') type = Math.random() < 0.6 ? 'grass' : 'road';
   else {
     const difficulty = Math.min(1, i / 120);
     const r = Math.random();
@@ -338,34 +418,87 @@ function makeRow(i) {
     else type = r < 0.6 ? lastType : 'grass';
     // railways appear once you're warmed up
     if (i > 14 && type === 'road' && lastType !== 'road' && Math.random() < 0.3) type = 'rail';
-    if (type === lastType) streak++; else streak = 1;
+  }
+  if (type === lastType) streak++; else streak = 1;
+  // each stretch of water picks one flavour for the whole stretch
+  if (type === 'river' && lastType !== 'river') {
+    waterKind = zone.water === 'ice' ? (Math.random() < 0.65 ? 'ice' : 'logs') : zone.water;
   }
   lastType = type;
+  if (type === 'river') return waterKind === 'ice' ? 'ice' : waterKind === 'weeds' ? 'weeds' : 'river';
+  if (type === 'road' && zone.hazard === 'crabs' && Math.random() < 0.45) return 'crabs';
+  return type;
+}
 
+function slab(g, mat, y = -0.3, h = 0.6, w = WORLD * 2) {
+  const m = new THREE.Mesh(box, mat); m.scale.set(w, h, 1); m.position.y = y; m.receiveShadow = true; g.add(m); return m;
+}
+// ground tiles for a walkable row: lighter inside the playfield, darker beyond it
+function groundRow(g, zone, alt) {
+  const top = new THREE.Mesh(box, zone.mats[alt ? 0 : 1]);
+  top.scale.set(HALF * 2 + 1, 0.6, 1); top.position.y = -0.3; top.receiveShadow = true; g.add(top);
+  for (const s of [-1, 1]) {
+    const side = new THREE.Mesh(box, zone.mats[alt ? 2 : 3]);
+    side.scale.set(WORLD - HALF, 0.6, 1); side.position.set(s * (HALF + 0.5 + (WORLD - HALF) / 2), -0.28, 0); side.receiveShadow = true; g.add(side);
+  }
+}
+// night-light helpers: a glow quad that only shows after dark
+function glowQuad(g, mat, x, y, z, w, h, flat = true) {
+  const q = new THREE.Mesh(planeGeo, mat); q.scale.set(w, h, 1); q.position.set(x, y, z);
+  if (flat) q.rotation.x = -Math.PI / 2; else (g.userData.bb ||= []).push(q);
+  q.renderOrder = 2; g.add(q); return q;
+}
+function streetLamp(g, x) {
+  const lamp = cloneLoaded(loaded(P.lamp)).object; lamp.scale.setScalar(2.2); lamp.position.set(x, 0, 0.42); lamp.rotation.y = x > 0 ? Math.PI : 0; g.add(lamp);
+  const top = new THREE.Box3().setFromObject(lamp).max.y;
+  const bulb = glowQuad(g, nightMats.bulb, x - Math.sign(x) * 0.35, top - 0.1, 0.42, 0.9, 0.9, false);
+  glowQuad(g, nightMats.pool, x - Math.sign(x) * 0.6, 0.02, 0.3, 2.6, 2.6);
+}
+// cars carry headlight beams and tail lights that follow them
+function addCarLights(row, m, dir) {
+  const g = row.group, L = m.len;
+  m.attach = [];
+  const beam = glowQuad(g, nightMats.beam, 0, 0.03, 0, 0.7, 2.2);
+  beam.rotation.z = dir > 0 ? -Math.PI / 2 : Math.PI / 2;
+  m.attach.push({ obj: beam, dx: dir * (L / 2 + 1.1) });
+  const tail = glowQuad(g, nightMats.tail, 0, 0.35, 0, 0.45, 0.45, false);
+  m.attach.push({ obj: tail, dx: -dir * (L / 2) });
+}
+// a cube-pet that runs on its own (stampedes, crabs)
+function critter(row, name, anim, scale = 0.55) {
+  const { object, mixer, actions } = cloneLoaded(loaded(P.pet(name)));
+  object.scale.setScalar(scale);
+  const a = actions[anim] || actions.idle;
+  a.play(); a.time = Math.random() * a.getClip().duration; a.timeScale = rand(1, 1.25);
+  row.mixers.push(mixer);
+  return object;
+}
+
+function makeRow(i) {
+  const type = pickType(i);
   const g = new THREE.Group();
   g.position.z = -i;
   world.add(g);
-  const row = { i, type, group: g, blocked: new Set(), movers: [], coin: null, power: null };
+  const row = { i, type, group: g, blocked: new Set(), movers: [], mixers: [], coin: null, power: null };
   const alt = i % 2 === 0;
   const zone = ZONES[zoneOf(i)];
   const gate = i > 0 && i % ZONE_LEN === 0;
+  row.zone = zoneOf(i);
 
   if (type === 'grass') {
-    const top = new THREE.Mesh(box, zone.mats[alt ? 0 : 1]);
-    top.scale.set(HALF * 2 + 1, 0.6, 1); top.position.y = -0.3; top.receiveShadow = true; g.add(top);
-    for (const s of [-1, 1]) {
-      const side = new THREE.Mesh(box, zone.mats[alt ? 2 : 3]);
-      side.scale.set(WORLD - HALF, 0.6, 1); side.position.set(s * (HALF + 0.5 + (WORLD - HALF) / 2), -0.28, 0); side.receiveShadow = true; g.add(side);
-    }
+    groundRow(g, zone, alt);
     // a pair of flags marks the start of every new season
     if (gate) for (const s of [-1, 1]) {
       const f = ground(fitted(P.plat('flag'), 1.7)); f.position.x = s * (HALF + 1); f.rotation.y = s > 0 ? Math.PI : 0; g.add(f);
     }
-    // outer forest: always trees beyond the playable edge
-    for (let x = HALF + 1; x <= WORLD - 1; x++) for (const s of [-1, 1]) {
-      if (gate && x === HALF + 1) continue;
-      if (Math.random() < 0.55) addProp(g, pick(zone.trees), s * x, rand(.9, 1.4), true);
-      else if (Math.random() < 0.3) addProp(g, pick(zone.flowers), s * x + rand(-.3, .3), rand(1.4, 2));
+    if (zone.city) cityBlock(g, gate, alt);
+    else {
+      // outer forest: always trees beyond the playable edge
+      for (let x = HALF + 1; x <= WORLD - 1; x++) for (const s of [-1, 1]) {
+        if (gate && x === HALF + 1) continue;
+        if (Math.random() < 0.55) addProp(g, pick(zone.trees), s * x, rand(.9, 1.4), true);
+        else if (Math.random() < 0.3) addProp(g, pick(zone.flowers), s * x + rand(-.3, .3), rand(1.4, 2));
+      }
     }
     if (i > 2) {
       const n = Math.random() < 0.3 ? 0 : 1 + ((Math.random() * (1 + Math.min(3, i / 25))) | 0);
@@ -374,22 +507,23 @@ function makeRow(i) {
         if (row.blocked.has(x)) continue;
         row.blocked.add(x);
         const tree = Math.random() < 0.65;
-        addProp(g, tree ? pick(zone.trees) : pick(zone.rocks), x, tree ? rand(1, 1.3) : rand(1.2, 1.6), true);
+        const list = zone.city ? zone.rocks : tree ? zone.trees : zone.rocks;
+        addProp(g, pick(list), x, tree ? rand(1, 1.3) : rand(1.2, 1.6), true);
       }
     } else if (i === 0) {
       for (const x of [-3, 3]) { row.blocked.add(x); addProp(g, pick(TREES.map(P.nat)), x, 1.2, true); }
     }
     for (let k = 0; k < 3; k++) { const x = rand(-HALF, HALF); if (!row.blocked.has(Math.round(x))) addProp(g, pick(zone.flowers), x, rand(1.2, 1.8)); }
     const free = [...Array(HALF * 2 + 1)].map((_, k) => k - HALF).filter(x => !row.blocked.has(x));
-    if (i > 4 && Math.random() < 0.35 && free.length) {
+    if (i > 4 && Math.random() < 0.22 && free.length) {
       const c = cloneLoaded(loaded(P.coin)).object;
       c.scale.setScalar(1.3); c.position.set(pick(free), 0.35, 0);
       g.add(c); row.coin = c;
     }
-    // power-ups: extra life, coin magnet, or a gem worth five coins
+    // power-ups: extra life, coin magnet, or a gem worth three coins
     const spots = free.filter(x => x !== row.coin?.position.x);
     if (i > 8 && Math.random() < 0.1 && spots.length) {
-      const r = Math.random(), kind = r < 0.4 ? 'heart' : r < 0.8 ? 'magnet' : 'gem';
+      const r = Math.random(), kind = r < 0.45 ? 'heart' : r < 0.85 ? 'magnet' : 'gem';
       const look = { heart: ['heart', 0xff5d8a], magnet: ['star', 0x8a5cff], gem: ['jewel', 0x3cd6c8] }[kind];
       const o = new THREE.Group();
       const model = fitted(P.plat(look[0]), 0.6); model.position.y = 0.45; o.add(model);
@@ -400,39 +534,115 @@ function makeRow(i) {
     }
   }
 
-  if (type === 'road') {
-    const asphalt = new THREE.Mesh(box, mats.road);
-    asphalt.scale.set(WORLD * 2, 0.6, 1); asphalt.position.y = -0.32; asphalt.receiveShadow = true; g.add(asphalt);
+  if (type === 'road' || type === 'rush') {
+    // dirt tracks in the canyon and on autumn farms, with tractors instead of city cars
+    const farm = zone.dirt || (zone.farm && Math.random() < 0.4);
+    row.farm = farm;
+    slab(g, farm ? mats.dirt : mats.road, -0.32);
+    if (farm) for (const z of [-0.22, 0.22]) { const r = new THREE.Mesh(box, mats.rut); r.scale.set(WORLD * 2, 0.02, 0.12); r.position.set(0, -0.015, z); r.receiveShadow = true; g.add(r); }
     const prev = rows.get(i - 1);
-    if (prev?.type === 'road') {
+    if (!farm && (prev?.type === 'road' || prev?.type === 'rush') && !prev.farm) {
       for (let x = -WORLD; x < WORLD; x += 1.2) {
         const d = new THREE.Mesh(box, mats.line); d.scale.set(0.55, 0.02, 0.06); d.position.set(x, -0.01, 0.5); d.receiveShadow = true; g.add(d);
       }
-    } else {
+    } else if (!farm) {
       const curb = new THREE.Mesh(box, mats.curb); curb.scale.set(WORLD * 2, 0.08, 0.1); curb.position.set(0, -0.02, 0.47); g.add(curb);
     }
-    if (Math.random() < 0.5) {
-      const s = Math.random() < 0.5 ? -1 : 1;
-      const lamp = cloneLoaded(loaded(P.lamp)).object; lamp.scale.setScalar(2.2); lamp.position.set(s * (HALF + 1.6), 0, 0.42); lamp.rotation.y = s > 0 ? Math.PI : 0; g.add(lamp);
-    }
+    if (!farm && (Math.random() < 0.5 || zone.city)) streetLamp(g, (Math.random() < 0.5 ? -1 : 1) * (HALF + 1.6));
     const dir = Math.random() < 0.5 ? -1 : 1;
     const difficulty = Math.min(1, i / 150);
-    const speed = rand(1.6, 2.8) + difficulty * 3;
-    const count = 1 + ((Math.random() * (2 + difficulty * 2)) | 0);
+    const rush = type === 'rush';
+    let speed = rand(1.6, 2.8) + difficulty * 3;
+    let count = 1 + ((Math.random() * (2 + difficulty * 2)) | 0);
+    if (farm) { speed = rand(1.1, 2) + difficulty * 1.5; count = 1 + ((Math.random() * 2) | 0); }
+    if (zone.city) count++;
+    if (rush) { speed = rand(3.6, 4.6) + difficulty * 2; count = 4 + ((Math.random() * 2) | 0); row.boss = true; }
     const gap = (WORLD * 2 + 6) / count;
     const offset = rand(0, gap);
     for (let k = 0; k < count; k++) {
-      const name = Math.random() < 0.15 ? pick(['truck', 'delivery', 'garbage-truck', 'firetruck']) : pick(CARS.slice(0, 9));
+      const name = farm ? pick(zone.dirt ? ['tractor', 'truck-flat', 'delivery-flat', 'suv'] : ['tractor', 'tractor', 'tractor-shovel'])
+        : zone.city ? pick(CITY_CARS)
+        : Math.random() < 0.15 ? pick(['truck', 'delivery', 'garbage-truck', 'firetruck']) : pick(CARS.slice(0, 9));
       const car = cloneLoaded(loaded(P.car(name))).object;
       car.scale.setScalar(0.62);
       car.rotation.y = dir > 0 ? Math.PI / 2 : -Math.PI / 2;
       const len = new THREE.Box3().setFromObject(car).getSize(new THREE.Vector3()).x;
       car.position.set(-WORLD - 3 + offset + k * gap, 0, 0);
       g.add(car);
-      row.movers.push({ obj: car, len, kind: 'car', name });
+      const m = { obj: car, len, kind: 'car', name };
+      addCarLights(row, m, dir);
+      row.movers.push(m);
     }
     row.dir = dir; row.speed = speed; row.span = WORLD * 2 + 6;
-    row.honked = false;
+    row.type = 'road';
+  }
+
+  if (type === 'herd') {
+    // a dusty corral lane with a whole herd charging through
+    slab(g, mats.dust, -0.32);
+    for (const s of [-1, 1]) for (let x = HALF + 1; x <= HALF + 4; x += 1) { const f = addProp(g, P.nat('fence_simple'), s * x, 1.1); if (f) f.rotation.y = 0; }
+    const prev = rows.get(i - 1);
+    const dir = prev?.type === 'herd' ? -prev.dir : (Math.random() < 0.5 ? -1 : 1);
+    const speed = rand(4.2, 5.4) + Math.min(1.5, i / 150);
+    const span = WORLD * 2 + 6;
+    let x = -span / 2;
+    while (x < span / 2 - 1) {
+      const pack = 2 + ((Math.random() * 3) | 0);
+      for (let k = 0; k < pack && x < span / 2 - 1; k++) {
+        const o = critter(row, pick(zone.herd), 'run', 0.55);
+        o.rotation.y = dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+        o.position.set(x, 0, rand(-0.08, 0.08)); g.add(o);
+        row.movers.push({ obj: o, len: 0.95, kind: 'herd' });
+        x += rand(1.05, 1.3);
+      }
+      x += rand(2.6, 3.6); // a gap you can slip through
+    }
+    row.dir = dir; row.speed = speed; row.span = span; row.boss = true;
+  }
+
+  if (type === 'weeds') {
+    // canyon sand with tumbleweeds bouncing across at speed: a windswept lane
+    slab(g, mats.windLane, -0.31);
+    for (let x = HALF + 1; x <= WORLD - 1; x++) for (const s of [-1, 1]) if (Math.random() < 0.35) addProp(g, pick(zone.flowers), s * x + rand(-.3, .3), rand(1.2, 1.8));
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    const count = 2 + ((Math.random() * (2 + Math.min(1.5, i / 100))) | 0);
+    const span = WORLD * 2 + 6, gap = span / count, offset = rand(0, gap);
+    for (let k = 0; k < count; k++) {
+      const o = new THREE.Group();
+      const bush = fitted(P.nat(pick(['plant_bush', 'plant_bushDetailed'])), 0.75);
+      bush.traverse(c => { if (c.isMesh) { c.material = c.material.clone(); c.material.color.multiplyScalar(0.75).lerp(new THREE.Color(0xc9a15a), 0.55); } });
+      ground(bush); bush.position.y -= 0.35; const spin = new THREE.Group(); spin.position.y = 0.38; spin.add(bush); o.add(spin);
+      o.position.set(-WORLD - 3 + offset + k * gap, 0, 0); g.add(o);
+      row.movers.push({ obj: o, len: 0.7, kind: 'weed', spin, hop: rand(0, 6) });
+    }
+    row.dir = dir; row.speed = rand(3.4, 4.6) + Math.min(2, i / 80); row.span = span;
+  }
+
+  if (type === 'crabs') {
+    // beach sand where crabs scuttle sideways and change their minds
+    groundRow(g, zone, alt);
+    for (let x = HALF + 1; x <= WORLD - 1; x++) for (const s of [-1, 1]) if (Math.random() < 0.4) addProp(g, pick(zone.trees.concat(zone.rocks)), s * x, rand(.9, 1.3));
+    const n = 2 + ((Math.random() * (1 + Math.min(2, i / 120))) | 0);
+    for (let k = 0; k < n; k++) {
+      const o = critter(row, 'crab', 'walk', 0.42);
+      o.position.set(rand(-HALF - 2, HALF + 2), 0, 0); g.add(o);
+      row.movers.push({ obj: o, len: 0.8, kind: 'crab', vx: (Math.random() < 0.5 ? -1 : 1) * rand(1.2, 2.4), turn: rand(1, 3) });
+    }
+  }
+
+  if (type === 'ice') {
+    // a frozen lake: safe to stand on, but you slide until something stops you
+    slab(g, mats.bank, -0.5, 0.4);
+    const ice = slab(g, mats.ice, -0.17, 0.3);
+    for (let k = 0; k < 4; k++) {
+      const c = new THREE.Mesh(box, mats.iceCrack); c.scale.set(rand(0.6, 1.6), 0.01, 0.03); c.position.set(rand(-WORLD, WORLD), -0.015, rand(-0.35, 0.35)); c.rotation.y = rand(-0.6, 0.6); g.add(c);
+    }
+    for (const s of [-1, 1]) { const b = new THREE.Mesh(box, mats.snowBank); b.scale.set(WORLD - HALF - 0.5, 0.25, 0.9); b.position.set(s * (HALF + 0.75 + (WORLD - HALF - 0.5) / 2), -0.06, 0); b.receiveShadow = b.castShadow = true; g.add(b); }
+    if (Math.random() < 0.6) {
+      const x = Math.round(rand(-HALF + 1, HALF - 1));
+      row.blocked.add(x);
+      addProp(g, pick(['rock-a', 'rock-b'].map(P.surv)), x, rand(0.8, 1), true);
+    }
   }
 
   if (type === 'rail') {
@@ -449,11 +659,14 @@ function makeRow(i) {
       const l = new THREE.Mesh(lampGeo, new THREE.MeshStandardMaterial({ color: 0x5a1d24, emissive: 0xff3b3b, emissiveIntensity: 0 }));
       l.position.set(sx + s * 0.22, 1.35, 0.5); g.add(l); return l;
     });
-    // the train: a locomotive and a few wagons, lined up behind it
+    // the train: a locomotive and a few wagons (a metro in the city), lined up behind it
     const dir = Math.random() < 0.5 ? -1 : 1;
     const train = new THREE.Group();
     let cursor = 0;
-    const parts = [pick(LOCOS), ...Array.from({ length: 3 + ((Math.random() * 3) | 0) }, () => pick(WAGONS))];
+    const metro = zone.city && pick(['city', 'subway']);
+    const parts = metro
+      ? [`train-electric-${metro}-a`, ...Array(2 + ((Math.random() * 2) | 0)).fill(`train-electric-${metro}-b`), `train-electric-${metro}-c`]
+      : [pick(LOCOS), ...Array.from({ length: 3 + ((Math.random() * 3) | 0) }, () => pick(WAGONS))];
     for (const name of parts) {
       const c = fitted(P.train(name), 1.8);
       c.rotation.y = dir > 0 ? Math.PI / 2 : -Math.PI / 2;
@@ -473,18 +686,23 @@ function makeRow(i) {
     const water = new THREE.Mesh(new THREE.PlaneGeometry(WORLD * 2, 1), waterMat);
     water.rotation.x = -Math.PI / 2; water.position.y = -0.18; g.add(water);
     const bed = new THREE.Mesh(box, mats.bank); bed.scale.set(WORLD * 2, 0.4, 1); bed.position.y = -0.55; g.add(bed);
-    const lilyRow = Math.random() < 0.3 && rows.get(i - 1)?.type !== 'river';
+    const boats = waterKind === 'boats';
+    const lilyRow = !boats && Math.random() < 0.3 && rows.get(i - 1)?.type !== 'river';
     if (lilyRow) {
       row.lily = true;
       const xs = new Set();
       const n = 3 + ((Math.random() * 3) | 0);
       while (xs.size < n) xs.add(Math.round(rand(-HALF, HALF)));
+      let sinkers = i > 20 ? 1 + ((Math.random() * 2) | 0) : 0;
       for (const x of xs) {
         const p = new THREE.Group();
         const pad = new THREE.Mesh(padGeo, padMat); pad.castShadow = pad.receiveShadow = true; p.add(pad);
         const flower = cloneLoaded(loaded(P.lily)).object; flower.scale.setScalar(1.6); flower.position.set(0.14, 0.02, -0.1); p.add(flower);
         p.position.set(x, -0.12, 0); p.rotation.y = rand(0, 6); g.add(p);
-        row.movers.push({ obj: p, len: 0.9, kind: 'lily', x });
+        const m = { obj: p, len: 0.9, kind: 'lily', x };
+        // some pads dive under for a moment: watch for the bubbles
+        if (sinkers > 0 && Math.random() < 0.6) { sinkers--; m.sink = rand(0, 4.5); pad.material = padMatDark; }
+        row.movers.push(m);
       }
       row.dir = 0; row.speed = 0;
     } else {
@@ -493,12 +711,24 @@ function makeRow(i) {
       const count = 3 + ((Math.random() * 2) | 0);
       const span = WORLD * 2 + 6, gap = span / count, offset = rand(0, gap);
       for (let k = 0; k < count; k++) {
-        const len = pick([2, 3, 3, 4]);
-        const log = cloneLoaded(loaded(P.log)).object;
-        log.scale.set(len, 1.5, 1.5);
-        log.position.set(-WORLD - 3 + offset + k * gap, -0.25, 0);
-        g.add(log);
-        row.movers.push({ obj: log, len, kind: 'log' });
+        if (boats) {
+          const b = fitted(P.boat(pick(BOATS)), pick([2.2, 2.6, 3]));
+          b.rotation.y = dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+          // keep the boat inside its own lane
+          let size = new THREE.Box3().setFromObject(b).getSize(new THREE.Vector3());
+          if (size.z > 0.9) { b.scale.multiplyScalar(0.9 / size.z); size = new THREE.Box3().setFromObject(b).getSize(new THREE.Vector3()); }
+          b.position.y = 0; ground(b);
+          b.position.set(-WORLD - 3 + offset + k * gap, -0.3, 0);
+          g.add(b);
+          row.movers.push({ obj: b, len: size.x, kind: 'boat', base: -0.3, top: Math.min(0.62, size.y * 0.42) });
+        } else {
+          const len = pick([2, 3, 3, 4]);
+          const log = cloneLoaded(loaded(P.log)).object;
+          log.scale.set(len, 1.5, 1.5);
+          log.position.set(-WORLD - 3 + offset + k * gap, -0.25, 0);
+          g.add(log);
+          row.movers.push({ obj: log, len, kind: 'log', base: -0.25, top: 0.3 });
+        }
       }
       row.dir = dir; row.speed = speed; row.span = span;
     }
@@ -509,14 +739,42 @@ function makeRow(i) {
   return row;
 }
 
+// Neon City sidewalks: shopfronts with glowing signs and lit windows beyond the playfield
+function cityBlock(g, gate, alt) {
+  for (const s of [-1, 1]) {
+    if (!gate && Math.random() < 0.3) streetLamp(g, s * (HALF + 1.2));
+    let x = HALF + 2.2;
+    while (x < WORLD) {
+      const path = pick(ZONES[5].trees);
+      const b = fitted(path, rand(2.2, 3.4));
+      b.rotation.y = s > 0 ? -Math.PI / 2 : Math.PI / 2;
+      let w = new THREE.Box3().setFromObject(b).getSize(new THREE.Vector3());
+      if (w.z > 0.98) { b.scale.multiplyScalar(0.98 / w.z); w = new THREE.Box3().setFromObject(b).getSize(new THREE.Vector3()); }
+      ground(b);
+      b.position.set(s * (x + w.x / 2), b.position.y, 0);
+      g.add(b);
+      if (x < HALF + 3) {
+        // a neon sign on the side facing the street
+        const sign = new THREE.Mesh(box, pick(neonMats));
+        sign.scale.set(0.06, 0.16, w.z * 0.7); sign.position.set(s * (x - 0.04), rand(0.9, Math.max(1, w.y - 0.4)), 0);
+        g.add(sign);
+      }
+      for (let k = 0; k < 2; k++) glowQuad(g, nightMats.pool, s * (x - 0.05), rand(0.5, w.y - 0.2), rand(-0.3, 0.3), 0.6, 0.6, false);
+      x += w.x + rand(0.05, 0.3);
+    }
+  }
+}
+
 function addProp(g, path, x, scale, collide = false) {
   const gl = loaded(path);
   if (!gl) return;
-  const o = cloneLoaded(gl).object;
-  o.scale.setScalar(path.includes('platformer-kit') ? scale * 0.4 : scale);
+  const nature = path.includes('nature-kit');
+  const small = path.includes('city-kit') || path.includes('survival-kit');
+  const o = nature ? cloneLoaded(gl).object : fitted(path, small ? scale * 0.62 : scale);
+  if (nature) o.scale.setScalar(scale);
   o.position.set(x, 0, rand(-0.12, 0.12));
   o.rotation.y = rand(0, Math.PI * 2);
-  if (path.includes('platformer-kit')) ground(o);
+  if (!nature) ground(o);
   g.add(o);
   return o;
 }
@@ -595,20 +853,25 @@ const MISSIONS = {
   score:  { text: n => `Reach ${n} in one run`, run: true, steps: [15, 25, 40, 55, 75, 100, 130, 160] },
   coins:  { text: n => `Grab ${n} coins in one run`, run: true, steps: [4, 6, 8, 10, 13, 16, 20] },
   roads:  { text: n => `Hop over ${n} road lanes`, steps: [10, 20, 35, 50, 75, 100] },
-  logs:   { text: n => `Ride ${n} logs`, steps: [5, 10, 18, 28, 40, 60] },
+  logs:   { text: n => `Ride ${n} logs or boats`, steps: [5, 10, 18, 28, 40, 60] },
+  boss:   { text: n => n > 1 ? `Survive ${n} stampedes` : 'Survive a stampede', steps: [1, 2, 3, 4] },
+  night:  { text: n => `Hop ${n} rows in the dark`, steps: [10, 20, 35, 50] },
+  slides: { text: n => `Slide ${n} tiles on ice`, steps: [6, 12, 20, 30] },
   rails:  { text: n => `Cross ${n} railways`, steps: [2, 4, 7, 10, 15, 22] },
   close:  { text: n => `Get ${n} close calls`, steps: [2, 4, 7, 10, 15] },
   powers: { text: n => `Pick up ${n} power-ups`, steps: [1, 2, 4, 6, 9] },
   speedy: { text: n => `Hit Speedy ×${n}`, run: true, steps: [4, 8, 12] },
-  zone:   { text: n => `Reach ${ZONES[n].name}`, run: true, steps: [1, 2] },
+  zone:   { text: n => `Reach ${ZONES[n].name}`, run: true, steps: [1, 2, 3, 4, 5] },
 };
 let mLevel = store.get('paw.mlevel', 0);
 let missions = store.get('paw.missions', null);
 function newMission(taken) {
-  const types = Object.keys(MISSIONS).filter(t => !taken.includes(t));
+  // only offer goals the player has seen: ice needs Snowy Pass, the dark and stampedes need a few rows
+  const seen = { slides: best >= ZONE_LEN * 2, night: best >= 30, boss: best >= 15 };
+  const types = Object.keys(MISSIONS).filter(t => !taken.includes(t) && seen[t] !== false);
   const type = pick(types), m = MISSIONS[type];
   const tier = Math.min(m.steps.length - 1, Math.floor(mLevel / 3) + ((Math.random() * 2) | 0));
-  return { type, n: m.steps[tier], p: 0, reward: 15 + tier * 10, done: false };
+  return { type, n: m.steps[tier], p: 0, reward: 10 + tier * 6, done: false };
 }
 function refreshMissions() {
   if (!Array.isArray(missions) || missions.length !== 3 || missions.some(m => !MISSIONS[m?.type])) missions = [];
@@ -661,13 +924,13 @@ function hop(dx, dz) {
   const tx = baseX + dx, tr = pl.row + dz;
   pl.facing = dz > 0 ? Math.PI : dz < 0 ? 0 : dx > 0 ? Math.PI / 2 : -Math.PI / 2;
   const target = rows.get(tr);
-  if (Math.abs(tx) > HALF || tr < Math.max(0, score - 12) || !target || (target.type === 'grass' && target.blocked.has(tx))) {
+  if (Math.abs(tx) > HALF || tr < Math.max(0, score - 12) || !target || target.blocked.has(tx)) {
     // bump: a little wobble, no move
     pl.squash = 0.6; sfx.tone(180, 0.08, { type: 'square', vol: 0.08 });
     return;
   }
   pl.fromX = pl.x; pl.fromZ = pl.row; pl.toX = tx; pl.toRow = tr; pl.t = 0;
-  pl.dur = pl.hopDur; pl.arc = 0.45;
+  pl.dur = pl.hopDur; pl.arc = 0.45; pl.lastD = [dx, dz];
   pl.riding = null; pl.nudge = 0;
   sfx.tone(520 + Math.random() * 60, 0.09, { type: 'triangle', vol: 0.18, slide: 380 });
   bursts.emit(new THREE.Vector3(pl.x, 0.05, -pl.row), { tex: 'smoke_04', count: 4, color: 0xffffff, speed: [0.3, 0.8], up: [0.3, 0.8], life: [0.3, 0.5], size: [0.25, 0.4], gravity: -1, grow: 1.8 });
@@ -685,22 +948,49 @@ function landed() {
   if (pl.row > score) {
     score = pl.row; $('score').textContent = score;
     ensureRows(score);
+    idleT = 0; eagle.warned = false; eagleShadow.visible = false;
     track('score', score);
     if (row?.type === 'road') track('roads');
     if (row?.type === 'rail') track('rails');
+    if (rows.get(score - 1)?.boss && !row?.boss) track('boss');
+    if (nightF > 0.6) track('night');
+    // warn about a set piece a few rows before it
+    for (let k = 1; k <= 3; k++) {
+      const ahead = rows.get(score + k);
+      if (ahead?.boss && !ahead.announced) {
+        for (let j = score + k; rows.get(j)?.boss; j++) rows.get(j).announced = true;
+        const z = ZONES[ahead.zone];
+        banner(z.herdName, z.herdSub);
+        sfx.noise(1.2, { vol: 0.3, freq: 140, type: 'lowpass' }); sfx.tone(110, 0.5, { type: 'sawtooth', vol: 0.06, slide: -40 });
+        if (!reduced) shake = 0.25;
+        break;
+      }
+    }
     // new season: banner, bonus coins
     const z = Math.floor(score / ZONE_LEN);
     if (z > lastZone) {
       lastZone = z;
       const zone = ZONES[z % ZONES.length];
-      $('zoneName').textContent = zone.name; $('zoneSub').textContent = `Season bonus +10`;
-      const el = $('zone'); el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
-      addCoins(10, new THREE.Vector3(pl.x, 1, -pl.row));
+      banner(zone.name, 'Season bonus +5');
+      addCoins(5, new THREE.Vector3(pl.x, 1, -pl.row));
       track('zone', z);
       [523, 659, 784, 1046, 1318].forEach((f, k) => sfx.tone(f, 0.2, { type: 'triangle', vol: 0.12, delay: k * 0.07 }));
     }
   }
   if (row?.type !== 'river') pl.safe = { x: pl.x, row: pl.row };
+  // frozen lake: keep sliding the way you hopped until a rock, the edge or solid ground stops you
+  if (row?.type === 'ice' && pl.lastD) {
+    const [dx, dz] = pl.lastD, tx = Math.round(pl.x) + dx, tr = pl.row + dz, next = rows.get(tr);
+    pl.queue = null;
+    if (Math.abs(tx) <= HALF && next && !next.blocked.has(tx) && tr >= Math.max(0, score - 12)) {
+      pl.fromX = pl.x; pl.fromZ = pl.row; pl.toX = tx; pl.toRow = tr; pl.t = 0; pl.dur = 0.13; pl.arc = 0.02;
+      if (Math.random() < 0.5) sfx.noise(0.14, { vol: 0.08, freq: 5000, q: 0.4 });
+      bursts.emit(new THREE.Vector3(pl.x, 0.05, -pl.row), { tex: 'circle_05', count: 2, color: 0xffffff, speed: [0.2, 0.5], up: [0.2, 0.6], size: [0.08, 0.14], life: [0.3, 0.5] });
+      track('slides');
+      return;
+    }
+    pl.squash = 0.5; sfx.tone(240, 0.06, { type: 'triangle', vol: 0.06 });
+  }
   if (row?.coin && Math.round(pl.x) === Math.round(row.coin.position.x)) collectCoin(row);
   if (row?.power && Math.round(pl.x) === row.power.obj.position.x) collectPower(row);
   if (row?.type === 'river') {
@@ -708,17 +998,21 @@ function landed() {
     if (!m) return die('water');
     pl.riding = m;
     // a paw on the very tip still counts: pull the pet back onto the log
-    if (m.kind === 'log') {
+    if (m.kind !== 'lily') {
       const mx = m.obj.position.x, inner = Math.max(0, m.len / 2 - 0.35);
       pl.nudge = Math.min(mx + inner, Math.max(mx - inner, pl.x)) - pl.x;
     }
     m.obj.userData.bob = 1;
-    if (m.kind === 'log') track('logs');
+    if (m.kind !== 'lily') track('logs');
     bursts.emit(new THREE.Vector3(pl.x, 0, -pl.row), { tex: 'circle_05', count: 6, color: 0xe8fbff, speed: [0.5, 1.2], up: [0.8, 1.5], size: [0.12, 0.22], life: [0.3, 0.5] });
   }
   if (pl.queue) { const q = pl.queue; pl.queue = null; hop(q[0], q[1]); }
 }
 
+function banner(name, sub) {
+  $('zoneName').textContent = name; $('zoneSub').textContent = sub;
+  const el = $('zone'); el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+}
 function addCoins(n, p) {
   coins += n; bank += n; store.set('paw.coins', bank); $('coins').textContent = bank;
   popText(stage, p, `+${n}`, 'gold');
@@ -737,8 +1031,8 @@ function collectPower(row) {
   const col = { heart: [0xff5d8a, 0xffc2d6], magnet: [0x8a5cff, 0xd6c2ff], gem: [0x3cd6c8, 0xc2fff6] }[kind];
   bursts.emit(p, { tex: 'magic_03', count: 14, colors: [...col, 0xffffff], speed: [1.5, 3.5], up: [2, 4], size: [0.3, 0.55], life: [0.5, 0.9], additive: true });
   if (kind === 'heart') { pl.shield = true; bubble.visible = true; bubble.scale.setScalar(0.01); popText(stage, p, 'Extra life!', 'good'); }
-  if (kind === 'magnet') { magnetT = 10; popText(stage, p, 'Coin magnet!', 'good'); }
-  if (kind === 'gem') { addCoins(5, p); }
+  if (kind === 'magnet') { magnetT = 7; popText(stage, p, 'Coin magnet!', 'good'); }
+  if (kind === 'gem') { addCoins(3, p); }
   track('powers');
   [660, 880, 1320].forEach((f, k) => sfx.tone(f, 0.12, { type: 'sine', vol: 0.16, delay: k * 0.06 }));
 }
@@ -753,13 +1047,14 @@ function rescue(kind) {
     // float back to the last dry tile
     pl.riding = null; pl.nudge = 0; pl.queue = null;
     pl.fromX = pl.x; pl.fromZ = pl.row; pl.toX = pl.safe.x; pl.toRow = pl.safe.row; pl.t = 0;
-    pl.dur = 0.5; pl.arc = 1.6;
+    pl.dur = 0.5; pl.arc = 1.6; pl.lastD = null;
     pl.facing = pl.safe.row < pl.row ? 0 : Math.PI;
   } else if (!reduced) shake = 0.15;
 }
 
 function supportAt(row, x) {
   for (const m of row.movers) {
+    if (m.down) continue; // a pad that's under water holds nobody
     const mx = m.obj.position.x;
     if (Math.abs(x - mx) <= m.len / 2 + (m.kind === 'lily' ? 0.05 : 0.35)) return m;
   }
@@ -772,15 +1067,21 @@ const DEATHS = {
   drift: ['Swept away!', ['The log took you off the map.', 'Ride the log, but not that far.']],
   slow: ['Too slow!', ['The world moved on without you.', 'Keep hopping forward!']],
   train: ['Choo choo!', ['The 5:15 was right on time.', 'You heard the bell, right?', 'Trains always win.']],
+  herd: ['Trampled!', ['The herd had places to be.', 'Wait for the gap next time.', 'Moo-ve faster.']],
+  weed: ['Tumbled!', ['A tumbleweed rolled right over you.', 'The desert wind wins.']],
+  crab: ['Pinched!', ['Crabs only walk sideways. You didn\'t look.', 'Snip snap!']],
+  eagle: ['Snatched!', ['An eagle spotted you dawdling.', 'Keep moving forward or the eagle comes.', 'Up, up and away.']],
 };
 
 function die(kind, mover) {
   if (pl.dead) return;
-  if (pl.shield && kind !== 'slow') return rescue(kind);
+  if (pl.shield && kind !== 'slow' && kind !== 'eagle') return rescue(kind);
   pl.dead = true; state = 'dead';
   const pos = pl.root.position.clone();
   bubble.visible = false; magnetT = 0; $('zone').classList.remove('show');
-  if (kind === 'car' || kind === 'train') {
+  if (kind === 'eagle') {
+    sfx.tone(1400, 0.4, { type: 'sawtooth', vol: 0.08, slide: -600 });
+  } else if (kind !== 'water' && kind !== 'drift' && kind !== 'slow') {
     pl.body.scale.set(0.62, 0.12, 0.62);
     bursts.emit(pos.clone().setY(0.6), { tex: 'star_06', count: 14, colors: [0xffffff, 0xffe066], speed: [2, 4], up: [2, 4], size: [0.2, 0.4], life: [0.5, 0.9] });
     bursts.emit(pos.clone().setY(0.2), { tex: 'smoke_04', count: 8, color: 0xffffff, speed: [1, 2], up: [0.5, 1.5], size: [0.4, 0.7], life: [0.5, 0.8], gravity: 0, grow: 2 });
@@ -813,7 +1114,9 @@ function reset() {
   rows.clear(); maxRowBuilt = -1; lastType = 'grass'; streak = 0;
   for (let i = -BEHIND; i < AHEAD; i++) makeRow(i);
   Object.assign(pl, { x: 0, row: 0, toX: 0, toRow: 0, t: 1, dead: false, riding: null, queue: null, facing: Math.PI, squash: 0, shield: false, safe: { x: 0, row: 0 }, nudge: 0 });
-  bubble.visible = false; magnetT = 0; invuln = 0; lastZone = 0;
+  bubble.visible = false; magnetT = 0; invuln = 0; lastZone = 0; idleT = 0;
+  weatherPlan = []; weatherSaid = 'clear'; waterKind = 'logs';
+  eagle.active = false; eagle.warned = false; eagle.obj.visible = false; eagleShadow.visible = false;
   $('shieldPill').hidden = true; $('magnetPill').hidden = true;
   refreshMissions();
   if (pl.body) { pl.body.scale.setScalar(0.5); pl.body.visible = true; }
@@ -865,6 +1168,149 @@ addEventListener('pointerup', e => {
   if (Math.abs(dx) > Math.abs(dy)) hop(dx > 0 ? 1 : -1, 0); else hop(0, dy < 0 ? 1 : -1);
 });
 
+// ---------- weather: night, storms and blizzards ----------
+// the run is split into 20-row stretches; each gets its own weather (always night in the city)
+function weatherAt(row) {
+  if (row < 30) return 'clear';
+  const seg = Math.floor(row / 20), zone = ZONES[zoneOf(seg * 20)];
+  if (zone.night) return 'night';
+  if (weatherPlan[seg] == null) weatherPlan[seg] = Math.random() < 0.45 ? 'clear' : pick(zone.weather);
+  return weatherPlan[seg];
+}
+const base = { hemi: stage.hemi.intensity, hemiCol: stage.hemi.color.clone(), sun: stage.sun.intensity, sunCol: stage.sun.color.clone() };
+const moonHemi = new THREE.Color(0x6f86d8), moonSun = new THREE.Color(0xa8bcff), stormCol = new THREE.Color(STORM_SKY), nightCol = new THREE.Color(NIGHT_SKY), blizzCol = new THREE.Color(0xd2dbe6);
+// rain: streaks in a box that follows the camera
+const RAIN = 900;
+const rainPos = new Float32Array(RAIN * 6);
+for (let k = 0; k < RAIN; k++) { const x = rand(-12, 12), y = rand(0, 10), z = rand(-14, 8); rainPos.set([x, y, z, x + 0.08, y + 0.7, z], k * 6); }
+const rainGeo = new THREE.BufferGeometry(); rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
+const rain = new THREE.LineSegments(rainGeo, new THREE.LineBasicMaterial({ color: 0xf0f6ff, transparent: true, opacity: 0, fog: false }));
+rain.frustumCulled = false; rain.visible = false; scene.add(rain);
+// a little lantern glow around the pet after dark
+const lantern = new THREE.PointLight(0xffd9a0, 0, 5, 1.4); lantern.position.y = 1.3; pl.root.add(lantern);
+
+function updateWeather(dt, t) {
+  const camRow = state === 'title' ? 0 : Math.round(camZ + 3);
+  const zi = zoneOf(camRow), zone = ZONES[zi];
+  const w = state === 'title' ? 'clear' : weatherAt(camRow);
+  const k = 1 - Math.exp(-1.2 * dt);
+  nightF += ((w === 'night' ? 1 : 0) - nightF) * k;
+  rainF += ((w === 'storm' ? 1 : 0) - rainF) * k;
+  snowF += ((w === 'blizzard' ? 1 : 0) - snowF) * k;
+  if (state === 'play' && w !== weatherSaid) {
+    if (w === 'night' && !zone.night) toast('<i class="ph-bold ph-moon-stars" style="color:#6f86d8"></i>Night falls. Watch for headlights');
+    if (w === 'storm') toast('<i class="ph-bold ph-cloud-lightning" style="color:#5b6b8a"></i>A storm rolls in');
+    if (w === 'blizzard') toast('<i class="ph-bold ph-snowflake" style="color:#5fb4e8"></i>Blizzard! Hard to see');
+    weatherSaid = w;
+  }
+  // light: dim and cool at night, grey in a storm, flash with lightning
+  if (flash > 0) flash = Math.max(0, flash - dt * 4);
+  stage.hemi.intensity = base.hemi * (1 - 0.72 * nightF - 0.5 * rainF) + flash * 2.5;
+  stage.hemi.color.copy(base.hemiCol).lerp(moonHemi, nightF);
+  stage.sun.intensity = base.sun * (1 - 0.88 * nightF) * (1 - 0.82 * rainF) * (1 - 0.35 * snowF);
+  stage.renderer.toneMappingExposure = 1.05 * (1 - 0.3 * nightF - 0.25 * rainF);
+  stage.sun.color.copy(base.sunCol).lerp(moonSun, nightF);
+  scene.environmentIntensity = 0.55 * (1 - 0.8 * nightF - 0.3 * rainF);
+  lantern.intensity = 6 * nightF;
+  const n2 = nightF * nightF;
+  nightMats.beam.opacity = 0.3 * n2; nightMats.pool.opacity = 0.36 * n2;
+  nightMats.bulb.opacity = 0.9 * nightF; nightMats.tail.opacity = 0.8 * nightF;
+  // sky colour: season, then darkened by the weather
+  skyCol.setHex(zone.sky).lerp(nightCol, nightF * 0.85).lerp(stormCol, rainF * 0.7).lerp(blizzCol, snowF * 0.6);
+  scene.background.lerp(skyCol, 1 - Math.exp(-1.5 * dt)); scene.fog.color.copy(scene.background);
+  if (flash > 0) scene.background.lerp(new THREE.Color(0xe8eeff), flash * 0.5);
+  // rain streaks + lightning
+  rain.visible = rainF > 0.02;
+  if (rain.visible) {
+    rain.material.opacity = 0.7 * rainF;
+    rain.position.set(camX, 0, -camZ - 2);
+    const a = rainGeo.attributes.position.array, fall = (reduced ? 9 : 20) * dt;
+    for (let i = 0; i < RAIN; i++) {
+      const o = i * 6;
+      a[o + 1] -= fall; a[o + 4] -= fall; a[o] -= fall * 0.12; a[o + 3] -= fall * 0.12;
+      if (a[o + 1] < 0) { const x = rand(-12, 12), y = 10 + rand(0, 1), z = rand(-14, 8); a[o] = x; a[o + 1] = y; a[o + 2] = z; a[o + 3] = x + 0.08; a[o + 4] = y + 0.7; a[o + 5] = z; }
+    }
+    rainGeo.attributes.position.needsUpdate = true;
+    if (Math.random() < dt * 30 * rainF) bursts.emit(new THREE.Vector3(camX + rand(-7, 7), 0.02, -camZ + rand(-9, 3)), { tex: 'circle_05', count: 1, color: 0xdfeaff, speed: [0, 0.05], up: 0, size: [0.15, 0.25], life: [0.25, 0.35], gravity: 0, grow: 2.2 });
+    if (rainF > 0.7 && state === 'play') {
+      lightningT -= dt;
+      if (lightningT <= 0) {
+        lightningT = rand(4, 9);
+        if (!reduced) { flash = 1; $('flash').classList.remove('on'); void $('flash').offsetWidth; $('flash').classList.add('on'); }
+        sfx.noise(1.8, { vol: 0.45, freq: 110, type: 'lowpass', delay: rand(0.2, 0.7) });
+      }
+    }
+  }
+  // falling leaves, snow (heavier in a blizzard) and fireflies at night
+  if (!reduced && state !== 'title') {
+    ambientT -= dt;
+    if (ambientT <= 0) {
+      const snowy = zi === 2, autumn = zi === 1, flies = nightF > 0.5 && !snowy && !zone.city;
+      ambientT = snowy ? (snowF > 0.5 ? 0.012 : 0.05) : flies ? 0.12 : 0.1;
+      const p = new THREE.Vector3(camX + rand(-7, 7), rand(5, 7), -camZ + rand(-9, 3));
+      if (snowy) bursts.emit(p, { tex: 'circle_05', count: 1, color: 0xffffff, speed: [0.1, snowF > 0.5 ? 1.6 : 0.4], up: [-1.6, -0.6], size: [0.06, 0.13], life: [3, 4], gravity: 0, drag: 1, grow: 1 });
+      else if (flies) bursts.emit(p.setY(rand(0.4, 1.6)), { tex: 'light_01', count: 1, colors: [0xd9ff7a, 0xfff07a], speed: [0.1, 0.3], up: [-0.1, 0.2], size: [0.12, 0.2], life: [2, 3], gravity: 0, drag: 1, grow: 1, additive: true });
+      else if (autumn) bursts.emit(p, { tex: 'dirt_02', count: 1, colors: [0xe8742c, 0xf2a93b, 0xc8462c], speed: [0.4, 1], up: [-1, -0.5], size: [0.14, 0.22], life: [3.5, 4.5], gravity: 0, drag: 1, grow: 1 });
+      else ambientT = 0.3;
+    }
+  }
+  return 1 - 0.3 * rainF - 0.45 * snowF; // how far you can see
+}
+
+// ---------- the eagle: dawdle too long and it swoops ----------
+const eagle = { obj: null, active: false, t: 0, from: new THREE.Vector3(), warned: false };
+const eagleShadow = new THREE.Mesh(new THREE.CircleGeometry(0.6, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25, depthWrite: false }));
+eagleShadow.rotation.x = -Math.PI / 2; eagleShadow.visible = false; scene.add(eagleShadow);
+function buildEagle() {
+  const { object, mixer, actions } = cloneLoaded(loaded(P.pet('parrot')));
+  object.scale.setScalar(1.25);
+  (actions.run || actions.idle).play();
+  eagle.obj = new THREE.Group(); eagle.obj.add(object); eagle.mixer = mixer; eagle.obj.visible = false; scene.add(eagle.obj);
+}
+function updateEagle(dt) {
+  if (!eagle.obj) return;
+  eagle.mixer.update(dt * 2);
+  if (state === 'play' && !pl.dead && !eagle.active) {
+    idleT += dt;
+    if (idleT > 5 && !eagle.warned) {
+      eagle.warned = true;
+      popText(stage, pl.root.position.clone().setY(1.6), 'Keep moving!', 'big');
+      sfx.tone(1800, 0.35, { type: 'sawtooth', vol: 0.05, slide: -900 });
+    }
+    eagleShadow.visible = idleT > 5;
+    if (eagleShadow.visible) {
+      const k = Math.min(1, (idleT - 5) / 2.5);
+      eagleShadow.position.set(pl.root.position.x + (1 - k) * 2, 0.03, pl.root.position.z - (1 - k) * 3);
+      eagleShadow.scale.setScalar(0.4 + k);
+      eagleShadow.material.opacity = 0.1 + k * 0.2;
+    }
+    if (idleT > 7.5) {
+      eagle.active = true; eagle.t = 0; eagle.obj.visible = true;
+      eagle.from.set(pl.root.position.x + 5, 9, pl.root.position.z - 9);
+      eagle.obj.position.copy(eagle.from);
+      sfx.tone(1500, 0.5, { type: 'sawtooth', vol: 0.07, slide: -700 });
+    }
+  }
+  if (!eagle.active) { if (state !== 'play') eagleShadow.visible = false; return; }
+  eagle.t += dt;
+  const grab = 0.55;
+  if (eagle.t < grab) {
+    const k = eagle.t / grab, e = k * k;
+    const to = pl.root.position.clone().setY(0.9);
+    eagle.obj.position.lerpVectors(eagle.from, to, e);
+    eagle.obj.lookAt(to.x, eagle.obj.position.y, to.z);
+    eagleShadow.position.set(eagle.obj.position.x, 0.03, eagle.obj.position.z);
+  } else {
+    if (!pl.dead) die('eagle');
+    eagleShadow.visible = false;
+    const k = eagle.t - grab;
+    eagle.obj.position.x -= dt * 4; eagle.obj.position.y += dt * (3 + k * 4); eagle.obj.position.z += dt * 2;
+    eagle.obj.rotation.y = -Math.PI / 2;
+    pl.root.position.copy(eagle.obj.position).y -= 0.75;
+    if (k > 2.5) eagle.obj.visible = false;
+  }
+}
+
 // ---------- main loop ----------
 let lastT = performance.now(), elapsed = 0, ambientT = 0;
 const skyCol = new THREE.Color();
@@ -875,19 +1321,56 @@ function tick() {
   const t = elapsed;
   waterMat.uniforms.uTime.value = t;
 
-  // traffic & logs
+  // traffic, logs, boats, herds and tumbleweeds
+  const viewRow = state === 'title' ? 0 : Math.round(camZ + 3);
   for (const [, row] of rows) {
+    const inView = Math.abs(row.i - viewRow) < 16;
+    if (inView) for (const mx of row.mixers) mx.update(dt);
+    if (row.type === 'crabs') {
+      // crabs scuttle sideways and change their minds
+      for (const m of row.movers) {
+        m.turn -= dt;
+        if (m.turn <= 0 || Math.abs(m.obj.position.x) > HALF + 2.5) { m.vx = -Math.sign(m.obj.position.x || m.vx) * rand(1.2, 2.4) * (Math.abs(m.obj.position.x) > HALF + 2.5 ? 1 : (Math.random() < 0.5 ? 1 : -1)); m.turn = rand(1, 3); }
+        m.obj.position.x += m.vx * dt;
+      }
+      continue;
+    }
+    if (row.lily) {
+      // diving lily pads: bubbles, a wobble, then under for a moment
+      for (const m of row.movers) {
+        if (m.sink == null) continue;
+        const ph = (t + m.sink) % 4.5;
+        const warn = ph > 2.6 && ph < 3.3, under = ph >= 3.3 && ph < 4.3;
+        const target = under ? -0.55 : -0.12;
+        m.obj.position.y = damp(m.obj.position.y, target, under ? 10 : 6, dt) + (warn ? Math.sin(t * 40) * 0.006 : 0);
+        m.down = m.obj.position.y < -0.3;
+        if (warn && inView && Math.random() < dt * 14) bursts.emit(new THREE.Vector3(m.x + rand(-.3, .3), -0.1, -row.i + rand(-.3, .3)), { tex: 'circle_05', count: 1, color: 0xe8fbff, speed: [0, 0.1], up: [0.6, 1], size: [0.06, 0.12], life: [0.3, 0.5], gravity: 0 });
+        if (m.down && pl.riding === m && !pl.dead) { pl.riding = null; die('water'); }
+      }
+      continue;
+    }
     if (!row.speed) continue;
     for (const m of row.movers) {
       m.obj.position.x += row.dir * row.speed * dt;
       const edge = row.span / 2;
       if (row.dir > 0 && m.obj.position.x > edge) m.obj.position.x -= row.span;
       if (row.dir < 0 && m.obj.position.x < -edge) m.obj.position.x += row.span;
-      if (m.kind === 'log') {
+      if (m.kind === 'log' || m.kind === 'boat') {
         m.obj.userData.bob = Math.max(0, (m.obj.userData.bob || 0) - dt * 3);
-        m.obj.position.y = -0.25 + Math.sin(t * 2 + m.obj.id) * 0.02 - m.obj.userData.bob * 0.06;
+        m.obj.position.y = m.base + Math.sin(t * 2 + m.obj.id) * (m.kind === 'boat' ? 0.035 : 0.02) - m.obj.userData.bob * 0.06;
+        if (m.kind === 'boat') m.obj.rotation.z = Math.sin(t * 1.6 + m.obj.id) * 0.03;
       }
       if (m.kind === 'car') m.obj.position.y = Math.abs(Math.sin(t * 18 + m.obj.id)) * 0.012;
+      if (m.kind === 'herd') {
+        m.obj.position.y = Math.abs(Math.sin(t * 9 + m.obj.id)) * 0.08;
+        if (inView && Math.random() < dt * 3) bursts.emit(new THREE.Vector3(m.obj.position.x - row.dir * 0.4, 0.1, -row.i), { tex: 'smoke_04', count: 1, color: 0xe8d2b0, speed: [0.2, 0.5], up: [0.2, 0.6], size: [0.3, 0.5], life: [0.5, 0.8], gravity: 0, grow: 2 });
+      }
+      if (m.kind === 'weed') {
+        m.hop += dt * row.speed * 1.3;
+        m.obj.position.y = Math.abs(Math.sin(m.hop)) * 0.45;
+        m.spin.rotation.z -= row.dir * row.speed * dt / 0.38;
+      }
+      if (m.attach) for (const a of m.attach) a.obj.position.x = m.obj.position.x + a.dx;
     }
   }
   // trains: wait, ring the bell, then thunder across
@@ -953,7 +1436,7 @@ function tick() {
         if (pl.nudge) { const n = pl.nudge * Math.min(1, dt * 14); pl.x += n; pl.nudge -= n; }
         if (Math.abs(pl.x) > HALF + 0.6) die('drift');
       }
-      pl.root.position.set(pl.x, pl.riding ? pl.riding.obj.position.y + 0.3 : 0, -pl.row);
+      pl.root.position.set(pl.x, pl.riding ? pl.riding.obj.position.y + (pl.riding.top ?? 0.3) : 0, -pl.row);
     }
     // squash & stretch
     pl.squash = Math.max(0, pl.squash - dt * 6);
@@ -981,11 +1464,12 @@ function tick() {
       const row = rows.get(r);
       const tr = row?.train;
       if (tr?.state === 'run' && Math.abs(tr.x - pl.root.position.x) < tr.len / 2 + 0.3) die('train');
-      if (row?.type === 'road') {
+      const hit = { road: 'car', herd: 'herd', weeds: 'weed', crabs: 'crab' }[row?.type];
+      if (hit) {
         for (const m of row.movers) {
           const d = Math.abs(m.obj.position.x - pl.root.position.x);
-          if (d < m.len / 2 + 0.28) { die('car', m); break; }
-          if (!m.close && d < m.len / 2 + 0.75 && Math.sign(pl.root.position.x - m.obj.position.x) === row.dir) {
+          if (d < m.len / 2 + 0.28) { die(hit, m); break; }
+          if (row.dir && !m.close && d < m.len / 2 + 0.75 && Math.sign(pl.root.position.x - m.obj.position.x) === row.dir) {
             m.close = true;
             track('close');
             if (Math.random() < 0.5) popText(stage, new THREE.Vector3(pl.root.position.x, 1.5, -r), pick(['Close call!', 'Phew!', 'Whoosh!']), 'good');
@@ -1002,19 +1486,8 @@ function tick() {
     pl.root.rotation.y = damp(pl.root.rotation.y, 0.35 + Math.sin(t * 0.8) * 0.35, 4, dt);
   }
 
-  // the sky follows the season, with falling leaves or snow
-  const zi = zoneOf(state === 'title' ? 0 : Math.round(camZ + 3));
-  skyCol.setHex(ZONES[zi].sky);
-  scene.background.lerp(skyCol, 1 - Math.exp(-1.5 * dt)); scene.fog.color.copy(scene.background);
-  if (!reduced && zi > 0 && state !== 'title') {
-    ambientT -= dt;
-    if (ambientT <= 0) {
-      ambientT = zi === 2 ? 0.05 : 0.1;
-      const p = new THREE.Vector3(camX + rand(-7, 7), rand(5, 7), -camZ + rand(-9, 3));
-      if (zi === 2) bursts.emit(p, { tex: 'circle_05', count: 1, color: 0xffffff, speed: [0.1, 0.4], up: [-1.2, -0.6], size: [0.06, 0.13], life: [3, 4], gravity: 0, drag: 1, grow: 1 });
-      else bursts.emit(p, { tex: 'dirt_02', count: 1, colors: [0xe8742c, 0xf2a93b, 0xc8462c], speed: [0.4, 1], up: [-1, -0.5], size: [0.14, 0.22], life: [3.5, 4.5], gravity: 0, drag: 1, grow: 1 });
-    }
-  }
+  const visibility = updateWeather(dt, t);
+  updateEagle(dt);
 
   camX = damp(camX, camera.aspect < 1 ? Math.max(-1, Math.min(1, pl.x * 0.3)) : Math.max(-2, Math.min(2, pl.x * 0.5)), 3, dt);
   const cz = state === 'title' ? 0 : -camZ;
@@ -1022,10 +1495,11 @@ function tick() {
   const titleOff = state === 'title' ? 1 : 0;
   // pull back on tall, narrow screens so the whole 9-column playfield stays in view
   const zoom = Math.min(2.4, Math.max(1, 1.25 / camera.aspect));
-  scene.fog.near = 28 * zoom; scene.fog.far = 60 * zoom;
+  scene.fog.near = 28 * zoom * visibility; scene.fog.far = 60 * zoom * (0.4 + 0.6 * visibility);
   waterMat.uniforms.fogNear.value = scene.fog.near; waterMat.uniforms.fogFar.value = scene.fog.far;
   camera.position.set(camX + (3.2 + sh - titleOff * 0.6) * zoom, (10.5 - titleOff * 2) * zoom, cz + (7.2 - titleOff * 0.6) * zoom);
   camera.lookAt(camX + sh * 0.5, titleOff * 0.3, cz - 2.2 + titleOff * 1.6);
+  for (const [, row] of rows) if (row.group.userData.bb) for (const q of row.group.userData.bb) q.quaternion.copy(camera.quaternion);
   // left behind: once the top of the pet slips off the bottom of the screen, the run is over
   if (state === 'play' && !pl.dead) {
     camera.updateMatrixWorld();
@@ -1048,6 +1522,7 @@ function tick() {
   const bar = $('loadBar');
   await preload(allPaths, p => { bar.style.width = `${Math.round(p * 100)}%`; });
   await stage.envReady;
+  buildEagle();
   reset();
   state = 'title';
   setPet(petIndex);
