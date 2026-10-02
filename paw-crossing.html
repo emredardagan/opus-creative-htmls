@@ -998,7 +998,6 @@ function tick() {
     // camera creeps forward once you start, so you can't dawdle forever
     if (state === 'play' && score > 0) camZ += dt * Math.min(1.1, 0.35 + score / 120);
     camZ = Math.max(camZ, damp(camZ, pl.row - 1, 3, dt));
-    if (state === 'play' && pl.row < camZ - 4.5 && !pl.dead) die('slow');
   } else if (state === 'title') {
     pl.root.rotation.y = damp(pl.root.rotation.y, 0.35 + Math.sin(t * 0.8) * 0.35, 4, dt);
   }
@@ -1027,6 +1026,11 @@ function tick() {
   waterMat.uniforms.fogNear.value = scene.fog.near; waterMat.uniforms.fogFar.value = scene.fog.far;
   camera.position.set(camX + (3.2 + sh - titleOff * 0.6) * zoom, (10.5 - titleOff * 2) * zoom, cz + (7.2 - titleOff * 0.6) * zoom);
   camera.lookAt(camX + sh * 0.5, titleOff * 0.3, cz - 2.2 + titleOff * 1.6);
+  // left behind: once the top of the pet slips off the bottom of the screen, the run is over
+  if (state === 'play' && !pl.dead) {
+    camera.updateMatrixWorld();
+    if (tmp.copy(pl.root.position).setY(pl.root.position.y + 0.8).project(camera).y < -1) die('slow');
+  }
   stage.followShadow(tmp.set(camX, 0, cz - 3));
 
   shadowBlob.position.set(pl.root.position.x, 0.02, pl.root.position.z);
