@@ -8,6 +8,7 @@
 <meta name="theme-color" content="#bfe7ff">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/kit/toybox.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
   .score b { font-size: 34px; }
   .coins b { color: #e8a200; }
@@ -31,6 +32,61 @@
   .stat b { font-size: 30px; }
   .stat.new { background: #fff4d6; }
   .stat.new small::after { content: " · new!"; color: var(--tb-accent); }
+  .over .actions { display: flex; gap: 10px; justify-content: center; align-items: center; }
+  .tb-cta.alt { background: #fff; color: var(--tb-ink); box-shadow: 0 6px 0 #d5d8e4, 0 16px 30px -12px rgba(43,45,66,.4); font-size: 18px; padding: 14px 20px; display: inline-flex; gap: 8px; align-items: center; }
+  .tb-cta.alt.glow { animation: glow 1.2s ease-in-out infinite; }
+  @keyframes glow { 50% { box-shadow: 0 6px 0 #d5d8e4, 0 0 0 6px rgba(255,194,61,.55); } }
+  .tb-cta[disabled] { filter: grayscale(.7); opacity: .85; cursor: default; }
+  .tb-cta.nope { animation: nope .35s; }
+  @keyframes nope { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+  .tb-cta .coin-dot, .tb-cta .ph-bold { vertical-align: -3px; display: inline-block; }
+  .unlock-hint { margin: 12px 0 0; font-weight: 600; color: #c07a00; font-size: 14px; }
+
+  /* missions */
+  .missions { display: grid; gap: 8px; text-align: left; margin: 0 0 18px; }
+  .missions h3 { margin: 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--tb-dim); display: flex; align-items: center; gap: 6px; }
+  .mission { display: grid; grid-template-columns: 22px 1fr auto; gap: 2px 8px; align-items: center; background: #f3f5fb; border-radius: 14px; padding: 8px 12px; font-weight: 600; font-size: 14px; }
+  .mission > i { font-size: 18px; color: var(--tb-accent); }
+  .mission em { font-style: normal; font-size: 13px; color: #c07a00; display: flex; align-items: center; gap: 4px; }
+  .mission em .coin-dot { width: 14px; height: 14px; }
+  .mission .bar { grid-column: 2 / 4; height: 6px; border-radius: 99px; background: #e2e5ef; overflow: hidden; }
+  .mission .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--tb-accent-2), var(--tb-accent)); }
+  .mission.done { background: #e3f8eb; }
+  .mission.done > i { color: var(--tb-good); }
+  .mission.done .bar i { background: var(--tb-good); }
+  .title-missions { pointer-events: auto; background: var(--tb-card); border-radius: 22px; padding: 12px; box-shadow: var(--tb-shadow); width: min(320px, calc(100vw - 32px)); margin: 0; position: fixed; left: 16px; bottom: max(36px, env(safe-area-inset-bottom)); }
+  .missions-btn { display: none; position: fixed; top: max(14px, env(safe-area-inset-top)); left: 14px; gap: 6px; cursor: pointer; border: 0; font: 600 15px var(--tb-font); color: var(--tb-ink); }
+  .missions-btn i { color: var(--tb-accent); font-size: 18px; }
+  @media (max-width: 900px) {
+    .missions-btn { display: flex; }
+    .title-missions { display: none; top: calc(max(14px, env(safe-area-inset-top)) + 54px); bottom: auto; z-index: 5; }
+    .title-missions.open { display: grid; }
+  }
+  .title-missions .mission { padding: 6px 10px; font-size: 13px; }
+
+  /* title extras */
+  .title-bank { position: fixed; top: max(14px, env(safe-area-inset-top)); right: 14px; }
+  .title-bank b { color: #e8a200; font-size: 20px; }
+  .collection { font-size: 13px; font-weight: 600; color: var(--tb-ink); opacity: .7; margin-top: -6px; display: flex; gap: 5px; align-items: center; }
+  .price-tag { font-size: 13px; font-weight: 700; color: #c07a00; background: #fff4d6; border-radius: 99px; padding: 2px 10px; margin-top: -6px; }
+
+  /* power-up pills + toasts */
+  .tb-pill.power { gap: 6px; }
+  .tb-pill[hidden] { display: none; }
+  .tb-pill.power i { font-size: 20px; }
+  .tb-pill.power.shield i { color: #ff5d8a; }
+  .tb-pill.power.magnet i { color: #8a5cff; }
+  .toast { position: fixed; left: 50%; top: max(84px, calc(env(safe-area-inset-top) + 74px)); transform: translate(-50%, -20px); opacity: 0; background: var(--tb-card); border-radius: 99px; padding: 10px 18px; box-shadow: var(--tb-shadow); font-weight: 700; display: flex; gap: 8px; align-items: center; z-index: 15; transition: transform .35s cubic-bezier(.2,1.4,.4,1), opacity .25s; pointer-events: none; white-space: nowrap; max-width: calc(100vw - 32px); }
+  .toast.show { transform: translate(-50%, 0); opacity: 1; }
+  .toast i { color: var(--tb-good); font-size: 20px; }
+  .toast em { font-style: normal; color: #c07a00; }
+  .zone { position: fixed; left: 50%; top: 30%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; z-index: 14; opacity: 0; }
+  .zone.show { animation: zone 2.6s ease forwards; }
+  .zone b { display: block; font-size: clamp(34px, 8vw, 60px); color: #fff; -webkit-text-stroke: 8px var(--tb-ink); paint-order: stroke fill; transform: rotate(-3deg); white-space: nowrap; }
+  .zone small { display: inline-block; margin-top: 6px; background: var(--tb-card); border-radius: 99px; padding: 4px 12px; font-weight: 600; font-size: 14px; box-shadow: var(--tb-shadow); }
+  @keyframes zone { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.6); } 12% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); } 20% { transform: translate(-50%, -50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -60%); } }
+  @media (prefers-reduced-motion: reduce) { .zone.show { animation-duration: .01s; animation-name: none; opacity: 1; } .tb-cta.alt.glow, .tb-cta.nope { animation: none; } }
+
   .home-link { display: block; margin-top: 14px; color: var(--tb-dim); font-weight: 600; font-size: 14px; }
 
   .credit { position: fixed; left: 50%; bottom: max(8px, env(safe-area-inset-bottom)); transform: translateX(-50%); font-size: 11px; color: rgba(43,45,66,.55); pointer-events: auto; white-space: nowrap; }
@@ -58,6 +114,8 @@
     <div class="tb-pill"><div><small>Best</small><b id="best" style="font-size:20px">0</b></div></div>
   </div>
   <div class="tb-row">
+    <div class="tb-pill power shield" id="shieldPill" hidden><i class="ph-bold ph-heart"></i><b>×1</b></div>
+    <div class="tb-pill power magnet" id="magnetPill" hidden><i class="ph-bold ph-magnet"></i><b id="magnetT">8</b></div>
     <div class="tb-pill coins"><span class="coin-dot"></span><b id="coins">0</b></div>
     <button class="tb-btn" id="mute" aria-label="Sound on/off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path id="wave" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></button>
   </div>
@@ -68,12 +126,16 @@
     <h1>Paw<br><span>Crossing</span></h1>
     <p>Hop across roads and rivers. Don't look back.</p>
   </div>
+  <button class="tb-pill missions-btn" id="missionsBtn" aria-expanded="false" aria-controls="titleMissions"><i class="ph-bold ph-target" aria-hidden="true"></i><span>Missions</span></button>
+  <div class="missions title-missions" id="titleMissions"></div>
+  <div class="tb-pill title-bank"><span class="coin-dot"></span><b id="titleBank">0</b></div>
   <div class="picker">
     <div class="pick-row">
       <button class="tb-btn" id="prev" aria-label="Previous animal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
       <div class="pet-name" id="petName">Dog</div>
       <button class="tb-btn" id="next" aria-label="Next animal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
     </div>
+    <div class="collection" id="collection"></div>
     <button class="tb-cta" id="play">Let's go!</button>
     <div class="hint">Arrows / WASD or swipe · tap to hop forward</div>
   </div>
@@ -87,10 +149,18 @@
       <div class="stat" id="statScore"><small>Score</small><b id="finalScore">0</b></div>
       <div class="stat"><small>Coins</small><b id="finalCoins">0</b></div>
     </div>
-    <button class="tb-cta" id="retry">Hop again</button>
+    <div class="missions" id="overMissions"></div>
+    <div class="actions">
+      <button class="tb-cta" id="retry">Hop again</button>
+      <button class="tb-cta alt" id="toPets"><i class="ph-bold ph-paw-print" aria-hidden="true"></i>Pets</button>
+    </div>
+    <p class="unlock-hint" id="unlockHint" hidden>You have enough coins for a new pet!</p>
     <a class="home-link" href="index.html">← All games</a>
   </div>
 </div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="zone" id="zone"><b id="zoneName"></b><small id="zoneSub"></small></div>
 
 <div class="tb-loading" id="loading"><div class="bar"><i id="loadBar"></i></div></div>
 <div class="credit">3D models by <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> (CC0) · sky by <a href="https://polyhaven.com" target="_blank" rel="noopener">Poly Haven</a></div>
@@ -110,11 +180,22 @@ catch (e) { document.body.insertAdjacentHTML('beforeend', '<div class="fallback"
 const { scene, camera } = stage;
 
 // ---------- assets ----------
-const PETS = ['dog', 'cat', 'bunny', 'fox', 'chick', 'panda', 'penguin', 'pig', 'koala', 'monkey', 'lion', 'tiger', 'cow', 'deer', 'elephant', 'giraffe', 'hog', 'polar', 'parrot', 'beaver', 'bee', 'crab', 'caterpillar', 'fish'];
+// the collection: four starters, then pets you buy with coins
+const PETS = ['dog', 'cat', 'bunny', 'chick',
+  'fox', 'pig', 'cow', 'penguin', 'panda', 'beaver', 'hog', 'koala', 'monkey', 'deer',
+  'lion', 'tiger', 'polar', 'parrot', 'elephant', 'giraffe', 'bee', 'crab',
+  'caterpillar', 'fish'];
+const STARTERS = PETS.slice(0, 4);
+const RARE = ['lion', 'tiger', 'polar', 'parrot', 'elephant', 'giraffe', 'bee', 'crab'];
+const LEGEND = ['caterpillar', 'fish'];
+const price = n => STARTERS.includes(n) ? 0 : LEGEND.includes(n) ? 300 : RARE.includes(n) ? 150 : 50;
+const owned = new Set(store.get('paw.owned', STARTERS));
 const CARS = ['sedan', 'taxi', 'police', 'van', 'suv', 'hatchback-sports', 'sedan-sports', 'suv-luxury', 'delivery', 'truck', 'ambulance', 'firetruck', 'garbage-truck'];
 const TREES = ['tree_default', 'tree_oak', 'tree_pineRoundA', 'tree_pineRoundC', 'tree_detailed', 'tree_fat', 'tree_simple', 'tree_cone', 'tree_blocks'];
 const ROCKS = ['rock_largeA', 'rock_largeC', 'stump_round', 'stump_roundDetailed', 'plant_bushLarge', 'plant_bushDetailed'];
 const FLOWERS = ['flower_redA', 'flower_yellowA', 'flower_purpleA', 'flower_redB', 'flower_yellowB', 'mushroom_red', 'mushroom_tanGroup', 'plant_bushSmall'];
+const LOCOS = ['train-locomotive-a', 'train-locomotive-b', 'train-diesel-a', 'train-electric-bullet-a'];
+const WAGONS = ['train-carriage-container-red', 'train-carriage-container-blue', 'train-carriage-container-green', 'train-carriage-box', 'train-carriage-tank', 'train-carriage-lumber', 'train-carriage-coal'];
 const P = {
   pet: n => kenney(`cube-pets/animal-${n}`),
   car: n => kenney(`car-kit/${n}`),
@@ -124,10 +205,35 @@ const P = {
   lily: kenney('nature-kit/lily_large'),
   lamp: kenney('city-kit-roads/light-square'),
   cone: kenney('city-kit-roads/construction-cone'),
+  train: n => kenney(`train-kit/${n}`),
+  track: kenney('train-kit/track-single-detailed'),
+  plat: n => kenney(`platformer-kit/${n}`),
 };
+// seasons: the land changes every ZONE_LEN rows
+const ZONE_LEN = 50;
+const ZONES = [
+  { name: 'Sunny Meadow', sub: 'Back where it all began', sky: 0xbfe7ff,
+    grass: [0x9bd46a, 0x8cc75d, 0x86bd58, 0x7cb150],
+    trees: TREES.map(P.nat), rocks: ROCKS.map(P.nat), flowers: FLOWERS.map(P.nat) },
+  { name: 'Autumn Woods', sub: 'Mind the falling leaves', sky: 0xffe3c2,
+    grass: [0xe2b04f, 0xd8a346, 0xcb9641, 0xbf8a3b],
+    trees: ['tree_default_fall', 'tree_oak_fall', 'tree_detailed_fall', 'tree_fat_fall', 'tree_simple_fall', 'tree_cone_fall', 'tree_blocks_fall', 'tree_tall_fall'].map(P.nat),
+    rocks: ['rock_largeA', 'stump_round', 'stump_roundDetailed', 'stump_old', 'log'].map(P.nat),
+    flowers: ['mushroom_red', 'mushroom_redGroup', 'mushroom_tanGroup', 'mushroom_tan', 'plant_bushSmall', 'flower_yellowB'].map(P.nat) },
+  { name: 'Snowy Pass', sub: 'Brr! Keep hopping', sky: 0xdfeaf6,
+    grass: [0xf2f6fb, 0xe6edf6, 0xdbe4ef, 0xcfd9e6],
+    trees: ['tree-pine-snow', 'tree-snow', 'tree-pine-snow-small'].map(P.plat).concat(['tree_pineRoundA', 'tree_pineTallA'].map(P.nat)),
+    rocks: ['rock_largeA', 'rock_largeC', 'rock_tallA'].map(P.nat),
+    flowers: ['rock_smallA', 'rock_smallC', 'rock_smallFlatA'].map(P.nat) },
+];
+const zoneOf = i => i < 0 ? 0 : Math.floor(i / ZONE_LEN) % ZONES.length;
+for (const z of ZONES) z.mats = z.grass.map(c => new THREE.MeshStandardMaterial({ color: c, roughness: .95 }));
 const allPaths = [
   ...PETS.map(P.pet), ...CARS.map(P.car), ...TREES.map(P.nat), ...ROCKS.map(P.nat), ...FLOWERS.map(P.nat),
-  P.coin, P.log, P.lily, P.lamp, P.cone,
+  P.coin, P.log, P.lily, P.lamp, P.cone, P.track,
+  ...LOCOS.map(P.train), ...WAGONS.map(P.train),
+  ...['heart', 'jewel', 'star', 'flag'].map(P.plat),
+  ...ZONES.flatMap(z => [...z.trees, ...z.rocks, ...z.flowers]),
 ];
 
 const bursts = new Bursts(scene);
@@ -150,7 +256,18 @@ const mats = {
   curb: new THREE.MeshStandardMaterial({ color: 0xc9ccd6, roughness: .8 }),
   line: new THREE.MeshStandardMaterial({ color: PALETTE.roadLine, roughness: .7 }),
   bank: new THREE.MeshStandardMaterial({ color: PALETTE.sand, roughness: 1 }),
+  gravel: new THREE.MeshStandardMaterial({ color: 0x9c9183, roughness: 1 }),
+  pole: new THREE.MeshStandardMaterial({ color: 0x3a3d4f, roughness: .6 }),
 };
+const ringGeo = new THREE.RingGeometry(0.28, 0.42, 32);
+const lampGeo = new THREE.SphereGeometry(0.09, 16, 12);
+// soft soap-bubble shield (fresnel rim)
+const bubble = new THREE.Mesh(new THREE.SphereGeometry(0.62, 32, 20), new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false,
+  uniforms: { uTime: { value: 0 } },
+  vertexShader: `varying vec3 vN, vV; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+  fragmentShader: `uniform float uTime; varying vec3 vN, vV; void main(){ float f = pow(1. - abs(dot(vN, vV)), 2.2); vec3 c = mix(vec3(.6,.9,1.), vec3(1.,.7,.95), .5 + .5*sin(uTime*2. + vN.y*4.)); gl_FragColor = vec4(c, .08 + f * .7); }`,
+}));
 const box = new THREE.BoxGeometry(1, 1, 1);
 // lily pad: a notched disc (Kenney's lily flower sits on top)
 const padGeo = new THREE.CylinderGeometry(0.44, 0.44, 0.08, 24, 1, false, 0.35, Math.PI * 2 - 0.7);
@@ -194,18 +311,33 @@ let player, petIndex = store.get('paw.pet', 0) % PETS.length;
 let state = 'loading';      // loading | title | play | dead
 let score = 0, coins = 0, best = store.get('paw.best', 0), bank = store.get('paw.coins', 0);
 let camZ = 0, camX = 0, lastForward = 0, speedy = 0;
+let magnetT = 0, invuln = 0, lastZone = 0;
+
+// scale a loaded model so its largest side is `size`
+const fitSize = new Map();
+function fitted(path, size) {
+  const o = cloneLoaded(loaded(path)).object;
+  if (!fitSize.has(path)) { const v = new THREE.Box3().setFromObject(o).getSize(new THREE.Vector3()); fitSize.set(path, Math.max(v.x, v.y, v.z)); }
+  o.scale.setScalar(size / fitSize.get(path));
+  return o;
+}
+// lift a model so it rests on y = 0
+function ground(o) { o.updateMatrixWorld(true); o.position.y -= new THREE.Box3().setFromObject(o).min.y; return o; }
 const world = new THREE.Group(); scene.add(world);
 
 // ---------- row construction ----------
 function makeRow(i) {
   let type;
-  if (i < 4) type = 'grass';
+  if (i < 4 || i % ZONE_LEN === 0) type = 'grass';
+  else if (lastType === 'rail') type = Math.random() < 0.6 ? 'grass' : 'road';
   else {
     const difficulty = Math.min(1, i / 120);
     const r = Math.random();
     if (lastType === 'grass') type = r < 0.55 + difficulty * .1 ? 'road' : 'river';
     else if (streak >= (lastType === 'road' ? 2 + Math.round(difficulty * 3) : 1 + Math.round(difficulty * 2))) type = 'grass';
     else type = r < 0.6 ? lastType : 'grass';
+    // railways appear once you're warmed up
+    if (i > 14 && type === 'road' && lastType !== 'road' && Math.random() < 0.3) type = 'rail';
     if (type === lastType) streak++; else streak = 1;
   }
   lastType = type;
@@ -213,20 +345,27 @@ function makeRow(i) {
   const g = new THREE.Group();
   g.position.z = -i;
   world.add(g);
-  const row = { i, type, group: g, blocked: new Set(), movers: [], coin: null };
+  const row = { i, type, group: g, blocked: new Set(), movers: [], coin: null, power: null };
   const alt = i % 2 === 0;
+  const zone = ZONES[zoneOf(i)];
+  const gate = i > 0 && i % ZONE_LEN === 0;
 
   if (type === 'grass') {
-    const top = new THREE.Mesh(box, alt ? mats.grassA : mats.grassB);
+    const top = new THREE.Mesh(box, zone.mats[alt ? 0 : 1]);
     top.scale.set(HALF * 2 + 1, 0.6, 1); top.position.y = -0.3; top.receiveShadow = true; g.add(top);
     for (const s of [-1, 1]) {
-      const side = new THREE.Mesh(box, alt ? mats.grassEdgeA : mats.grassEdgeB);
+      const side = new THREE.Mesh(box, zone.mats[alt ? 2 : 3]);
       side.scale.set(WORLD - HALF, 0.6, 1); side.position.set(s * (HALF + 0.5 + (WORLD - HALF) / 2), -0.28, 0); side.receiveShadow = true; g.add(side);
+    }
+    // a pair of flags marks the start of every new season
+    if (gate) for (const s of [-1, 1]) {
+      const f = ground(fitted(P.plat('flag'), 1.7)); f.position.x = s * (HALF + 1); f.rotation.y = s > 0 ? Math.PI : 0; g.add(f);
     }
     // outer forest: always trees beyond the playable edge
     for (let x = HALF + 1; x <= WORLD - 1; x++) for (const s of [-1, 1]) {
-      if (Math.random() < 0.55) addProp(g, pick(TREES), s * x, rand(.9, 1.4), true);
-      else if (Math.random() < 0.3) addProp(g, pick(FLOWERS), s * x + rand(-.3, .3), rand(1.4, 2));
+      if (gate && x === HALF + 1) continue;
+      if (Math.random() < 0.55) addProp(g, pick(zone.trees), s * x, rand(.9, 1.4), true);
+      else if (Math.random() < 0.3) addProp(g, pick(zone.flowers), s * x + rand(-.3, .3), rand(1.4, 2));
     }
     if (i > 2) {
       const n = Math.random() < 0.3 ? 0 : 1 + ((Math.random() * (1 + Math.min(3, i / 25))) | 0);
@@ -235,19 +374,29 @@ function makeRow(i) {
         if (row.blocked.has(x)) continue;
         row.blocked.add(x);
         const tree = Math.random() < 0.65;
-        addProp(g, tree ? pick(TREES) : pick(ROCKS), x, tree ? rand(1, 1.3) : rand(1.2, 1.6), true);
+        addProp(g, tree ? pick(zone.trees) : pick(zone.rocks), x, tree ? rand(1, 1.3) : rand(1.2, 1.6), true);
       }
     } else if (i === 0) {
-      for (const x of [-3, 3]) { row.blocked.add(x); addProp(g, pick(TREES), x, 1.2, true); }
+      for (const x of [-3, 3]) { row.blocked.add(x); addProp(g, pick(TREES.map(P.nat)), x, 1.2, true); }
     }
-    for (let k = 0; k < 3; k++) { const x = rand(-HALF, HALF); if (!row.blocked.has(Math.round(x))) addProp(g, pick(FLOWERS), x, rand(1.2, 1.8)); }
-    if (i > 4 && Math.random() < 0.35) {
-      const free = [...Array(HALF * 2 + 1)].map((_, k) => k - HALF).filter(x => !row.blocked.has(x));
-      if (free.length) {
-        const c = cloneLoaded(loaded(P.coin)).object;
-        c.scale.setScalar(1.3); c.position.set(pick(free), 0.35, 0);
-        g.add(c); row.coin = c;
-      }
+    for (let k = 0; k < 3; k++) { const x = rand(-HALF, HALF); if (!row.blocked.has(Math.round(x))) addProp(g, pick(zone.flowers), x, rand(1.2, 1.8)); }
+    const free = [...Array(HALF * 2 + 1)].map((_, k) => k - HALF).filter(x => !row.blocked.has(x));
+    if (i > 4 && Math.random() < 0.35 && free.length) {
+      const c = cloneLoaded(loaded(P.coin)).object;
+      c.scale.setScalar(1.3); c.position.set(pick(free), 0.35, 0);
+      g.add(c); row.coin = c;
+    }
+    // power-ups: extra life, coin magnet, or a gem worth five coins
+    const spots = free.filter(x => x !== row.coin?.position.x);
+    if (i > 8 && Math.random() < 0.1 && spots.length) {
+      const r = Math.random(), kind = r < 0.4 ? 'heart' : r < 0.8 ? 'magnet' : 'gem';
+      const look = { heart: ['heart', 0xff5d8a], magnet: ['star', 0x8a5cff], gem: ['jewel', 0x3cd6c8] }[kind];
+      const o = new THREE.Group();
+      const model = fitted(P.plat(look[0]), 0.6); model.position.y = 0.45; o.add(model);
+      const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: look[1], transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }));
+      ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02; o.add(ring);
+      o.position.x = pick(spots); g.add(o);
+      row.power = { obj: o, model, ring, kind };
     }
   }
 
@@ -284,6 +433,40 @@ function makeRow(i) {
     }
     row.dir = dir; row.speed = speed; row.span = WORLD * 2 + 6;
     row.honked = false;
+  }
+
+  if (type === 'rail') {
+    const bed = new THREE.Mesh(box, mats.gravel);
+    bed.scale.set(WORLD * 2, 0.6, 1); bed.position.y = -0.36; bed.receiveShadow = true; g.add(bed);
+    for (let x = -WORLD; x <= WORLD; x++) {
+      const t = cloneLoaded(loaded(P.track)).object; t.rotation.y = Math.PI / 2; t.position.set(x, -0.06, 0); g.add(t);
+    }
+    // crossing signal with two blinking lamps
+    const sx = (Math.random() < 0.5 ? -1 : 1) * (HALF + 1.2);
+    const pole = new THREE.Mesh(box, mats.pole); pole.scale.set(0.1, 1.5, 0.1); pole.position.set(sx, 0.75, 0.4); pole.castShadow = true; g.add(pole);
+    const bar = new THREE.Mesh(box, mats.pole); bar.scale.set(0.6, 0.12, 0.08); bar.position.set(sx, 1.35, 0.42); g.add(bar);
+    const lamps = [-1, 1].map(s => {
+      const l = new THREE.Mesh(lampGeo, new THREE.MeshStandardMaterial({ color: 0x5a1d24, emissive: 0xff3b3b, emissiveIntensity: 0 }));
+      l.position.set(sx + s * 0.22, 1.35, 0.5); g.add(l); return l;
+    });
+    // the train: a locomotive and a few wagons, lined up behind it
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    const train = new THREE.Group();
+    let cursor = 0;
+    const parts = [pick(LOCOS), ...Array.from({ length: 3 + ((Math.random() * 3) | 0) }, () => pick(WAGONS))];
+    for (const name of parts) {
+      const c = fitted(P.train(name), 1.8);
+      c.rotation.y = dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+      ground(c);
+      const len = new THREE.Box3().setFromObject(c).getSize(new THREE.Vector3()).x;
+      c.position.x = -dir * (cursor + len / 2);
+      cursor += len + 0.06;
+      train.add(c);
+    }
+    // centre the group on its own length
+    for (const c of train.children) c.position.x += dir * cursor / 2;
+    train.visible = false; g.add(train);
+    row.train = { obj: train, len: cursor, dir, state: 'wait', timer: rand(1, 4), lamps, bell: 0 };
   }
 
   if (type === 'river') {
@@ -326,13 +509,14 @@ function makeRow(i) {
   return row;
 }
 
-function addProp(g, name, x, scale, collide = false) {
-  const gl = loaded(P.nat(name));
+function addProp(g, path, x, scale, collide = false) {
+  const gl = loaded(path);
   if (!gl) return;
   const o = cloneLoaded(gl).object;
-  o.scale.setScalar(scale);
+  o.scale.setScalar(path.includes('platformer-kit') ? scale * 0.4 : scale);
   o.position.set(x, 0, rand(-0.12, 0.12));
   o.rotation.y = rand(0, Math.PI * 2);
+  if (path.includes('platformer-kit')) ground(o);
   g.add(o);
   return o;
 }
@@ -347,8 +531,11 @@ const pl = {
   root: new THREE.Group(), body: null, mixer: null, actions: null,
   x: 0, row: 0, fromX: 0, fromZ: 0, toX: 0, toRow: 0, t: 1, hopDur: 0.14,
   facing: Math.PI, queue: null, dead: false, riding: null, squash: 0,
+  dur: 0.14, arc: 0.45, shield: false, safe: { x: 0, row: 0 },
 };
 scene.add(pl.root);
+bubble.position.y = 0.42; bubble.visible = false; pl.root.add(bubble);
+const silhouette = new THREE.MeshStandardMaterial({ color: 0x2b2d42, roughness: 1 });
 const shadowBlob = new THREE.Mesh(new THREE.CircleGeometry(0.34, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.18, depthWrite: false }));
 shadowBlob.rotation.x = -Math.PI / 2; shadowBlob.position.y = 0.01; scene.add(shadowBlob);
 
@@ -360,8 +547,104 @@ function setPet(idx) {
   const { object, mixer, actions } = cloneLoaded(loaded(P.pet(PETS[petIndex])));
   object.scale.setScalar(0.5);
   pl.body = object; pl.mixer = mixer; pl.actions = actions;
+  // pets you don't own yet show as a mystery silhouette
+  if (!owned.has(PETS[petIndex])) object.traverse(o => { if (o.isMesh) o.material = silhouette; });
   pl.root.add(object);
   play(state === 'title' ? 'dance' : 'idle');
+  renderTitle();
+}
+
+// ---------- collection ----------
+function renderTitle() {
+  const name = PETS[petIndex], have = owned.has(name), cost = price(name);
+  $('titleBank').textContent = bank;
+  $('petName').textContent = have ? name[0].toUpperCase() + name.slice(1) : '???';
+  $('collection').innerHTML = `<i class="ph-bold ph-paw-print" aria-hidden="true"></i>${owned.size} / ${PETS.length} pets` +
+    (have ? '' : ` · <span class="price-tag">${LEGEND.includes(name) ? 'Legendary' : RARE.includes(name) ? 'Rare' : 'Common'}</span>`);
+  const btn = $('play');
+  if (have) { btn.textContent = "Let's go!"; btn.disabled = false; }
+  else {
+    btn.innerHTML = `${bank >= cost ? 'Unlock' : '<i class="ph-bold ph-lock-simple" aria-hidden="true"></i>'} <span class="coin-dot"></span> ${cost}`;
+    btn.disabled = false;
+    btn.setAttribute('aria-label', bank >= cost ? `Unlock for ${cost} coins` : `Locked, costs ${cost} coins`);
+  }
+  if (have) btn.removeAttribute('aria-label');
+  renderMissions($('titleMissions'), true);
+}
+function unlockPet() {
+  const name = PETS[petIndex], cost = price(name);
+  if (bank < cost) {
+    const btn = $('play'); btn.classList.remove('nope'); void btn.offsetWidth; btn.classList.add('nope');
+    sfx.tone(160, 0.15, { type: 'square', vol: 0.08 });
+    toast(`<i class="ph-bold ph-lock-simple" style="color:var(--tb-dim)"></i>${cost - bank} more coins to go`);
+    return;
+  }
+  bank -= cost; store.set('paw.coins', bank); $('coins').textContent = bank;
+  owned.add(name); store.set('paw.owned', [...owned]);
+  setPet(petIndex);
+  pl.squash = 1;
+  const p = new THREE.Vector3(0, 0.8, 0);
+  bursts.emit(p, { tex: 'star_06', count: 26, colors: [0xffd23d, 0xff8a3d, 0x7cf0a8, 0xffffff, 0x8a5cff], speed: [2, 4.5], up: [3, 6], size: [0.25, 0.5], life: [0.7, 1.1] });
+  bursts.emit(p, { tex: 'light_01', count: 1, color: 0xfff2b0, speed: 0, up: 0, size: 2.5, life: 0.6, gravity: 0, grow: 1.6, additive: true });
+  popText(stage, new THREE.Vector3(0, 1.8, 0), `New pet!`, 'gold big');
+  [523, 659, 784, 1046].forEach((f, k) => sfx.tone(f, 0.16, { type: 'triangle', vol: 0.14, delay: k * 0.08 }));
+}
+
+// ---------- missions ----------
+const MISSIONS = {
+  score:  { text: n => `Reach ${n} in one run`, run: true, steps: [15, 25, 40, 55, 75, 100, 130, 160] },
+  coins:  { text: n => `Grab ${n} coins in one run`, run: true, steps: [4, 6, 8, 10, 13, 16, 20] },
+  roads:  { text: n => `Hop over ${n} road lanes`, steps: [10, 20, 35, 50, 75, 100] },
+  logs:   { text: n => `Ride ${n} logs`, steps: [5, 10, 18, 28, 40, 60] },
+  rails:  { text: n => `Cross ${n} railways`, steps: [2, 4, 7, 10, 15, 22] },
+  close:  { text: n => `Get ${n} close calls`, steps: [2, 4, 7, 10, 15] },
+  powers: { text: n => `Pick up ${n} power-ups`, steps: [1, 2, 4, 6, 9] },
+  speedy: { text: n => `Hit Speedy ×${n}`, run: true, steps: [4, 8, 12] },
+  zone:   { text: n => `Reach ${ZONES[n].name}`, run: true, steps: [1, 2] },
+};
+let mLevel = store.get('paw.mlevel', 0);
+let missions = store.get('paw.missions', null);
+function newMission(taken) {
+  const types = Object.keys(MISSIONS).filter(t => !taken.includes(t));
+  const type = pick(types), m = MISSIONS[type];
+  const tier = Math.min(m.steps.length - 1, Math.floor(mLevel / 3) + ((Math.random() * 2) | 0));
+  return { type, n: m.steps[tier], p: 0, reward: 15 + tier * 10, done: false };
+}
+function refreshMissions() {
+  if (!Array.isArray(missions) || missions.length !== 3 || missions.some(m => !MISSIONS[m?.type])) missions = [];
+  missions = missions.filter(m => !m.done);
+  for (const m of missions) if (MISSIONS[m.type].run) m.p = 0;
+  while (missions.length < 3) missions.push(newMission(missions.map(m => m.type)));
+  store.set('paw.missions', missions);
+}
+// count progress; run missions take the best value this run, the rest add up across runs
+function track(type, value = 1) {
+  for (const m of missions) {
+    if (m.type !== type || m.done) continue;
+    m.p = MISSIONS[type].run ? Math.max(m.p, value) : m.p + value;
+    if (m.p >= m.n) {
+      m.p = m.n; m.done = true; mLevel++;
+      bank += m.reward; store.set('paw.coins', bank); store.set('paw.mlevel', mLevel);
+      $('coins').textContent = bank;
+      toast(`<i class="ph-bold ph-check-circle"></i>${MISSIONS[type].text(m.n)} <em>+${m.reward}</em>`);
+      [784, 988, 1318].forEach((f, k) => sfx.tone(f, 0.14, { type: 'square', vol: 0.08, delay: k * 0.09 }));
+    }
+  }
+  store.set('paw.missions', missions);
+}
+function renderMissions(el, compact = false) {
+  el.innerHTML = `<h3><i class="ph-bold ph-target" aria-hidden="true"></i>Missions</h3>` + missions.map(m => `
+    <div class="mission${m.done ? ' done' : ''}">
+      <i class="ph-bold ${m.done ? 'ph-check-circle' : 'ph-target'}" aria-hidden="true"></i>
+      <span>${MISSIONS[m.type].text(m.n)}</span>
+      <em>${m.done ? 'Done!' : `<span class="coin-dot"></span>${m.reward}`}</em>
+      ${compact && m.done ? '' : `<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${m.n}" aria-valuenow="${m.p}"><i style="width:${Math.round(m.p / m.n * 100)}%"></i></div>`}
+    </div>`).join('');
+}
+let toastTimer = 0;
+function toast(html) {
+  const el = $('toast'); el.innerHTML = html; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
 }
 function play(name, once = false) {
   if (!pl.actions) return;
@@ -384,14 +667,15 @@ function hop(dx, dz) {
     return;
   }
   pl.fromX = pl.x; pl.fromZ = pl.row; pl.toX = tx; pl.toRow = tr; pl.t = 0;
-  pl.riding = null;
+  pl.dur = pl.hopDur; pl.arc = 0.45;
+  pl.riding = null; pl.nudge = 0;
   sfx.tone(520 + Math.random() * 60, 0.09, { type: 'triangle', vol: 0.18, slide: 380 });
   bursts.emit(new THREE.Vector3(pl.x, 0.05, -pl.row), { tex: 'smoke_04', count: 4, color: 0xffffff, speed: [0.3, 0.8], up: [0.3, 0.8], life: [0.3, 0.5], size: [0.25, 0.4], gravity: -1, grow: 1.8 });
   if (dz > 0) {
     const now = performance.now();
     speedy = now - lastForward < 360 ? speedy + 1 : 0;
     lastForward = now;
-    if (speedy === 4 || speedy === 8 || speedy === 12) popText(stage, new THREE.Vector3(tx, 1.4, -tr), `Speedy ×${speedy}`, 'good');
+    if (speedy === 4 || speedy === 8 || speedy === 12) { popText(stage, new THREE.Vector3(tx, 1.4, -tr), `Speedy ×${speedy}`, 'good'); track('speedy', speedy); }
   }
 }
 
@@ -401,29 +685,83 @@ function landed() {
   if (pl.row > score) {
     score = pl.row; $('score').textContent = score;
     ensureRows(score);
+    track('score', score);
+    if (row?.type === 'road') track('roads');
+    if (row?.type === 'rail') track('rails');
+    // new season: banner, bonus coins
+    const z = Math.floor(score / ZONE_LEN);
+    if (z > lastZone) {
+      lastZone = z;
+      const zone = ZONES[z % ZONES.length];
+      $('zoneName').textContent = zone.name; $('zoneSub').textContent = `Season bonus +10`;
+      const el = $('zone'); el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+      addCoins(10, new THREE.Vector3(pl.x, 1, -pl.row));
+      track('zone', z);
+      [523, 659, 784, 1046, 1318].forEach((f, k) => sfx.tone(f, 0.2, { type: 'triangle', vol: 0.12, delay: k * 0.07 }));
+    }
   }
-  if (row?.coin && Math.round(pl.x) === Math.round(row.coin.position.x)) {
-    const p = new THREE.Vector3(row.coin.position.x, 0.6, -pl.row);
-    row.group.remove(row.coin); row.coin = null;
-    coins++; bank++; store.set('paw.coins', bank); $('coins').textContent = bank;
-    bursts.emit(p, { tex: 'star_06', count: 10, colors: [0xffd23d, 0xffffff, 0xffa53d], speed: [1.5, 3], up: [2, 4], size: [0.25, 0.45], life: [0.5, 0.8], additive: false });
-    popText(stage, p, '+1', 'gold');
-    sfx.tone(988, 0.08, { type: 'square', vol: 0.1 }); sfx.tone(1318, 0.18, { type: 'square', vol: 0.1, delay: 0.07 });
-  }
+  if (row?.type !== 'river') pl.safe = { x: pl.x, row: pl.row };
+  if (row?.coin && Math.round(pl.x) === Math.round(row.coin.position.x)) collectCoin(row);
+  if (row?.power && Math.round(pl.x) === row.power.obj.position.x) collectPower(row);
   if (row?.type === 'river') {
     const m = supportAt(row, pl.x);
     if (!m) return die('water');
     pl.riding = m;
+    // a paw on the very tip still counts: pull the pet back onto the log
+    if (m.kind === 'log') {
+      const mx = m.obj.position.x, inner = Math.max(0, m.len / 2 - 0.35);
+      pl.nudge = Math.min(mx + inner, Math.max(mx - inner, pl.x)) - pl.x;
+    }
     m.obj.userData.bob = 1;
+    if (m.kind === 'log') track('logs');
     bursts.emit(new THREE.Vector3(pl.x, 0, -pl.row), { tex: 'circle_05', count: 6, color: 0xe8fbff, speed: [0.5, 1.2], up: [0.8, 1.5], size: [0.12, 0.22], life: [0.3, 0.5] });
   }
   if (pl.queue) { const q = pl.queue; pl.queue = null; hop(q[0], q[1]); }
 }
 
+function addCoins(n, p) {
+  coins += n; bank += n; store.set('paw.coins', bank); $('coins').textContent = bank;
+  popText(stage, p, `+${n}`, 'gold');
+  track('coins', coins);
+}
+function collectCoin(row) {
+  const c = row.coin, p = new THREE.Vector3(c.position.x, 0.6, -row.i + c.position.z);
+  row.group.remove(c); row.coin = null;
+  bursts.emit(p, { tex: 'star_06', count: 10, colors: [0xffd23d, 0xffffff, 0xffa53d], speed: [1.5, 3], up: [2, 4], size: [0.25, 0.45], life: [0.5, 0.8], additive: false });
+  addCoins(1, p);
+  sfx.tone(988, 0.08, { type: 'square', vol: 0.1 }); sfx.tone(1318, 0.18, { type: 'square', vol: 0.1, delay: 0.07 });
+}
+function collectPower(row) {
+  const { obj, kind } = row.power, p = new THREE.Vector3(obj.position.x, 0.7, -row.i);
+  row.group.remove(obj); row.power = null;
+  const col = { heart: [0xff5d8a, 0xffc2d6], magnet: [0x8a5cff, 0xd6c2ff], gem: [0x3cd6c8, 0xc2fff6] }[kind];
+  bursts.emit(p, { tex: 'magic_03', count: 14, colors: [...col, 0xffffff], speed: [1.5, 3.5], up: [2, 4], size: [0.3, 0.55], life: [0.5, 0.9], additive: true });
+  if (kind === 'heart') { pl.shield = true; bubble.visible = true; bubble.scale.setScalar(0.01); popText(stage, p, 'Extra life!', 'good'); }
+  if (kind === 'magnet') { magnetT = 10; popText(stage, p, 'Coin magnet!', 'good'); }
+  if (kind === 'gem') { addCoins(5, p); }
+  track('powers');
+  [660, 880, 1320].forEach((f, k) => sfx.tone(f, 0.12, { type: 'sine', vol: 0.16, delay: k * 0.06 }));
+}
+// the extra life pops instead of you
+function rescue(kind) {
+  pl.shield = false; invuln = 1.6;
+  const p = pl.root.position.clone().setY(0.6);
+  bursts.emit(p, { tex: 'circle_05', count: 18, colors: [0xbdf2ff, 0xffd6ec, 0xffffff], speed: [2, 4], up: [1, 3], size: [0.12, 0.3], life: [0.4, 0.7] });
+  popText(stage, p.clone().setY(1.5), 'Saved!', 'good big');
+  sfx.tone(880, 0.08, { type: 'sine', vol: 0.2 }); sfx.noise(0.12, { vol: 0.25, freq: 3000 });
+  if (kind === 'water' || kind === 'drift') {
+    // float back to the last dry tile
+    pl.riding = null; pl.nudge = 0; pl.queue = null;
+    pl.fromX = pl.x; pl.fromZ = pl.row; pl.toX = pl.safe.x; pl.toRow = pl.safe.row; pl.t = 0;
+    pl.dur = 0.5; pl.arc = 1.6;
+    pl.facing = pl.safe.row < pl.row ? 0 : Math.PI;
+  } else if (!reduced) shake = 0.15;
+}
+
 function supportAt(row, x) {
   for (const m of row.movers) {
     const mx = m.obj.position.x;
-    if (Math.abs(x - mx) <= m.len / 2 + (m.kind === 'lily' ? 0.05 : -0.05)) return m;
+    if (Math.abs(x - mx) <= m.len / 2 + (m.kind === 'lily' ? 0.05 : 0.35)) return m;
   }
   return null;
 }
@@ -433,13 +771,16 @@ const DEATHS = {
   water: ['Splash!', ['Turns out you can\'t swim.', 'The river wins this round.', 'Logs float. You don\'t.']],
   drift: ['Swept away!', ['The log took you off the map.', 'Ride the log, but not that far.']],
   slow: ['Too slow!', ['The world moved on without you.', 'Keep hopping forward!']],
+  train: ['Choo choo!', ['The 5:15 was right on time.', 'You heard the bell, right?', 'Trains always win.']],
 };
 
 function die(kind, mover) {
   if (pl.dead) return;
+  if (pl.shield && kind !== 'slow') return rescue(kind);
   pl.dead = true; state = 'dead';
   const pos = pl.root.position.clone();
-  if (kind === 'car') {
+  bubble.visible = false; magnetT = 0; $('zone').classList.remove('show');
+  if (kind === 'car' || kind === 'train') {
     pl.body.scale.set(0.62, 0.12, 0.62);
     bursts.emit(pos.clone().setY(0.6), { tex: 'star_06', count: 14, colors: [0xffffff, 0xffe066], speed: [2, 4], up: [2, 4], size: [0.2, 0.4], life: [0.5, 0.9] });
     bursts.emit(pos.clone().setY(0.2), { tex: 'smoke_04', count: 8, color: 0xffffff, speed: [1, 2], up: [0.5, 1.5], size: [0.4, 0.7], life: [0.5, 0.8], gravity: 0, grow: 2 });
@@ -459,6 +800,9 @@ function die(kind, mover) {
   $('finalScore').textContent = score;
   $('finalCoins').textContent = coins;
   $('statScore').classList.toggle('new', isBest && score > 0);
+  renderMissions($('overMissions'));
+  const canBuy = PETS.some(n => !owned.has(n) && price(n) <= bank);
+  $('unlockHint').hidden = !canBuy; $('toPets').classList.toggle('glow', canBuy);
   setTimeout(() => { $('over').hidden = false; $('retry').focus(); }, 900);
 }
 
@@ -468,8 +812,11 @@ function reset() {
   for (const [, row] of rows) world.remove(row.group);
   rows.clear(); maxRowBuilt = -1; lastType = 'grass'; streak = 0;
   for (let i = -BEHIND; i < AHEAD; i++) makeRow(i);
-  Object.assign(pl, { x: 0, row: 0, toX: 0, toRow: 0, t: 1, dead: false, riding: null, queue: null, facing: Math.PI, squash: 0 });
-  if (pl.body) pl.body.scale.setScalar(0.5);
+  Object.assign(pl, { x: 0, row: 0, toX: 0, toRow: 0, t: 1, dead: false, riding: null, queue: null, facing: Math.PI, squash: 0, shield: false, safe: { x: 0, row: 0 }, nudge: 0 });
+  bubble.visible = false; magnetT = 0; invuln = 0; lastZone = 0;
+  $('shieldPill').hidden = true; $('magnetPill').hidden = true;
+  refreshMissions();
+  if (pl.body) { pl.body.scale.setScalar(0.5); pl.body.visible = true; }
   pl.root.position.set(0, 0, 0);
   score = 0; coins = 0; sinking = 0; speedy = 0;
   camZ = 0; camX = 0;
@@ -477,6 +824,7 @@ function reset() {
 }
 function start() {
   sfx.unlock();
+  if (!owned.has(PETS[petIndex])) return;
   $('title').hidden = true; $('over').hidden = true; $('hud').hidden = false;
   if (state !== 'title') reset();
   state = 'play';
@@ -484,7 +832,16 @@ function start() {
   sfx.tone(660, 0.1, { type: 'triangle', vol: 0.15 }); sfx.tone(990, 0.15, { type: 'triangle', vol: 0.15, delay: 0.08 });
 }
 
-$('play').addEventListener('click', start);
+$('play').addEventListener('click', () => { sfx.unlock(); owned.has(PETS[petIndex]) ? start() : unlockPet(); });
+$('missionsBtn').addEventListener('click', () => {
+  const open = $('titleMissions').classList.toggle('open');
+  $('missionsBtn').setAttribute('aria-expanded', open);
+});
+$('toPets').addEventListener('click', () => {
+  $('over').hidden = true; $('hud').hidden = true;
+  reset(); state = 'title'; $('title').hidden = false;
+  play('dance'); renderTitle();
+});
 $('retry').addEventListener('click', start);
 $('prev').addEventListener('click', () => { setPet(petIndex - 1); sfx.unlock(); sfx.tone(440, 0.06, { type: 'triangle', vol: 0.12 }); });
 $('next').addEventListener('click', () => { setPet(petIndex + 1); sfx.unlock(); sfx.tone(560, 0.06, { type: 'triangle', vol: 0.12 }); });
@@ -495,7 +852,7 @@ addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   const map = { arrowup: [0, 1], w: [0, 1], arrowdown: [0, -1], s: [0, -1], arrowleft: [-1, 0], a: [-1, 0], arrowright: [1, 0], d: [1, 0] };
   if (map[k]) { e.preventDefault(); if (state === 'play') hop(...map[k]); else if (state === 'title' && (k === 'arrowleft' || k === 'a')) $('prev').click(); else if (state === 'title' && (k === 'arrowright' || k === 'd')) $('next').click(); }
-  if ((k === 'enter' || k === ' ') && state !== 'play' && !e.target.closest?.('button')) { e.preventDefault(); if (state === 'title' || !$('over').hidden) start(); }
+  if ((k === 'enter' || k === ' ') && state !== 'play' && !e.target.closest?.('button')) { e.preventDefault(); if (state === 'title') $('play').click(); else if (!$('over').hidden) start(); }
   if (k === 'm') $('mute').click();
 });
 // touch / mouse: swipe to steer, tap to hop forward
@@ -509,7 +866,8 @@ addEventListener('pointerup', e => {
 });
 
 // ---------- main loop ----------
-let lastT = performance.now(), elapsed = 0;
+let lastT = performance.now(), elapsed = 0, ambientT = 0;
+const skyCol = new THREE.Color();
 const tmp = new THREE.Vector3();
 function tick() {
   const nowT = performance.now();
@@ -532,22 +890,67 @@ function tick() {
       if (m.kind === 'car') m.obj.position.y = Math.abs(Math.sin(t * 18 + m.obj.id)) * 0.012;
     }
   }
-  // coins spin
-  for (const [, row] of rows) if (row.coin) { row.coin.rotation.y += dt * 3; row.coin.position.y = 0.35 + Math.sin(t * 3 + row.i) * 0.06; }
+  // trains: wait, ring the bell, then thunder across
+  for (const [, row] of rows) {
+    const tr = row.train;
+    if (!tr) continue;
+    const near = Math.abs(row.i - pl.row) < 9 && state === 'play';
+    if (tr.state === 'wait') {
+      tr.timer -= dt;
+      if (tr.timer < 1.4) {
+        const on = Math.floor(t * 6) % 2;
+        tr.lamps[0].material.emissiveIntensity = on ? 3 : 0; tr.lamps[1].material.emissiveIntensity = on ? 0 : 3;
+        tr.bell -= dt;
+        if (near && tr.bell <= 0) { tr.bell = 0.33; sfx.tone(1568, 0.25, { type: 'triangle', vol: 0.07 }); sfx.tone(2093, 0.2, { type: 'sine', vol: 0.04 }); }
+      }
+      if (tr.timer <= 0) {
+        tr.state = 'run'; tr.obj.visible = true;
+        tr.x = -tr.dir * (WORLD + tr.len / 2 + 2);
+        if (near) sfx.noise(0.9, { vol: 0.22, freq: 180, type: 'lowpass' });
+      }
+    } else {
+      tr.x += tr.dir * 26 * dt;
+      tr.obj.position.x = tr.x;
+      tr.obj.position.y = 0.08 + Math.abs(Math.sin(t * 30)) * 0.01;
+      if (Math.abs(tr.x) > WORLD + tr.len / 2 + 2.5) {
+        tr.state = 'wait'; tr.obj.visible = false; tr.timer = rand(2.5, 6);
+        tr.lamps[0].material.emissiveIntensity = tr.lamps[1].material.emissiveIntensity = 0;
+      }
+    }
+  }
+  // coins spin; the magnet pulls nearby ones in
+  if (magnetT > 0 && state === 'play') magnetT = Math.max(0, magnetT - dt);
+  for (const [, row] of rows) {
+    if (row.coin) {
+      const c = row.coin;
+      c.rotation.y += dt * (magnetT > 0 ? 9 : 3); c.position.y = 0.35 + Math.sin(t * 3 + row.i) * 0.06;
+      if (magnetT > 0 && !pl.dead) {
+        const dx = pl.root.position.x - c.position.x, dz = pl.root.position.z - (-row.i + c.position.z), d = Math.hypot(dx, dz);
+        if (d < 0.45) collectCoin(row);
+        else if (d < 3.2) { const k = Math.min(1, dt * 9 / d); c.position.x += dx * k; c.position.z += dz * k; }
+      }
+    }
+    if (row.power) {
+      const { model, ring } = row.power;
+      model.rotation.y += dt * 2; model.position.y = 0.45 + Math.sin(t * 3 + row.i) * 0.08;
+      ring.scale.setScalar(1 + Math.sin(t * 4) * 0.12); ring.material.opacity = 0.4 + Math.sin(t * 4) * 0.15;
+    }
+  }
 
   // player hop
   if (state === 'play' || state === 'dead') {
     if (pl.t < 1 && !pl.dead) {
-      pl.t = Math.min(1, pl.t + dt / pl.hopDur);
+      pl.t = Math.min(1, pl.t + dt / pl.dur);
       const k = pl.t;
       pl.x = pl.fromX + (pl.toX - pl.fromX) * k;
       const z = pl.fromZ + (pl.toRow - pl.fromZ) * k;
-      pl.root.position.set(pl.x, Math.sin(k * Math.PI) * 0.45, -z);
+      pl.root.position.set(pl.x, Math.sin(k * Math.PI) * pl.arc, -z);
       if (pl.t >= 1) landed();
     } else if (!pl.dead) {
       if (pl.riding && rows.get(pl.row)) {
         const row = rows.get(pl.row);
         pl.x += row.dir * row.speed * dt;
+        if (pl.nudge) { const n = pl.nudge * Math.min(1, dt * 14); pl.x += n; pl.nudge -= n; }
         if (Math.abs(pl.x) > HALF + 0.6) die('drift');
       }
       pl.root.position.set(pl.x, pl.riding ? pl.riding.obj.position.y + 0.3 : 0, -pl.row);
@@ -563,15 +966,28 @@ function tick() {
     if (sinking) { sinking = Math.max(0, sinking - dt); pl.root.position.y = -0.9 * (1 - sinking); }
 
     // collisions with cars (checked every frame, including mid-hop)
-    if (!pl.dead) {
+    // extra-life bubble, blink while invulnerable, power-up HUD
+    if (invuln > 0) invuln = Math.max(0, invuln - dt);
+    if (pl.body && !pl.dead) pl.body.visible = invuln === 0 || Math.floor(t * 14) % 2 === 0;
+    bubble.material.uniforms.uTime.value = t;
+    if (bubble.visible) bubble.scale.setScalar(damp(bubble.scale.x, pl.shield ? 1 + Math.sin(t * 5) * 0.03 : 0.01, 10, dt));
+    if (!pl.shield && bubble.scale.x < 0.05) bubble.visible = false;
+    $('shieldPill').hidden = !pl.shield || state !== 'play';
+    $('magnetPill').hidden = magnetT <= 0;
+    if (magnetT > 0) $('magnetT').textContent = Math.ceil(magnetT);
+
+    if (!pl.dead && invuln === 0) {
       const r = Math.round(-pl.root.position.z);
       const row = rows.get(r);
+      const tr = row?.train;
+      if (tr?.state === 'run' && Math.abs(tr.x - pl.root.position.x) < tr.len / 2 + 0.3) die('train');
       if (row?.type === 'road') {
         for (const m of row.movers) {
           const d = Math.abs(m.obj.position.x - pl.root.position.x);
           if (d < m.len / 2 + 0.28) { die('car', m); break; }
           if (!m.close && d < m.len / 2 + 0.75 && Math.sign(pl.root.position.x - m.obj.position.x) === row.dir) {
             m.close = true;
+            track('close');
             if (Math.random() < 0.5) popText(stage, new THREE.Vector3(pl.root.position.x, 1.5, -r), pick(['Close call!', 'Phew!', 'Whoosh!']), 'good');
             if (Math.random() < 0.4) sfx.tone(392, 0.18, { type: 'square', vol: 0.05 });
           }
@@ -585,6 +1001,20 @@ function tick() {
     if (state === 'play' && pl.row < camZ - 4.5 && !pl.dead) die('slow');
   } else if (state === 'title') {
     pl.root.rotation.y = damp(pl.root.rotation.y, 0.35 + Math.sin(t * 0.8) * 0.35, 4, dt);
+  }
+
+  // the sky follows the season, with falling leaves or snow
+  const zi = zoneOf(state === 'title' ? 0 : Math.round(camZ + 3));
+  skyCol.setHex(ZONES[zi].sky);
+  scene.background.lerp(skyCol, 1 - Math.exp(-1.5 * dt)); scene.fog.color.copy(scene.background);
+  if (!reduced && zi > 0 && state !== 'title') {
+    ambientT -= dt;
+    if (ambientT <= 0) {
+      ambientT = zi === 2 ? 0.05 : 0.1;
+      const p = new THREE.Vector3(camX + rand(-7, 7), rand(5, 7), -camZ + rand(-9, 3));
+      if (zi === 2) bursts.emit(p, { tex: 'circle_05', count: 1, color: 0xffffff, speed: [0.1, 0.4], up: [-1.2, -0.6], size: [0.06, 0.13], life: [3, 4], gravity: 0, drag: 1, grow: 1 });
+      else bursts.emit(p, { tex: 'dirt_02', count: 1, colors: [0xe8742c, 0xf2a93b, 0xc8462c], speed: [0.4, 1], up: [-1, -0.5], size: [0.14, 0.22], life: [3.5, 4.5], gravity: 0, drag: 1, grow: 1 });
+    }
   }
 
   camX = damp(camX, camera.aspect < 1 ? Math.max(-1, Math.min(1, pl.x * 0.3)) : Math.max(-2, Math.min(2, pl.x * 0.5)), 3, dt);
@@ -615,8 +1045,8 @@ function tick() {
   await preload(allPaths, p => { bar.style.width = `${Math.round(p * 100)}%`; });
   await stage.envReady;
   reset();
-  setPet(petIndex);
   state = 'title';
+  setPet(petIndex);
   play('dance');
   $('title').hidden = false;
   $('loading').classList.add('done');
