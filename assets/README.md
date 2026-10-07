@@ -21,6 +21,9 @@ Everything in this folder is free to use in commercial and personal projects. Ea
 | `kenney/train-kit` | Locomotives, carriages, trams (track pieces kept for reference) | [Kenney · Train Kit](https://kenney.nl/assets/train-kit) | CC0 |
 | `kenney/fantasy-town-kit` | Modular cottage walls and roofs, windmill, watermill, fences, hedges, stalls, lanterns, fountains | [Kenney · Fantasy Town Kit](https://kenney.nl/assets/fantasy-town-kit) | CC0 |
 | `kenney/survival-kit` | Campfires, tents, barrels, crates, tools, fish, signposts, autumn trees, rocks | [Kenney · Survival Kit](https://kenney.nl/assets/survival-kit) | CC0 |
+| `kenney/space-kit` | Five spaceships (the Backfill player ship and the ships crossing its sky) | [Kenney · Space Kit](https://kenney.nl/assets/space-kit) | CC0 |
+| `kenney/sci-fi-sounds` | Lasers, metal impacts, explosions, force field (Backfill sound effects) | [Kenney · Sci-fi Sounds](https://kenney.nl/assets/sci-fi-sounds) | CC0 |
+| `kenney/digital-audio` | Zaps, tones and power-up jingles (Backfill sound effects) | [Kenney · Digital Audio](https://kenney.nl/assets/digital-audio) | CC0 |
 | `hdri/kloofendal_puresky_1k.hdr` | Sunny sky used for soft image-based lighting | [Poly Haven](https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky) | CC0 |
 
 All models are `.glb` (glTF binary). Most Kenney kits share a single `Textures/colormap.png` palette texture next to the models.
@@ -32,7 +35,8 @@ All models are `.glb` (glTF binary). Most Kenney kits share a single `Textures/c
 | [three.js](https://threejs.org) 0.186 | Rendering, glTF loading, HDR loading, post-processing | MIT |
 | [N8AO](https://github.com/N8python/n8ao) 2.0 | Ambient occlusion (the soft contact shadows in every crease) | ISC |
 | [postprocessing](https://github.com/pmndrs/postprocessing) 6.39 | Dependency of N8AO | Zlib |
-| [Phosphor Icons](https://phosphoricons.com) 2.1 | HUD icons in Meadowlark (icon font) | MIT |
+| [Phosphor Icons](https://phosphoricons.com) 2.1 | HUD icons in Meadowlark and Backfill (icon font) | MIT |
+| [Google Fonts](https://fonts.google.com): Monoton, Orbitron, Chakra Petch | Backfill logo, HUD and body text | OFL |
 
 ## The Toybox kit (`kit/`)
 
