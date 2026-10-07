@@ -47,7 +47,7 @@ const ship = new THREE.Group();
 board.add(ship);
 const shipBody = new THREE.Group();
 ship.add(shipBody);
-const shipGlow = new THREE.PointLight(0xff3fb4, 2, 4, 1.6);
+const shipGlow = new THREE.PointLight(0xff3fb4, 1.2, 4, 1.6);
 shipGlow.position.set(0, 0.4, -0.4);
 ship.add(shipGlow);
 const flame = new THREE.Mesh(
@@ -59,7 +59,7 @@ flame.position.set(0, 0.25, 0.95);
 ship.add(flame);
 const underGlow = new THREE.Mesh(
   new THREE.CircleGeometry(0.9, 32),
-  new THREE.MeshBasicMaterial({ color: 0xff3fb4, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false,
+  new THREE.MeshBasicMaterial({ color: 0xff3fb4, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false,
     map: new THREE.TextureLoader().load('../assets/kenney/particles/circle_05.png') })
 );
 underGlow.rotation.x = -Math.PI / 2;
@@ -134,6 +134,8 @@ function renderSector() {
   hud.sectorNum.textContent = `S${G.sectorIdx + 1}`;
   hud.sectorName.textContent = G.sector.name;
   hud.bar.style.width = `${Math.min(100, (G.sectorCleared / G.sector.target) * 100)}%`;
+  hud.bar.parentElement.classList.toggle('final', !!G.finalWave);
+  if (G.finalWave) hud.sectorName.textContent = `CLEAR THE BOARD · ${G.rows.length}`;
 }
 function renderPower() {
   const el = hud.power;
@@ -264,7 +266,7 @@ function removeRow(row) {
 }
 
 function fillRows(resetIfEmpty = true) {
-  if (!G.sector) return;
+  if (!G.sector || G.finalWave) return;
   if (G.rows.length === 0 && resetIfEmpty) G.frontZ = SPAWN_Z + CELL_D;
   let guard = 0;
   while (rowZ(G.rows.length - 1) > SPAWN_Z + CELL_D && guard++ < 30) spawnBatch();
@@ -344,6 +346,7 @@ function land(p, t) {
     row.cells[p.lane].pop = 1;
     G.junk++;
     breakCombo();
+    if (G.finalWave) renderSector();
     audio.play('junk', { gain: 0.8 });
     fx.burst(x, 0.4, row.z, 0xff5a6a, 14, 4);
     popup('JUNK', x, 0.6, row.z, '#ff5a6a');
@@ -435,20 +438,20 @@ function clearRows(list, { pulse = false } = {}) {
   const w = G.lanes * CELL_W;
   for (const r of rows) {
     const color = ROW_COLORS[r.type] || world.palNow.brick.getHex();
-    fx.flash(0, 0.5, r.z, w + 0.6, CELL_D, color, 0.4);
+    fx.flash(0, 0.5, r.z, w + 0.6, CELL_D, color, 0.25);
     r.cells.forEach((c, l) => {
       if (!c) return;
       const cc = c.kind === 'player' ? 0xffffff : c.kind === 'bomb' ? 0xff3355 : color;
       fx.shatter(laneX(l), CELL_Y, r.z, cc, reduced ? 3 : 5, 6);
-      fx.burst(laneX(l), CELL_Y, r.z, cc, reduced ? 6 : 12, 7, 0.35);
+      fx.burst(laneX(l), CELL_Y, r.z, cc, reduced ? 3 : 6, 7, 0.3);
     });
   }
   if (bombs) {
     for (const r of rows) if (r.type === 'bomb') fx.ring(0, 0.3, r.z, 0xff3355, 9, 0.6);
-    audio.play('bomb'); shake(0.45); G.fovKick = 6;
+    audio.play('bomb'); shake(0.45); G.fovKick = 3;
   } else {
     shake(0.08 + count * 0.06);
-    G.fovKick = Math.max(G.fovKick, 1.5 + count);
+    G.fovKick = Math.max(G.fovKick, 0.6 + count * 0.4);
   }
   audio.play(linked ? 'link' : 'clear', { rate: Math.min(1.6, 1 + G.combo * 0.04), gain: 0.8 });
 
@@ -470,13 +473,18 @@ function clearRows(list, { pulse = false } = {}) {
   G.sectorCleared += count;
   G.totalCleared += count;
   for (let k = 0; k < gold; k++) grantPower();
-  if (G.rows.length === 0 && !pulse && G.state === 'play') {
+  if (G.rows.length === 0 && !pulse && !G.finalWave && G.state === 'play') {
     addScore(2000);
     setTimeout(() => popup('CLEAN SWEEP +2000', 0, 1, -6, '#9ffcff', 'huge'), 300);
   }
+  if (!G.finalWave && G.sectorCleared >= G.sector.target && G.state === 'play') {
+    // no new rows from here: the sector ends when the board is empty
+    G.finalWave = true;
+    audio.play('power');
+    banner('FINAL WAVE', 'CLEAR THE BOARD', `${G.rows.length} rows left`);
+  }
   renderSector();
   renderCombo();
-  if (G.sectorCleared >= G.sector.target && G.state === 'play') startWarp();
 }
 
 function breakCombo() {
@@ -490,7 +498,7 @@ function startFever() {
   audio.fever = true;
   audio.play('fever');
   hud.fever.classList.remove('show'); void hud.fever.offsetWidth; hud.fever.classList.add('show');
-  G.fovKick = 8;
+  G.fovKick = 4;
 }
 
 // ---------- power-ups ----------
@@ -544,6 +552,7 @@ function barrierHit() {
   }
   for (const r of [...rows].reverse()) { removeRow(r); G.rows.splice(G.rows.indexOf(r), 1); G.frontZ -= CELL_D; }
   fx.ring(0, 0.3, DANGER_Z, 0xff2050, 12, 0.7);
+  if (G.finalWave) renderSector();
   popup(G.barrier === 0 ? 'LAST BARRIER!' : 'BARRIER HIT', 0, 1.2, DANGER_Z - 2, '#ff3355', 'big');
 }
 
@@ -591,9 +600,10 @@ function applySector(idx, instant = false) {
   G.lanes = G.sector.lanes;
   G.lane = Math.min(G.lane, G.lanes - 1);
   G.sectorCleared = 0;
+  G.finalWave = false;
   world.setPalette(G.sector.pal, instant);
   world.buildTrack(G.lanes);
-  audio.tempo = Math.min(150, 108 + idx * 4);
+  audio.tempo = Math.min(172, Math.round(92 + G.sector.speed * 70)); // music follows the board speed
   audio.intensity = Math.min(1, idx / 6);
   fitCamera();
   renderSector();
@@ -604,7 +614,9 @@ function startWarp() {
   G.warpT = 0;
   G.warpStep = 0;
   audio.play('sector');
-  banner(`SECTOR ${G.sectorIdx + 1}`, 'CLEAR', `+${(G.rows.length * 50 * (G.sectorIdx + 1)).toLocaleString()} bonus`);
+  const bonus = 1000 * (G.sectorIdx + 1);
+  addScore(bonus);
+  banner(`SECTOR ${G.sectorIdx + 1}`, 'CLEAR', `+${bonus.toLocaleString()} bonus`);
   G.projectiles.forEach(p => board.remove(p.mesh));
   G.projectiles = [];
 }
@@ -627,7 +639,7 @@ function updateWarp(dt) {
     G.rows.forEach(removeRow);
     G.rows = [];
     audio.play('warp');
-    G.fovKick = 14;
+    G.fovKick = 9;
     applySector(G.sectorIdx + 1);
     G.barrier = Math.min(MAX_BARRIER, G.barrier + 1);
     renderPips();
@@ -841,11 +853,12 @@ function step(dt) {
     G.cooldown -= dt;
     const prog = G.sectorCleared / G.sector.target;
     let speed = G.sector.speed * (1 + 0.3 * prog) * slowF;
-    if (G.frontZ < -10) speed *= 3; // pull rows in when the board runs thin
+    if (G.frontZ < -11) speed *= 2; // pull rows in when the board runs thin
     G.frontZ += speed * CELL_D * dt;
     fillRows();
     updateProjectiles(dt);
     if (G.frontZ >= DANGER_Z) barrierHit();
+    if (G.finalWave && G.rows.length === 0 && G.state === 'play') startWarp();
 
     if (G.combo > 0) { G.comboTimer -= dt; if (G.comboTimer <= 0) { G.combo = 0; renderCombo(); } }
     if (G.fever > 0) { G.fever -= dt; if (G.fever <= 0) { audio.fever = false; renderCombo(); } }
@@ -970,7 +983,7 @@ function step(dt) {
   camera.updateProjectionMatrix();
 
   world.uniforms.uFever.value += ((G.fever > 0 ? 1 : 0) - world.uniforms.uFever.value) * Math.min(1, dt * 3);
-  world.bloom.strength = 0.7 + world.uniforms.uFever.value * 0.35 + G.fovKick * 0.03;
+  world.bloom.strength = 0.42 + world.uniforms.uFever.value * 0.12 + G.fovKick * 0.01;
   const scrollSpeed = G.state === 'warp' ? 60 * Math.sin(Math.min(1, G.warpT / 3) * Math.PI) + 8 : playing ? 8 * slowF : 4;
   G.scroll += (scrollSpeed - G.scroll) * Math.min(1, dt * 3);
   world.update(dt, G.t, G.scroll);

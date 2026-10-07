@@ -4,28 +4,28 @@
 
 // palette: brick neon, accent (grid, rails), sky top, sky horizon, sun top, sun bottom
 export const SECTORS = [
-  { name: 'BOOT SEQUENCE', lanes: 4, speed: 0.26, target: 8, gaps: [1, 1], mix: {},
+  { name: 'BOOT SEQUENCE', lanes: 4, speed: 0.45, target: 30, gaps: [1, 1], mix: {},
     tip: 'Fill the gaps. Clear the rows.',
     pal: [0x2ef2ff, 0xff3fb4, 0x12052e, 0x6a1a6e, 0xffe14d, 0xff2a8a] },
-  { name: 'CHAIN LINK', lanes: 4, speed: 0.29, target: 10, gaps: [1, 2], mix: { linked: 0.4 },
+  { name: 'CHAIN LINK', lanes: 4, speed: 0.52, target: 36, gaps: [1, 2], mix: { linked: 0.4 },
     tip: 'Linked rows only clear together.',
     pal: [0x3d9bff, 0x2ef2ff, 0x03152b, 0x0d5a6e, 0xc8ff5a, 0x1ad1ff] },
-  { name: 'WIDE OPEN', lanes: 5, speed: 0.31, target: 12, gaps: [1, 2], mix: { linked: 0.2, gold: 0.12 },
+  { name: 'WIDE OPEN', lanes: 5, speed: 0.58, target: 42, gaps: [1, 2], mix: { linked: 0.2, gold: 0.12 },
     tip: 'Five lanes. Gold rows drop power-ups.',
     pal: [0xff6a3d, 0xffc940, 0x1a0726, 0x7a2440, 0xfff07a, 0xff4d2e] },
-  { name: 'HEAVY METAL', lanes: 5, speed: 0.33, target: 12, gaps: [1, 2], mix: { armor: 0.32, linked: 0.12 },
+  { name: 'HEAVY METAL', lanes: 5, speed: 0.64, target: 46, gaps: [1, 2], mix: { armor: 0.32, linked: 0.12 },
     tip: 'Armored rows have to break twice.',
     pal: [0xb46bff, 0x8fb8ff, 0x0a0a2a, 0x353a8a, 0xe0e8ff, 0x7b5cff] },
-  { name: 'GOLD RUSH', lanes: 5, speed: 0.37, target: 14, gaps: [1, 2], mix: { gold: 0.3, linked: 0.15, armor: 0.1 },
+  { name: 'GOLD RUSH', lanes: 5, speed: 0.71, target: 50, gaps: [1, 2], mix: { gold: 0.3, linked: 0.15, armor: 0.1 },
     tip: 'Gold everywhere. Spend your power-ups.',
     pal: [0xff4fd8, 0xffc940, 0x1c0718, 0x8a2a3a, 0xfff3a8, 0xff8a1a] },
-  { name: 'DEMOLITION', lanes: 6, speed: 0.36, target: 14, gaps: [1, 3], mix: { bomb: 0.22, gold: 0.1, linked: 0.1 },
+  { name: 'DEMOLITION', lanes: 6, speed: 0.77, target: 54, gaps: [1, 3], mix: { bomb: 0.22, gold: 0.1, linked: 0.1 },
     tip: 'Bomb rows take their neighbours with them.',
     pal: [0xffa13d, 0xff3355, 0x1a0410, 0x6e1022, 0xffd34d, 0xff1a4a] },
-  { name: 'GLITCH CITY', lanes: 6, speed: 0.39, target: 16, gaps: [1, 3], mix: { glitch: 0.26, bomb: 0.1, armor: 0.1 },
+  { name: 'GLITCH CITY', lanes: 6, speed: 0.84, target: 58, gaps: [1, 3], mix: { glitch: 0.26, bomb: 0.1, armor: 0.1 },
     tip: 'Glitched rows slide sideways. Time your shots.',
     pal: [0x6b7bff, 0x2ef2ff, 0x080320, 0x3a1a7a, 0x9ffcff, 0xd14dff] },
-  { name: 'OVERDRIVE', lanes: 6, speed: 0.44, target: 18, gaps: [1, 3],
+  { name: 'OVERDRIVE', lanes: 6, speed: 0.92, target: 64, gaps: [1, 3],
     mix: { linked: 0.14, armor: 0.12, gold: 0.1, bomb: 0.1, glitch: 0.12 },
     tip: 'Everything at once. Hold the line.',
     pal: [0xff3fb4, 0x2ef2ff, 0x12052e, 0x6a1a6e, 0xffe14d, 0xff2a8a] },
@@ -40,8 +40,8 @@ export function sectorInfo(index, rng) {
   return {
     ...base, index, lanes,
     name: `${base.name} ×${lap + 1}`,
-    speed: SECTORS[7].speed * (1 + 0.1 * lap) + 0.01 * (index % 6),
-    target: 18 + lap * 2,
+    speed: SECTORS[7].speed * (1 + 0.06 * (index - SECTORS.length + 1)),
+    target: 64 + lap * 6,
     gaps: [1, Math.min(lanes - 1, 3)],
     mix: { linked: 0.14, armor: 0.13, gold: 0.1, bomb: 0.11, glitch: 0.13 },
     tip: 'Endless overdrive. How far can you go?',
@@ -89,7 +89,13 @@ export function makeRows(sector, rng, prevGaps) {
   if (type === 'linked') {
     const lower = { type: 'linked', filled: gapsRow(1, Math.min(2, gmax), prevGaps) };
     // classic: a solid row waiting on its partner, or two gapped rows
-    const upper = { type: 'linked', filled: rng() < 0.55 ? new Array(L).fill(true) : gapsRow(1, 1) };
+    // a gapped partner keeps its gap above one of the lower gaps, so the
+    // shot can reach it (a full lower row would otherwise wall it off)
+    const upper = { type: 'linked', filled: new Array(L).fill(true) };
+    if (rng() >= 0.55) {
+      const open = lower.filled.map((f, i) => f ? -1 : i).filter(i => i >= 0);
+      upper.filled[open[Math.floor(rng() * open.length)]] = false;
+    }
     return [lower, upper];
   }
   const spec = { type, filled: gapsRow(gmin, gmax, prevGaps) };

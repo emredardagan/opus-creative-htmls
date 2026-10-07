@@ -103,13 +103,13 @@ const TEX = {
 function mat(tex, emissive, intensity = 2.2, opts = {}) {
   return new THREE.MeshStandardMaterial({
     color: 0x0c0718, metalness: 0.3, roughness: 0.35,
-    emissive, emissiveMap: tex, emissiveIntensity: intensity * 0.75, ...opts,
+    emissive, emissiveMap: tex, emissiveIntensity: intensity * 0.62, ...opts,
   });
 }
 
 export const MATS = {
   base: mat(TEX.base, 0x2ef2ff),
-  player: mat(TEX.player, 0xfff0ff, 1.7),
+  player: mat(TEX.player, 0xfff0ff, 1.25),
   linked: mat(TEX.linked, 0x7dffb0),
   armor: mat(TEX.armor, 0xa8c8ff, 2.0, { metalness: 0.85, roughness: 0.2, color: 0x1a2440 }),
   cracked: mat(TEX.cracked, 0xa8c8ff, 2.2, { metalness: 0.85, roughness: 0.3, color: 0x141a30 }),

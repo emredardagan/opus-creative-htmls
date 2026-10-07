@@ -224,3 +224,7 @@ h2 { font-family: var(--hud); font-weight: 900; letter-spacing: .2em; font-size:
   .logo, .power { animation: none; }
   .pop { animation-duration: .8s; }
 }
+.bar.final { box-shadow: 0 0 0 1px var(--gold), 0 0 14px rgba(255, 201, 64, .6); animation: finalPulse .8s ease-in-out infinite; }
+.bar.final #sectorBar { background: var(--gold); box-shadow: 0 0 12px var(--gold); }
+@keyframes finalPulse { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .bar.final { animation: none; } }

@@ -25,7 +25,7 @@ export function createFx(scene) {
       void main(){ vC = color; vA = alpha; vec4 mv = modelViewMatrix*vec4(position,1.);
         gl_PointSize = size * uScale / -mv.z; gl_Position = projectionMatrix*mv; }`,
     fragmentShader: `uniform sampler2D uTex; varying vec3 vC; varying float vA;
-      void main(){ vec4 t = texture2D(uTex, gl_PointCoord); gl_FragColor = vec4(vC * t.r * vA * 2.2, t.r * vA); }`,
+      void main(){ vec4 t = texture2D(uTex, gl_PointCoord); gl_FragColor = vec4(vC * t.r * vA * 1.4, t.r * vA); }`,
   });
   const points = new THREE.Points(geo, mat);
   points.frustumCulled = false;
@@ -129,7 +129,7 @@ export function createFx(scene) {
       r.t += dt;
       const f = r.t / r.dur;
       if (f >= 1) { scene.remove(r.m); r.m.material.dispose(); rings.splice(i, 1); continue; }
-      if (r.flash) { r.m.scale.set(r.w * (1 + f * 0.15), 1, r.d * (1 + f * 1.5)); r.m.material.opacity = (1 - f) * 0.9; }
+      if (r.flash) { r.m.scale.set(r.w * (1 + f * 0.15), 1, r.d * (1 + f * 1.5)); r.m.material.opacity = (1 - f) * 0.4; }
       else { r.m.scale.setScalar(0.3 + f * r.maxScale); r.m.material.opacity = (1 - f) * (1 - f); }
     }
   }
