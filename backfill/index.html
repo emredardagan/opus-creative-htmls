@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Backfill</title>
+<meta name="description" content="A neon arcade game: rows of bricks roll down a synthwave highway. Shoot bricks into the gaps to clear them before they reach you.">
+<meta name="theme-color" content="#0b0520">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Monoton&family=Orbitron:wght@500;700;900&family=Chakra+Petch:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="c" aria-label="Backfill game board"></canvas>
+
+<div id="hud" hidden>
+  <div class="top">
+    <div class="score-block">
+      <div id="score" class="score">0</div>
+      <div class="best"><i class="ph-bold ph-trophy" aria-hidden="true"></i> <span id="best">0</span></div>
+    </div>
+    <div class="sector-block">
+      <div class="sector-label"><span id="sectorNum">S1</span> <span id="sectorName">BOOT SEQUENCE</span></div>
+      <div class="bar"><div id="sectorBar"></div></div>
+    </div>
+    <div class="buttons">
+      <button id="btnMute" class="icon-btn" aria-label="Mute"><i class="ph-bold ph-speaker-high" aria-hidden="true"></i></button>
+      <button id="btnPause" class="icon-btn" aria-label="Pause"><i class="ph-bold ph-pause" aria-hidden="true"></i></button>
+    </div>
+  </div>
+  <div id="combo" class="combo"></div>
+  <div class="bottom">
+    <div class="barrier" aria-label="Barrier charges"><span class="lbl">BARRIER</span><div id="pips"></div></div>
+    <button id="btnPower" class="power empty" aria-label="Use power-up">
+      <i id="powerIcon" class="ph-bold ph-lightning" aria-hidden="true"></i>
+      <span id="powerName">EMPTY</span>
+      <kbd>SHIFT</kbd>
+    </button>
+  </div>
+  <div id="fever" class="fever">FEVER</div>
+</div>
+
+<div id="popups" aria-hidden="true"></div>
+<div id="banner" class="banner" aria-live="polite"></div>
+<div id="flash"></div>
+
+<section id="title" class="overlay">
+  <div class="panel">
+    <h1 class="logo">BACKFILL</h1>
+    <p class="tag">Rows roll in. Fill every gap. Never let them reach you.</p>
+    <div class="how">
+      <div><b>TAP A LANE</b> or <b>← →</b> + <b>SPACE</b> to shoot a brick</div>
+      <div>A brick flies up its lane and stops under the first brick it meets</div>
+      <div>Fill a row to clear it. <span class="c-link">Linked</span> rows clear together, <span class="c-armor">armored</span> rows break twice, <span class="c-gold">gold</span> rows drop power-ups</div>
+    </div>
+    <div class="row-btns">
+      <button id="btnPlay" class="big">PLAY</button>
+      <button id="btnDaily" class="big alt"><i class="ph-bold ph-calendar-dot" aria-hidden="true"></i> DAILY</button>
+    </div>
+    <p class="small" id="titleBest"></p>
+    <a class="back" href="../"><i class="ph-bold ph-house" aria-hidden="true"></i> Emre Dardagan</a>
+  </div>
+</section>
+
+<section id="paused" class="overlay" hidden>
+  <div class="panel">
+    <h2>PAUSED</h2>
+    <div class="row-btns">
+      <button id="btnResume" class="big"><i class="ph-bold ph-play" aria-hidden="true"></i> RESUME</button>
+      <button id="btnQuit" class="big alt">QUIT</button>
+    </div>
+  </div>
+</section>
+
+<section id="over" class="overlay" hidden>
+  <div class="panel">
+    <h2 class="over-title">SIGNAL LOST</h2>
+    <div id="overScore" class="over-score">0</div>
+    <div id="overBest" class="small"></div>
+    <div class="stats" id="stats"></div>
+    <div class="row-btns">
+      <button id="btnAgain" class="big"><i class="ph-bold ph-arrow-counter-clockwise" aria-hidden="true"></i> AGAIN</button>
+      <button id="btnMenu" class="big alt">MENU</button>
+    </div>
+  </div>
+</section>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
