@@ -61,7 +61,7 @@ export function createWorld(canvas) {
           float h = clamp(vP.y, -0.2, 1.0);
           vec3 c = mix(uSkyHor, uSkyTop, pow(smoothstep(-0.02, 0.55, h), 0.7));
           c += uAccent * 0.18 * exp(-abs(h - 0.02) * 30.0);
-          c = mix(c, c + uAccent * 0.25 * (0.5 + 0.5*sin(uTime*6.0)), uFever);
+          c = mix(c, c + uAccent * 0.1 * (0.5 + 0.5*sin(uTime*6.0)), uFever);
           gl_FragColor = vec4(c, 1.0);
         }`,
     })
@@ -100,7 +100,7 @@ export function createWorld(canvas) {
             float cut = smoothstep(0.08, -0.36, p.y) * 0.75;
             a *= step(cut, band);
           }
-          gl_FragColor = vec4(c * (0.95 * a + glow * 0.5), max(a, glow * 0.6));
+          gl_FragColor = vec4(c * (0.8 * a + glow * 0.25), max(a, glow * 0.35));
         }`,
     })
   );
@@ -167,7 +167,7 @@ export function createWorld(canvas) {
           float dist = length(vW.xz - vec2(0.0, -10.0));
           float fade = exp(-dist * 0.016) * 0.8;
           vec3 base = mix(uSkyTop * 0.35, uSkyHor * 0.6, smoothstep(30.0, 220.0, dist));
-          vec3 lc = uAccent * (1.0 + uFever * (0.8 + 0.8*sin(uTime*8.0)));
+          vec3 lc = uAccent * (1.0 + uFever * (0.3 + 0.3*sin(uTime*8.0)));
           vec3 c = mix(base, lc, l * fade);
           c = mix(c, uSkyHor, smoothstep(120.0, 290.0, dist));
           gl_FragColor = vec4(c, 1.0);
@@ -298,7 +298,7 @@ export function createWorld(canvas) {
   // ---------- post ----------
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.7, 0.5, 0.78);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.42, 0.3, 0.88);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
 
