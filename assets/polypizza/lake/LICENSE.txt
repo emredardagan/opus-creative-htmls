@@ -1,0 +1,68 @@
+Models downloaded from Poly Pizza (https://poly.pizza) for Mirrormere. Every model in this folder is released under
+CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/) by its creator. Textures on the tree, plant and
+rock models were downscaled to 512px and re-encoded as WebP.
+
+| File                | Model                | Creator      | Source                          |
+| ------------------- | -------------------- | ------------ | ------------------------------- |
+| anglerfish.glb      | Anglerfish           | Quaternius   | https://poly.pizza/m/MRjSlwCjHM |
+| armored-catfish.glb | Armored Catfish      | Quaternius   | https://poly.pizza/m/mtd9QK5yCe |
+| birch.glb           | Birch Tree           | Quaternius   | https://poly.pizza/m/k6cozoNfLH |
+| black-lionfish.glb  | Black Lion Fish      | Quaternius   | https://poly.pizza/m/4k2s68UrSg |
+| blobfish.glb        | Blobfish             | Quaternius   | https://poly.pizza/m/7Jh8vsARfN |
+| blue-goldfish.glb   | Blue Goldfish        | Quaternius   | https://poly.pizza/m/imxZBHZ1yS |
+| boat.glb            | Boat                 | Quaternius   | https://poly.pizza/m/5UEl54KsuC |
+| bonfire.glb         | Bonfire              | Quaternius   | https://poly.pizza/m/Azj9hJwwwG |
+| bush.glb            | Bush                 | Quaternius   | https://poly.pizza/m/ooG6CkLyE8 |
+| bush-flowers.glb    | Bush with Flowers    | Quaternius   | https://poly.pizza/m/U1ymDy8tbY |
+| butterfly-fish.glb  | Butterfly Fish       | Quaternius   | https://poly.pizza/m/s2MkBeSzGy |
+| clownfish.glb       | Clownfish            | Quaternius   | https://poly.pizza/m/769fHo3eEB |
+| cowfish.glb         | Cowfish              | Quaternius   | https://poly.pizza/m/VMJluStc59 |
+| dock.glb            | Dock                 | Quaternius   | https://poly.pizza/m/XViKoBh2UN |
+| fern.glb            | Fern                 | Quaternius   | https://poly.pizza/m/jqcanvH7D6 |
+| fish-a.glb          | Fish                 | Quaternius   | https://poly.pizza/m/BEcU9rjiAq |
+| fish-b.glb          | Fish                 | Quaternius   | https://poly.pizza/m/XWl86YFtpF |
+| fish-bone.glb       | Fish Bone            | Quaternius   | https://poly.pizza/m/bU5RLZnq6v |
+| fish-c.glb          | Fish                 | Quaternius   | https://poly.pizza/m/Ymu8ftrmuT |
+| fish-d.glb          | Fish                 | Quaternius   | https://poly.pizza/m/ypEYhCImAB |
+| fish-e.glb          | Fish                 | Quaternius   | https://poly.pizza/m/7V4gaDMQV8 |
+| fishing-rod-b.glb   | Fishing Rod          | Quaternius   | https://poly.pizza/m/0YAR0Lg58p |
+| flatfish.glb        | Flatfish             | Quaternius   | https://poly.pizza/m/X5EjEA6fMF |
+| flower-group.glb    | Flower Group         | Quaternius   | https://poly.pizza/m/hfPzQAedOe |
+| flowers.glb         | Flowers              | Quaternius   | https://poly.pizza/m/NBUxHir6FJ |
+| frog.glb            | Frog                 | Quaternius   | https://poly.pizza/m/9Z2V8fpazF |
+| goldfish.glb        | Goldfish             | Quaternius   | https://poly.pizza/m/qS6CgsWFAh |
+| grass.glb           | Grass                | Quaternius   | https://poly.pizza/m/UGTOzcO3P2 |
+| grass-wispy.glb     | Grass Wispy          | Quaternius   | https://poly.pizza/m/Msr9zx66VU |
+| hut.glb             | Hut                  | Quaternius   | https://poly.pizza/m/wxi3kAu5ey |
+| kitty.glb           | Cat                  | Quaternius   | https://poly.pizza/m/2f54vbV0In |
+| koi.glb             | Koi                  | Quaternius   | https://poly.pizza/m/qyGtRmhgzl |
+| lantern.glb         | Lantern              | Kay Lousberg | https://poly.pizza/m/CtHBJ1ufeW |
+| lilypad.glb         | Lilypad              | Quaternius   | https://poly.pizza/m/TI6ukUlsLh |
+| lionfish.glb        | Lionfish             | Quaternius   | https://poly.pizza/m/czsz9Baw86 |
+| log-moss.glb        | Wood Log with Moss   | Quaternius   | https://poly.pizza/m/nwsYvcI0bC |
+| lure.glb            | Lure                 | Quaternius   | https://poly.pizza/m/3PCaOuRgtU |
+| mackerel.glb        | Mackerel             | Quaternius   | https://poly.pizza/m/uassUTYYae |
+| manta-ray.glb       | Manta ray            | Quaternius   | https://poly.pizza/m/yzD8b7ZHZm |
+| mushroom.glb        | Mushroom             | Quaternius   | https://poly.pizza/m/db1tjMhmiA |
+| pine-a.glb          | Pine                 | Quaternius   | https://poly.pizza/m/igSu0cPoBz |
+| pine-autumn.glb     | Pine Tree Autumn     | Quaternius   | https://poly.pizza/m/n0X3N2yUFL |
+| pine-b.glb          | Pine                 | Quaternius   | https://poly.pizza/m/79gmlLnweB |
+| pine-c.glb          | Pine                 | Quaternius   | https://poly.pizza/m/699sFuLCN2 |
+| pine-trees.glb      | Pine Trees           | Quaternius   | https://poly.pizza/m/oYtDty0fR6 |
+| post-lantern.glb    | Post Lantern         | Kay Lousberg | https://poly.pizza/m/ZSQ65S4lEu |
+| puffer.glb          | Puffer               | Quaternius   | https://poly.pizza/m/UKHtgpxTOk |
+| red-snapper.glb     | Red Snapper          | Quaternius   | https://poly.pizza/m/BRKfDKwPTv |
+| rock.glb            | Rock                 | Quaternius   | https://poly.pizza/m/RtLRqYjfMs |
+| rock-large.glb      | Rock Large           | Quaternius   | https://poly.pizza/m/54jZKTAt5p |
+| rock-medium.glb     | Rock Medium          | Quaternius   | https://poly.pizza/m/s1OJ3bBzqc |
+| rocks.glb           | Rocks                | Quaternius   | https://poly.pizza/m/OQvi8PIZ40 |
+| shack.glb           | Shack                | Quaternius   | https://poly.pizza/m/dlMcSexDWI |
+| shark.glb           | Shark                | Quaternius   | https://poly.pizza/m/YYsK3gRCBZ |
+| stump.glb           | Tree Stump with Moss | Quaternius   | https://poly.pizza/m/nFvEbUX6LE |
+| sunfish.glb         | Sunfish              | Quaternius   | https://poly.pizza/m/UpDxLf8yue |
+| swordfish.glb       | Swordfish            | Quaternius   | https://poly.pizza/m/7hMOlBjln0 |
+| tall-grass.glb      | Tall Grass           | Quaternius   | https://poly.pizza/m/JSIYtscPmP |
+| tang.glb            | Tang                 | Quaternius   | https://poly.pizza/m/D36zsP5ESu |
+| tetra.glb           | Tetra                | Quaternius   | https://poly.pizza/m/l6AhogdZHe |
+| tuna.glb            | Tuna                 | Quaternius   | https://poly.pizza/m/1tycAcvSVW |
+| turbot.glb          | Turbot               | Quaternius   | https://poly.pizza/m/E8NjhhdvSU |

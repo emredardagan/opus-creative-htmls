@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Mirrormere</title>
+<meta name="description" content="A cosy fishing game on a lake that changes with the hours and the weather. Cast, hook and reel in 32 kinds of fish with your cat beside you.">
+<meta name="theme-color" content="#1d2a3a">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="c" aria-label="Mirrormere lake"></canvas>
+
+<div id="hud" hidden>
+  <div class="top">
+    <div class="clock pill" aria-live="polite">
+      <i id="phaseIcon" class="ph-fill ph-sun" aria-hidden="true"></i>
+      <span id="clockTime">06:00</span>
+      <span class="sep"></span>
+      <i id="weatherIcon" class="ph-bold ph-cloud-sun" aria-hidden="true"></i>
+      <span id="weatherName">Clear</span>
+    </div>
+    <div class="coins pill"><i class="ph-fill ph-coin-vertical" aria-hidden="true"></i><span id="coins">0</span></div>
+  </div>
+  <div class="rank pill">
+    <span id="rankName">Puddle Dabbler</span>
+    <div class="xpbar"><div id="xpFill"></div></div>
+  </div>
+  <div class="side">
+    <button class="round" id="btnJournal" aria-label="Fish journal"><i class="ph-bold ph-book-open-text"></i><span class="badge-dot" id="journalDot" hidden></span></button>
+    <button class="round" id="btnShop" aria-label="Tackle shop"><i class="ph-bold ph-storefront"></i></button>
+    <button class="round" id="btnSpots" aria-label="Fishing spots"><i class="ph-bold ph-map-trifold"></i></button>
+    <button class="round" id="btnNotes" aria-label="Lake notes"><i class="ph-bold ph-scroll"></i><span class="badge-dot" id="notesDot" hidden></span></button>
+    <button class="round" id="btnMute" aria-label="Sound"><i class="ph-bold ph-speaker-high"></i></button>
+  </div>
+
+  <div id="zoneTag" class="zone-tag"></div>
+
+  <div id="prompt" class="prompt"><span id="promptText">Hold to cast</span></div>
+
+  <div id="power" class="power" hidden>
+    <svg viewBox="0 0 120 120" aria-hidden="true">
+      <circle class="track" cx="60" cy="60" r="50"/>
+      <circle id="powerArc" class="arc" cx="60" cy="60" r="50"/>
+    </svg>
+    <span id="powerDist">12 m</span>
+  </div>
+
+  <div id="fight" class="fight" hidden>
+    <div class="fight-fish"><i class="ph-fill ph-fish-simple" aria-hidden="true"></i> <span id="fightName">Something's on!</span></div>
+    <div class="gauge">
+      <div class="zone-ok"></div>
+      <div id="tensionFill" class="tension-fill"></div>
+      <div id="tensionNeedle" class="needle"></div>
+    </div>
+    <div class="gauge-labels"><span>slack</span><span>sweet spot</span><span>snap!</span></div>
+    <div class="reel-track"><div id="reelFill"></div><i class="ph-fill ph-fish" id="reelFish" aria-hidden="true"></i></div>
+    <div class="fight-help" id="fightHelp">Hold to reel · let go when it runs</div>
+  </div>
+</div>
+
+<div id="pops" aria-hidden="true"></div>
+<div id="toast" class="toast" aria-live="polite"></div>
+<div id="vignette"></div>
+
+<!-- catch card -->
+<section id="catch" class="overlay catch" hidden>
+  <div class="card">
+    <div class="rarity" id="catchRarity"></div>
+    <div id="catchView" class="viewer"></div>
+    <h2 id="catchName">Pond Goldfish</h2>
+    <div class="catch-stats">
+      <div><span class="lbl">Length</span><b id="catchLen">20 cm</b></div>
+      <div><span class="lbl">Weight</span><b id="catchWt">0.3 kg</b></div>
+      <div><span class="lbl">Worth</span><b id="catchVal"><i class="ph-fill ph-coin-vertical"></i> 5</b></div>
+    </div>
+    <div class="catch-tags" id="catchTags"></div>
+    <p class="catch-desc" id="catchDesc"></p>
+    <div class="row">
+      <button class="btn ghost" id="btnRelease"><i class="ph-bold ph-hand-heart"></i> Release <small>+luck</small></button>
+      <button class="btn primary" id="btnKeep"><i class="ph-bold ph-coin-vertical"></i> Sell</button>
+    </div>
+  </div>
+</section>
+
+<!-- journal -->
+<section id="journal" class="overlay sheet" hidden>
+  <div class="panel wide">
+    <header><h2><i class="ph-bold ph-book-open-text"></i> Fish journal</h2><span class="count" id="journalCount">0 / 32</span><button class="x" data-close aria-label="Close"><i class="ph-bold ph-x"></i></button></header>
+    <div class="journal-body">
+      <div class="grid" id="journalGrid"></div>
+      <aside class="detail" id="journalDetail">
+        <div id="journalView" class="viewer"></div>
+        <h3 id="jdName">?</h3>
+        <div class="rarity" id="jdRarity"></div>
+        <p id="jdDesc"></p>
+        <ul class="facts" id="jdFacts"></ul>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- shop -->
+<section id="shop" class="overlay sheet" hidden>
+  <div class="panel">
+    <header><h2><i class="ph-bold ph-storefront"></i> Gilbert's Tackle</h2><span class="count"><i class="ph-fill ph-coin-vertical"></i> <span id="shopCoins">0</span></span><button class="x" data-close aria-label="Close"><i class="ph-bold ph-x"></i></button></header>
+    <p class="say" id="shopSay">"Fine weather for it. What'll it be?"</p>
+    <div class="shop-list" id="shopList"></div>
+  </div>
+</section>
+
+<!-- spots -->
+<section id="spots" class="overlay sheet" hidden>
+  <div class="panel">
+    <header><h2><i class="ph-bold ph-map-trifold"></i> Fishing spots</h2><button class="x" data-close aria-label="Close"><i class="ph-bold ph-x"></i></button></header>
+    <div class="spot-list" id="spotList"></div>
+  </div>
+</section>
+
+<!-- notes -->
+<section id="notes" class="overlay sheet" hidden>
+  <div class="panel">
+    <header><h2><i class="ph-bold ph-scroll"></i> Lake notes</h2><span class="count" id="notesDay">Day 1</span><button class="x" data-close aria-label="Close"><i class="ph-bold ph-x"></i></button></header>
+    <p class="say">Fresh requests are pinned to the dock post every morning.</p>
+    <div class="note-list" id="noteList"></div>
+  </div>
+</section>
+
+<!-- title -->
+<section id="title" class="overlay title">
+  <div class="title-inner">
+    <div class="logo">
+      <span class="logo-top">the lake of</span>
+      <h1>Mirrormere</h1>
+      <span class="logo-sub">a slow fishing game</span>
+    </div>
+    <div id="loadWrap" class="load"><div id="loadBar"></div></div>
+    <button class="btn primary big" id="btnStart" hidden><i class="ph-fill ph-play"></i> <span id="startLabel">Go fishing</span></button>
+    <p class="hint"><span class="desk">Hold <kbd>Space</kbd> or the mouse to cast and reel.</span><span class="mob">Hold anywhere to cast and reel.</span></p>
+  </div>
+</section>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

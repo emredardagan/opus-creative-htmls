@@ -25,6 +25,8 @@ Everything in this folder is free to use in commercial and personal projects. Ea
 | `kenney/sci-fi-sounds` | Lasers, metal impacts, explosions, force field (Backfill sound effects) | [Kenney · Sci-fi Sounds](https://kenney.nl/assets/sci-fi-sounds) | CC0 |
 | `kenney/digital-audio` | Zaps, tones and power-up jingles (Backfill sound effects) | [Kenney · Digital Audio](https://kenney.nl/assets/digital-audio) | CC0 |
 | `hdri/kloofendal_puresky_1k.hdr` | Sunny sky used for soft image-based lighting | [Poly Haven](https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky) | CC0 |
+| `polypizza/lake/` | Mirrormere's lake: 29 animated fish, the cat, Gilbert the fishmonger, frogs, pines, birches, reeds, lily pads, rocks, dock, boat, shack, hut, bonfire and lanterns (textures downscaled to 512px WebP) | [Poly Pizza](https://poly.pizza) (Quaternius, Kay Lousberg), creators listed in `polypizza/lake/LICENSE.txt` | CC0 |
+| `audio/mirrormere/` | Mirrormere's two music tracks, forest, cricket, rain and lapping-water beds, splashes and plops (re-encoded as AAC) | [OpenGameArt](https://opengameart.org), authors listed in `audio/mirrormere/LICENSE.txt` | CC0 |
 
 All models are `.glb` (glTF binary). Most Kenney kits share a single `Textures/colormap.png` palette texture next to the models.
 
@@ -35,8 +37,9 @@ All models are `.glb` (glTF binary). Most Kenney kits share a single `Textures/c
 | [three.js](https://threejs.org) 0.186 | Rendering, glTF loading, HDR loading, post-processing | MIT |
 | [N8AO](https://github.com/N8python/n8ao) 2.0 | Ambient occlusion (the soft contact shadows in every crease) | ISC |
 | [postprocessing](https://github.com/pmndrs/postprocessing) 6.39 | Dependency of N8AO | Zlib |
-| [Phosphor Icons](https://phosphoricons.com) 2.1 | HUD icons in Meadowlark and Backfill (icon font) | MIT |
+| [Phosphor Icons](https://phosphoricons.com) 2.1 | HUD icons in Meadowlark, Backfill and Mirrormere (icon font) | MIT |
 | [Google Fonts](https://fonts.google.com): Monoton, Orbitron, Chakra Petch | Backfill logo, HUD and body text | OFL |
+| [Google Fonts](https://fonts.google.com): Fraunces, Nunito | Mirrormere titles and HUD | OFL |
 
 ## The Toybox kit (`kit/`)
 

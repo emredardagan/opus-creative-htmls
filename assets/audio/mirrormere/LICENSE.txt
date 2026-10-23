@@ -1,0 +1,14 @@
+Sounds and music for Mirrormere, all from OpenGameArt (https://opengameart.org) and released under
+CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Files were trimmed and re-encoded as AAC (.m4a).
+
+| File                       | Original                                   | Author        | Source                                                           |
+| -------------------------- | ------------------------------------------ | ------------- | ---------------------------------------------------------------- |
+| music-another-august.m4a   | Another August                             | cynicmusic    | https://opengameart.org/content/another-august                   |
+| music-small-fire.m4a       | A Small Fire Will Do (Calming Loop)        | trex0n        | https://opengameart.org/content/a-small-fire-will-do-calming-loop |
+| amb-forest.m4a             | Forest Ambience                            | tinyworlds    | https://opengameart.org/content/forest-ambience                  |
+| amb-crickets.m4a           | Crickets Ambient Noise - loopable          | wolfgang      | https://opengameart.org/content/crickets-ambient-noise-loopable  |
+| amb-rain.m4a               | Rain (loopable), track 3                   | ylmir         | https://opengameart.org/content/rain-loopable                    |
+| amb-lap.m4a                | Sea and river wave sounds (Vistula, 40 s)  | randommind    | https://opengameart.org/content/sea-and-river-wave-sounds        |
+| splash-01/03/04/06.m4a     | 6 Short water splashes                     | qubodup       | https://opengameart.org/content/6-short-water-splashes           |
+| plop-a.m4a, plop-b.m4a     | water, waterReentry                        | jcpmcdonald   | https://opengameart.org/content/skippy-fish-water-sound-collection |
+| bubbles.m4a, swim.m4a      | bubbles, swim                              | jcpmcdonald   | https://opengameart.org/content/skippy-fish-water-sound-collection |
